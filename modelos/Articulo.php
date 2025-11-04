@@ -7,15 +7,21 @@ class Articulo
   public function __construct(){}
 
   // Helper: ¿existe un artículo con ese nombre?
-  private function existeNombre($nombre, $idarticulo = null){
-    $nombre = trim($nombre);
-    $sql = "SELECT idarticulo FROM articulo 
-            WHERE nombre = '$nombre' " . ($idarticulo ? "AND idarticulo <> '$idarticulo'" : "") . "
-            LIMIT 1";
-    $fila = ejecutarConsultaSimpleFila($sql);
-    // ejecutarConsultaSimpleFila suele devolver array asociativo o null
-    return is_array($fila) && isset($fila['idarticulo']);
-  }
+private function existeNombre($nombre, $idarticulo = null)
+{
+  // Normalizar: minúsculas, eliminar espacios duplicados, quitar espacios extras
+  $nombre_normalizado = strtolower(trim(preg_replace('/\s+/', ' ', $nombre)));
+
+  // Buscar coincidencias ignorando mayúsculas y espacios
+  $sql = "SELECT idarticulo FROM articulo 
+          WHERE LOWER(REPLACE(nombre, ' ', '')) = LOWER(REPLACE('$nombre_normalizado', ' ', '')) " .
+         ($idarticulo ? "AND idarticulo <> '$idarticulo'" : "") . "
+          LIMIT 1";
+
+  $fila = ejecutarConsultaSimpleFila($sql);
+  return is_array($fila) && isset($fila['idarticulo']);
+}
+
 
   public function insertar($idcategoria,$codigo,$nombre,$stock,$precio_compra,$precio_venta,$descripcion,$imagen)
   {
