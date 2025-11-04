@@ -7,18 +7,17 @@ class Articulo
   public function __construct(){}
 
   // Helper: ¿existe un artículo con ese nombre?
-private function existeNombre($nombre, $idarticulo = null)
-{
-  $nombre_normalizado = strtolower(trim(preg_replace('/\s+/', ' ', $nombre)));
-
+private function existeNombre($nombre, $idarticulo = null){
+  $nombre = trim($nombre);
+  $nombreEsc = addslashes($nombre);
   $sql = "SELECT idarticulo FROM articulo 
-          WHERE SOUNDEX(nombre) = SOUNDEX('$nombre_normalizado') " .
-         ($idarticulo ? "AND idarticulo <> '$idarticulo'" : "") . "
-          LIMIT 1";
-
+          WHERE SOUNDEX(nombre) = SOUNDEX('$nombreEsc') " . 
+         ($idarticulo ? "AND idarticulo <> '$idarticulo'" : "") . 
+         " LIMIT 1";
   $fila = ejecutarConsultaSimpleFila($sql);
   return is_array($fila) && isset($fila['idarticulo']);
 }
+
 
 
 
