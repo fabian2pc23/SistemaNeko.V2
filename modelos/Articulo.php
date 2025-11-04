@@ -8,15 +8,20 @@ class Articulo
 
   // Helper: ¿existe un artículo con ese nombre?
 private function existeNombre($nombre, $idarticulo = null){
-  $nombre = trim($nombre);
-  $nombreEsc = addslashes($nombre);
-  $sql = "SELECT idarticulo FROM articulo 
-          WHERE SOUNDEX(nombre) = SOUNDEX('$nombreEsc') " . 
-         ($idarticulo ? "AND idarticulo <> '$idarticulo'" : "") . 
-         " LIMIT 1";
-  $fila = ejecutarConsultaSimpleFila($sql);
-  return is_array($fila) && isset($fila['idarticulo']);
+  $nombre = trim(mb_strtolower($nombre));
+  $sql = "SELECT nombre FROM articulo " . ($idarticulo ? "WHERE idarticulo <> '$idarticulo'" : "");
+  $rspta = ejecutarConsulta($sql);
+
+  while ($fila = $rspta->fetch_assoc()) {
+    $nombreBD = trim(mb_strtolower($fila['nombre']));
+    similar_text($nombre, $nombreBD, $porcentaje);
+    if ($porcentaje >= 90) {  // puedes ajustar 90 a 85 o 95
+      return true; // demasiado parecido → duplicado
+    }
+  }
+  return false;
 }
+
 
 
 
