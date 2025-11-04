@@ -20,7 +20,7 @@ private function existeNombre($nombre, $idarticulo = null){
     }
   }
   return false;
-}
+}   
 
 
 
