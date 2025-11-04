@@ -114,7 +114,7 @@ try {
         $btns =
           '<button class="btn btn-warning btn-sm btn-edit" data-id="'.(int)$reg->idarticulo.'" title="Editar"><i class="fa fa-pencil"></i></button> '.
           ($reg->condicion
-            ? '<button class="btn btn-danger btn-sm btn-off" data-id="'.(int)$reg->idarticulo.'"><i class="fa fa-trash"></i></button>'
+            ? '<button class="btn btn-danger btn-sm btn-off" data-id="'.(int)$reg->idarticulo.'"><i class="fa fa-Close"></i></button>'
             : '<button class="btn btn-primary btn-sm btn-on" data-id="'.(int)$reg->idarticulo.'"><i class="fa fa-check"></i></button>'
           );
 
