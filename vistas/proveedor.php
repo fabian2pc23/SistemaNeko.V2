@@ -99,6 +99,7 @@ $nekoPrimaryDark = '#0d47a1';
                 <th>Número</th>
                 <th>Teléfono</th>
                 <th>Email</th>
+                <th>Estado</th> <!-- 🔹 Nuevo campo agregado -->
               </thead>
               <tbody></tbody>
               <tfoot>
@@ -108,6 +109,7 @@ $nekoPrimaryDark = '#0d47a1';
                 <th>Número</th>
                 <th>Teléfono</th>
                 <th>Email</th>
+                <th>Estado</th> <!-- 🔹 Nuevo campo agregado -->
               </tfoot>
             </table>
           </div>
