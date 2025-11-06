@@ -26,50 +26,50 @@ $telefono=isset($_POST["telefono"])? limpiarCadena($_POST["telefono"]):"";
 $email=isset($_POST["email"])? limpiarCadena($_POST["email"]):"";
 
 switch ($_GET["op"]){
+
+	// ==============================
+	// CONSULTA POR DNI / RUC
+	// ==============================
 	case 'consultaDoc':
-  // Entrada: POST { tipo: 'DNI'|'RUC', numero: '...' }
-  header('Content-Type: application/json; charset=utf-8');
+		header('Content-Type: application/json; charset=utf-8');
 
-  $tipo   = isset($_POST['tipo'])   ? $_POST['tipo']   : '';
-  $numero = isset($_POST['numero']) ? preg_replace('/\D/','', $_POST['numero']) : '';
+		$tipo   = isset($_POST['tipo'])   ? $_POST['tipo']   : '';
+		$numero = isset($_POST['numero']) ? preg_replace('/\D/','', $_POST['numero']) : '';
 
-  if ($tipo !== 'DNI' && $tipo !== 'RUC') {
-    echo json_encode(['ok'=>false, 'msg'=>'Tipo inválido']); break;
-  }
-  if (($tipo==='DNI' && strlen($numero)!==8) || ($tipo==='RUC' && strlen($numero)!==11)) {
-    echo json_encode(['ok'=>false, 'msg'=>'Longitud inválida']); break;
-  }
+		if ($tipo !== 'DNI' && $tipo !== 'RUC') {
+			echo json_encode(['ok'=>false, 'msg'=>'Tipo inválido']); break;
+		}
+		if (($tipo==='DNI' && strlen($numero)!==8) || ($tipo==='RUC' && strlen($numero)!==11)) {
+			echo json_encode(['ok'=>false, 'msg'=>'Longitud inválida']); break;
+		}
 
-  // ==== Lógica de consulta ====
-  // Reutiliza tus funciones existentes (las mismas que usas en Proveedores).
-  // Aquí muestro un ejemplo genérico. Ajusta a tu implementación real:
+		try {
+			require_once "../modelos/Persona.php";
+			$p = new Persona();
 
-  try {
-    require_once "../modelos/Persona.php";
-    $p = new Persona();
+			if ($tipo === 'DNI') {
+				$info = $p->consultaRENIEC($numero);
+				if ($info && !empty($info['nombre'])) {
+					echo json_encode(['ok'=>true, 'nombre'=>$info['nombre'], 'direccion'=> isset($info['direccion'])?$info['direccion']:'' ]);
+				} else {
+					echo json_encode(['ok'=>false, 'msg'=>'DNI no encontrado']);
+				}
+			} else {
+				$info = $p->consultaSUNAT($numero);
+				if ($info && !empty($info['razon_social'])) {
+					echo json_encode(['ok'=>true, 'nombre'=>$info['razon_social'], 'direccion'=> isset($info['direccion'])?$info['direccion']:'' ]);
+				} else {
+					echo json_encode(['ok'=>false, 'msg'=>'RUC no encontrado']);
+				}
+			}
+		} catch (Exception $ex) {
+			echo json_encode(['ok'=>false, 'msg'=>'Error en servicio']);
+		}
+	break;
 
-    if ($tipo === 'DNI') {
-      // Debe devolver al menos 'nombre' desde RENIEC
-      $info = $p->consultaRENIEC($numero); // <-- implementado en tu modelo o servicio
-      if ($info && !empty($info['nombre'])) {
-        echo json_encode(['ok'=>true, 'nombre'=>$info['nombre'], 'direccion'=> isset($info['direccion'])?$info['direccion']:'' ]);
-      } else {
-        echo json_encode(['ok'=>false, 'msg'=>'DNI no encontrado']);
-      }
-    } else { // RUC
-      // Debe devolver 'razon_social' y 'direccion'
-      $info = $p->consultaSUNAT($numero); // <-- igual que en proveedores
-      if ($info && !empty($info['razon_social'])) {
-        echo json_encode(['ok'=>true, 'nombre'=>$info['razon_social'], 'direccion'=> isset($info['direccion'])?$info['direccion']:'' ]);
-      } else {
-        echo json_encode(['ok'=>false, 'msg'=>'RUC no encontrado']);
-      }
-    }
-  } catch (Exception $ex) {
-    echo json_encode(['ok'=>false, 'msg'=>'Error en servicio']);
-  }
-break;
-
+	// ==============================
+	// GUARDAR Y EDITAR
+	// ==============================
 	case 'guardaryeditar':
 		if (empty($idpersona)){
 			$rspta=$persona->insertar($tipo_persona,$nombre,$tipo_documento,$num_documento,$direccion,$telefono,$email);
@@ -81,68 +81,97 @@ break;
 		}
 	break;
 
-	case 'eliminar':
-		$rspta=$persona->eliminar($idpersona);
- 		echo $rspta ? "Persona eliminada" : "Persona no se puede eliminar";
+	// ==============================
+	// DESACTIVAR
+	// ==============================
+	case 'desactivar':
+		$rspta=$persona->desactivar($idpersona);
+		echo $rspta ? "Persona desactivada" : "No se pudo desactivar la persona";
 	break;
 
+	// ==============================
+	// ACTIVAR
+	// ==============================
+	case 'activar':
+		$rspta=$persona->activar($idpersona);
+		echo $rspta ? "Persona activada" : "No se pudo activar la persona";
+	break;
+
+	// ==============================
+	// MOSTRAR
+	// ==============================
 	case 'mostrar':
 		$rspta=$persona->mostrar($idpersona);
- 		//Codificar el resultado utilizando json
  		echo json_encode($rspta);
 	break;
 
+	// ==============================
+	// LISTAR PROVEEDORES
+	// ==============================
 	case 'listarp':
 		$rspta=$persona->listarp();
- 		//Vamos a declarar un array
  		$data= Array();
 
  		while ($reg=$rspta->fetch_object()){
  			$data[]=array(
- 				"0"=>'<button class="btn btn-warning" onclick="mostrar('.$reg->idpersona.')"><i class="fa fa-pencil"></i></button>'.
- 					' <button class="btn btn-danger" onclick="eliminar('.$reg->idpersona.')"><i class="fa fa-trash"></i></button>',
- 				"1"=>$reg->nombre,
- 				"2"=>$reg->tipo_documento,
- 				"3"=>$reg->num_documento,
- 				"4"=>$reg->telefono,
- 				"5"=>$reg->email
- 				);
+				"0"=>($reg->condicion)?
+					'<button class="btn btn-warning" onclick="mostrar('.$reg->idpersona.')"><i class="fa fa-pencil"></i></button>'.
+					' <button class="btn btn-danger" onclick="desactivar('.$reg->idpersona.')"><i class="fa fa-close"></i></button>'
+					:
+					'<button class="btn btn-warning" onclick="mostrar('.$reg->idpersona.')"><i class="fa fa-pencil"></i></button>'.
+					' <button class="btn btn-primary" onclick="activar('.$reg->idpersona.')"><i class="fa fa-check"></i></button>',
+				"1"=>$reg->nombre,
+				"2"=>$reg->tipo_documento,
+				"3"=>$reg->num_documento,
+				"4"=>$reg->telefono,
+				"5"=>$reg->email,
+				"6"=>($reg->condicion)?
+					'<span class="label bg-green">Activado</span>'
+					:
+					'<span class="label bg-red">Desactivado</span>'
+ 			);
  		}
  		$results = array(
- 			"sEcho"=>1, //Información para el datatables
- 			"iTotalRecords"=>count($data), //enviamos el total registros al datatable
- 			"iTotalDisplayRecords"=>count($data), //enviamos el total registros a visualizar
+ 			"sEcho"=>1,
+ 			"iTotalRecords"=>count($data),
+ 			"iTotalDisplayRecords"=>count($data),
  			"aaData"=>$data);
  		echo json_encode($results);
-
 	break;
 
+	// ==============================
+	// LISTAR CLIENTES
+	// ==============================
 	case 'listarc':
 		$rspta=$persona->listarc();
- 		//Vamos a declarar un array
  		$data= Array();
 
  		while ($reg=$rspta->fetch_object()){
  			$data[]=array(
- 				"0"=>'<button class="btn btn-warning" onclick="mostrar('.$reg->idpersona.')"><i class="fa fa-pencil"></i></button>'.
- 					' <button class="btn btn-danger" onclick="eliminar('.$reg->idpersona.')"><i class="fa fa-trash"></i></button>',
- 				"1"=>$reg->nombre,
- 				"2"=>$reg->tipo_documento,
- 				"3"=>$reg->num_documento,
- 				"4"=>$reg->telefono,
- 				"5"=>$reg->email
- 				);
+				"0"=>($reg->condicion)?
+					'<button class="btn btn-warning" onclick="mostrar('.$reg->idpersona.')"><i class="fa fa-pencil"></i></button>'.
+					' <button class="btn btn-danger" onclick="desactivar('.$reg->idpersona.')"><i class="fa fa-close"></i></button>'
+					:
+					'<button class="btn btn-warning" onclick="mostrar('.$reg->idpersona.')"><i class="fa fa-pencil"></i></button>'.
+					' <button class="btn btn-primary" onclick="activar('.$reg->idpersona.')"><i class="fa fa-check"></i></button>',
+				"1"=>$reg->nombre,
+				"2"=>$reg->tipo_documento,
+				"3"=>$reg->num_documento,
+				"4"=>$reg->telefono,
+				"5"=>$reg->email,
+				"6"=>($reg->condicion)?
+					'<span class="label bg-green">Activado</span>'
+					:
+					'<span class="label bg-red">Desactivado</span>'
+ 			);
  		}
  		$results = array(
- 			"sEcho"=>1, //Información para el datatables
- 			"iTotalRecords"=>count($data), //enviamos el total registros al datatable
- 			"iTotalDisplayRecords"=>count($data), //enviamos el total registros a visualizar
+ 			"sEcho"=>1,
+ 			"iTotalRecords"=>count($data),
+ 			"iTotalDisplayRecords"=>count($data),
  			"aaData"=>$data);
  		echo json_encode($results);
-
 	break;
-
-
 }
 //Fin de las validaciones de acceso
 }
