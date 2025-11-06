@@ -39,8 +39,19 @@ switch ($op) {
     if (!empty($idingreso)) {
       echo "Este módulo solo inserta (no edita).";
       break;
-    }
+    } 
 
+require_once "../modelos/Persona.php";
+$personaM = new Persona();
+
+// normalizo a int por seguridad
+$idprov = isset($idproveedor) ? (int)$idproveedor : 0;
+
+if ($idprov <= 0 || !$personaM->proveedorEstaActivo($idprov)) {
+  http_response_code(409); // conflicto/estado inválido
+  echo "El proveedor seleccionado está inactivo o no existe.";
+  break;
+}
     // Validación fecha (±2 días, America/Lima)
     $tz     = new DateTimeZone('America/Lima');
     $today  = new DateTime('today', $tz);
@@ -245,14 +256,17 @@ switch ($op) {
    * Select de Proveedor
    * ========================= */
   case 'selectProveedor':
-    require_once "../modelos/Persona.php";
-    $persona = new Persona();
-    $rspta   = $persona->listarP();
-    while ($reg = $rspta->fetch_object()) {
-      echo '<option value="'.(int)$reg->idpersona.'">'.htmlspecialchars($reg->nombre,ENT_QUOTES,'UTF-8').'</option>';
-    }
-  break;
+  require_once "../modelos/Persona.php";
+  $persona = new Persona();
+  $rspta = $persona->selectProveedoresActivos(); // <-- SOLO activos
 
+  header('Content-Type: text/html; charset=utf-8');
+  while ($reg = $rspta->fetch_object()) {
+    echo '<option value="' . $reg->idpersona . '">' . 
+          htmlspecialchars($reg->nombre, ENT_QUOTES, 'UTF-8') . 
+         '</option>';
+  }
+  exit;
   /* =========================
    * Listar artículos (modal)
    * ========================= */
@@ -304,3 +318,4 @@ switch ($op) {
 }
 
 ob_end_flush();
+
