@@ -61,16 +61,13 @@ const consultaDoc = debounce(async function () {
   const nombre = document.getElementById('nombre');
   const dir    = document.getElementById('direccion');
 
-  // Normaliza: solo dígitos en el campo número
   ndocEl.value = (ndocEl.value || '').replace(/\D+/g, '');
 
-  // Reset de estado si no alcanza longitud mínima
   if ((tipo === 'RUC' && ndocEl.value.length < 11) || (tipo === 'DNI' && ndocEl.value.length < 8)) {
     chipInfo('Esperando número…');
     return;
   }
 
-  // ====== DNI - RENIEC ======
   if (tipo === 'DNI' && /^\d{8}$/.test(ndocEl.value)) {
     chipBusy('Consultando RENIEC…');
     nombre.value = 'Consultando RENIEC…';
@@ -91,7 +88,6 @@ const consultaDoc = debounce(async function () {
     return;
   }
 
-  // ====== RUC - SUNAT ======
   if (tipo === 'RUC' && /^\d{11}$/.test(ndocEl.value)) {
     chipBusy('Consultando SUNAT…');
     nombre.value = 'Consultando SUNAT…';
@@ -99,10 +95,7 @@ const consultaDoc = debounce(async function () {
     try {
       const url = `../ajax/sunat.php?ruc=${encodeURIComponent(ndocEl.value)}`;
       const res = await fetch(url, { headers: { 'X-Requested-With': 'fetch' }, cache: 'no-store' });
-      // Si la respuesta no es JSON válido, .json() arroja excepción => caerá al catch (chip rojo)
       const data = await res.json();
-
-      // Algunos proveedores pueden no enviar "success". Forzamos OK si trajo razón social o dirección.
       const okFlag = (data && (data.success === true || data.razon_social || data.nombre_o_razon_social));
 
       if (!res.ok || !okFlag) throw new Error(data && data.message ? data.message : 'SUNAT respondió con error');
@@ -140,7 +133,6 @@ function init() {
   $("#formulario").on("submit", function (e) {
     e.preventDefault();
 
-    // Validaciones básicas
     const tel = (document.getElementById('telefono').value || '').trim();
     if (!/^\d{9}$/.test(tel)) { bootbox.alert('El teléfono debe tener exactamente 9 dígitos.'); return; }
 
@@ -152,28 +144,24 @@ function init() {
     guardaryeditar();
   });
 
-  // Menú activo
   $('#mCompras').addClass("treeview active");
   $('#lProveedores').addClass("active");
 
-  // Máscaras y reglas
   setupDocMask();
   setupTelefonoRules();
 
-  // Eventos de autocompletado
   const tipoEl = document.getElementById('tipo_documento');
   const numEl  = document.getElementById('num_documento');
 
   if (tipoEl) {
     tipoEl.addEventListener('change', function () {
       setupDocMask();
-      chipInfo('Esperando número…');  // reset chip al cambiar tipo
-      consultaDoc();                  // dispara consulta si ya hay número válido
+      chipInfo('Esperando número…');
+      consultaDoc();
       try { $('#tipo_documento').selectpicker('refresh'); } catch (_) {}
     });
   }
   if (numEl) {
-    // Dispara consulta en cada edición y al salir del campo
     ['input','keyup','change','blur'].forEach(ev => numEl.addEventListener(ev, consultaDoc));
   }
 }
@@ -269,7 +257,7 @@ function mostrar(idpersona) {
     $("#idpersona").val(data.idpersona);
 
     setupDocMask();
-    chipWarn('Editando proveedor'); // estado ámbar cuando estás editando
+    chipWarn('Editando proveedor');
   });
 }
 
@@ -278,6 +266,29 @@ function eliminar(idpersona) {
   bootbox.confirm("¿Está Seguro de eliminar el proveedor?", function (result) {
     if (result) {
       $.post("../ajax/persona.php?op=eliminar", { idpersona: idpersona }, function (e) {
+        bootbox.alert(e);
+        tabla.ajax.reload();
+      });
+    }
+  });
+}
+
+/* --- Activar / Desactivar --- */
+function desactivar(idpersona) {
+  bootbox.confirm("¿Está Seguro de desactivar el proveedor?", function (result) {
+    if (result) {
+      $.post("../ajax/persona.php?op=desactivar", { idpersona: idpersona }, function (e) {
+        bootbox.alert(e);
+        tabla.ajax.reload();
+      });
+    }
+  });
+}
+
+function activar(idpersona) {
+  bootbox.confirm("¿Está Seguro de activar el proveedor?", function (result) {
+    if (result) {
+      $.post("../ajax/persona.php?op=activar", { idpersona: idpersona }, function (e) {
         bootbox.alert(e);
         tabla.ajax.reload();
       });
