@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 5.2.1
+-- version 5.2.3
 -- https://www.phpmyadmin.net/
 --
--- Servidor: 127.0.0.1
--- Tiempo de generación: 01-11-2025 a las 00:04:44
--- Versión del servidor: 10.4.32-MariaDB
--- Versión de PHP: 8.2.12
+-- Servidor: localhost
+-- Tiempo de generación: 06-11-2025 a las 17:25:06
+-- Versión del servidor: 10.5.27-MariaDB
+-- Versión de PHP: 8.0.30
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -45,10 +45,13 @@ CREATE TABLE `articulo` (
 --
 
 INSERT INTO `articulo` (`idarticulo`, `idcategoria`, `codigo`, `nombre`, `stock`, `precio_compra`, `precio_venta`, `descripcion`, `imagen`, `condicion`) VALUES
-(5, 8, '21321355677', 'Tambores de freno', 63, 32.00, 49.09, 'Tambores de Freno Descripción', '1760920283.jpg', 1),
-(6, 8, '09227222', 'Pastillas de frenos', 61, 32343.00, 322.00, 'Pastilla de frenos', '1760920293.jpg', 1),
-(10, 8, '21321355672', 'Discos de embrague', 3, 42.00, 80.00, 'pieza fundamental del sistema de transmisión de un vehículo', '1761714848.jpg', 1),
-(11, 8, '274584727348', 'Zapatas de freno', 2, 52.00, 79.77, 'componentes de metal con forma curva que se usan en los frenos de tambor', '', 0);
+(5, 8, '21321355677', 'Tambores de freno', 7, 32.00, 55.00, 'Tambores de Freno Descripción', '1760920283.jpg', 1),
+(6, 8, '09227222', 'Pastillas de frenos', 7, 54.00, 90.00, 'Pastilla de frenos', '1760920293.jpg', 1),
+(10, 8, '21321355672', 'Discos de embrague', 2, 42.00, 99.00, 'pieza fundamental del sistema de transmisión de un vehículo', '1761714848.jpg', 1),
+(11, 8, '274584727348', 'Zapatas de freno', 2, 52.00, 79.77, 'componentes de metal con forma curva que se usan en los frenos de tambor', '', 1),
+(13, 12, '5758575758758', 'Escaleras dos metros', 10, 50.00, 76.70, 'tec', '', 1),
+(15, 11, '7762181681524', 'zapata', 6, 220.00, 320.00, 'zapata posterior 4664D Frenosa', '', 1),
+(17, 11, '5787858585524', 'Tambores de frenos', 2, 10.00, 15.34, '.', '', 1);
 
 -- --------------------------------------------------------
 
@@ -69,7 +72,10 @@ CREATE TABLE `categoria` (
 
 INSERT INTO `categoria` (`idcategoria`, `nombre`, `descripcion`, `condicion`) VALUES
 (7, 'Cilindraje', 'Aceitado de la Marca Bosh', 1),
-(8, 'Sistema de Embrague', 'Reúne las piezas que permiten transmitir la potencia del motor a la caja de cambios.', 1);
+(8, 'Sistema de Embrague', 'Reúne las piezas que permiten transmitir la potencia del motor a la caja de cambios.', 1),
+(11, 'Sistema de Frenos', 'ncluye todos los repuestos y componentes necesarios para garantizar la correcta detención del vehículo.', 1),
+(12, 'Escaleras TEcnicas', 'amarillas', 1),
+(13, 'ACEITES MOTO', '', 1);
 
 -- --------------------------------------------------------
 
@@ -135,7 +141,10 @@ INSERT INTO `detalle_venta` (`iddetalle_venta`, `idventa`, `idarticulo`, `cantid
 (24, 10, 10, 4, 100.00, 0.00),
 (25, 10, 6, 2, 115.00, 0.00),
 (26, 11, 10, 1, 100.00, 0.00),
-(27, 11, 6, 1, 115.00, 0.00);
+(27, 11, 6, 1, 115.00, 0.00),
+(28, 12, 5, 1, 55.00, 0.00),
+(29, 12, 5, 1, 55.00, 0.00),
+(30, 12, 5, 1, 55.00, 0.00);
 
 --
 -- Disparadores `detalle_venta`
@@ -171,10 +180,21 @@ CREATE TABLE `historial_precios` (
 --
 
 INSERT INTO `historial_precios` (`id_historial`, `idarticulo`, `precio_anterior`, `precio_nuevo`, `motivo`, `fuente`, `id_origen`, `idusuario`, `fecha`) VALUES
-(1, 10, 100.00, 21.00, 'xd', 'manual', NULL, 5, '2025-10-31 16:46:34'),
-(2, 5, 36.80, 32.00, 'me pica el webo', 'manual', NULL, 5, '2025-10-31 16:47:14'),
-(3, 10, 64.43, 80.00, 'guerra de afganistan', 'manual', NULL, 5, '2025-10-31 16:52:00'),
-(4, 6, 49614.16, 322.00, 'nose xd', 'manual', NULL, 5, '2025-10-31 17:29:00');
+(1, 10, 100.00, 21.00, 'Demo 3', 'manual', NULL, 5, '2025-10-31 16:46:34'),
+(2, 5, 36.80, 32.00, 'Motivo Demo', 'manual', NULL, 5, '2025-10-31 16:47:14'),
+(3, 10, 64.43, 80.00, 'Cambios de Proveedor', 'manual', NULL, 5, '2025-10-31 16:52:00'),
+(4, 6, 49614.16, 322.00, 'Demo 2 precio', 'manual', NULL, 5, '2025-10-31 17:29:00'),
+(5, 10, 80.00, 82.00, '', 'manual', NULL, 5, '2025-10-31 19:40:33'),
+(6, 5, 49.09, 53.00, 'CAMBIO DEL DOLAR', 'manual', NULL, 5, '2025-10-31 19:41:48'),
+(7, 10, 82.00, 90.00, 'j', 'manual', NULL, 5, '2025-10-31 19:43:28'),
+(8, 10, 90.00, 92.00, 'Ajuste de precio', 'manual', NULL, 5, '2025-10-31 19:49:37'),
+(9, 10, 92.00, 94.00, 'lo que sea', 'manual', NULL, 19, '2025-10-31 19:50:45'),
+(10, 5, 53.00, 55.00, 'probando', 'manual', NULL, 19, '2025-10-31 19:51:29'),
+(11, 6, 322.00, 323.00, 'Cambio de Dolar', 'manual', NULL, 5, '2025-10-31 19:57:38'),
+(12, 6, 82.84, 90.00, 'alza de dolar', 'manual', NULL, 20, '2025-10-31 20:33:36'),
+(13, 10, 94.00, 96.00, 'ajuste de precio', 'manual', NULL, 19, '2025-10-31 22:20:02'),
+(14, 10, 96.00, 98.00, 'nadjnajsdm', 'manual', NULL, 19, '2025-10-31 22:20:48'),
+(15, 10, 98.00, 99.00, 'jhhuh', 'manual', NULL, 19, '2025-10-31 22:21:21');
 
 -- --------------------------------------------------------
 
@@ -200,9 +220,9 @@ CREATE TABLE `ingreso` (
 --
 
 INSERT INTO `ingreso` (`idingreso`, `idproveedor`, `idusuario`, `tipo_comprobante`, `serie_comprobante`, `num_comprobante`, `fecha_hora`, `impuesto`, `total_compra`, `estado`) VALUES
-(10, 13, 5, 'Factura', '001', '0001', '2025-10-19 00:00:00', 18.00, 3650.00, 'Aceptado'),
+(10, 13, 5, 'Factura', '001', '0001', '2025-10-19 00:00:00', 18.00, 3650.00, 'Anulado'),
 (11, 13, 5, 'Boleta', '002', '0002', '2025-10-30 00:00:00', 0.00, 750.00, 'Aceptado'),
-(12, 13, 5, 'Boleta', '1', '1', '2025-10-31 00:00:00', 1.00, 129372.00, 'Aceptado');
+(12, 13, 5, 'Boleta', '1', '1', '2025-10-31 00:00:00', 1.00, 129372.00, 'Anulado');
 
 --
 -- Disparadores `ingreso`
@@ -271,17 +291,19 @@ CREATE TABLE `persona` (
   `num_documento` varchar(20) DEFAULT NULL,
   `direccion` varchar(70) DEFAULT NULL,
   `telefono` varchar(20) DEFAULT NULL,
-  `email` varchar(50) DEFAULT NULL
+  `email` varchar(50) DEFAULT NULL,
+  `condicion` tinyint(1) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
 --
 -- Volcado de datos para la tabla `persona`
 --
 
-INSERT INTO `persona` (`idpersona`, `tipo_persona`, `nombre`, `tipo_documento`, `num_documento`, `direccion`, `telefono`, `email`) VALUES
-(13, 'Proveedor', 'FERRETERIA EL PROVEEDOR S A', 'RUC', '20100712670', '', '932375900', 'provedorsa@gmail.com'),
-(14, 'Cliente', 'WALTER ELEONEL GIL TERRONES', 'DNI', '16617373', 'CALLE E.DEMETRIO CORAL 270 URB PRIMAVERA', '966853147', 'serg.dangr@hotmail.com'),
-(15, 'Cliente', 'ROBERTO MARTIN CELIS OSORES', 'DNI', '40029519', 'CAL LA MAR 178 URB SANTA VICTORIA', '966853142', 'U21227728@utp.edu.pe');
+INSERT INTO `persona` (`idpersona`, `tipo_persona`, `nombre`, `tipo_documento`, `num_documento`, `direccion`, `telefono`, `email`, `condicion`) VALUES
+(13, 'Proveedor', 'FERRETERIA EL PROVEEDOR S A', 'RUC', '20100712670', '', '932375900', 'provedorsa@gmail.com', 1),
+(14, 'Cliente', 'WALTER ELEONEL GIL TERRONES', 'DNI', '16617373', 'CALLE E.DEMETRIO CORAL 270 URB PRIMAVERA', '966853147', 'serg.dangr@hotmail.com', 1),
+(15, 'Cliente', 'ROBERTO MARTIN CELIS OSORES', 'DNI', '40029519', 'CAL LA MAR 178 URB SANTA VICTORIA', '966853142', 'U21227728@utp.edu.pe', 1),
+(18, 'Cliente', 'JHON LENNYN MIJAHUANCA QUINTOS', 'DNI', '74702048', 'LIBERTAD C-10', '', '', 1);
 
 -- --------------------------------------------------------
 
@@ -400,9 +422,12 @@ CREATE TABLE `usuario` (
 --
 
 INSERT INTO `usuario` (`idusuario`, `id_tipodoc`, `id_rol`, `nombre`, `tipo_documento`, `num_documento`, `direccion`, `telefono`, `email`, `cargo`, `clave`, `imagen`, `condicion`) VALUES
-(5, 1, 1, 'CRISTIAN MANFREDY DAVILA VALLE', 'DNI', '74134653', 'Barcelona 210 Urb San Juan', '932 375 500', 'serg.dangr@hotmail.com', 'Administrador', '$2y$10$O.QWOxddBlh9z/SIpAhQfOKm0PkrxBwHDbVUy5YGKS.UWvZgZ3OaK', '1760918574.jpg', 1),
-(16, 1, 2, 'BRISALINA VASQUEZ DE LA CRUZ', 'DNI', '75474940', '', '940367492', 'darkedu201@gmail.com', 'Vendedor', '$2y$10$RDnKiPAHzC9xCqDmNG0Cte9ZaiRlBmjG/S3bdwRQ9jrPkQkS6QHRi', '', 0),
-(19, 1, 2, 'ROBERTO MARTIN CELIS OSORES', 'DNI', '40029519', 'Eleodoro Coral 270', '966853147', 'serg.el_crack@hotmail.com', 'Vendedor', '$2y$10$dzAVEvtxNTbZoSSjQrEYG.S2aC/X8dPfbx.EKUVXlV7CWtS6897wy', 'vendedor.png', 1);
+(5, 1, 1, 'CRISTIAN MANFREDY DAVILA VALLE', 'DNI', '74134653', 'Barcelona 210 Urb San Juan', '932 375 500', 'cristiandavilavalle@gmail.com', 'Admin', '$2y$10$xKfdjvsK.3KRR11nFG3At.lv5IXkXMAaA0G9SQU6Lzr5F/Gj4LwoS', '1760918574.jpg', 1),
+(16, 1, 1, 'BRISALINA VASQUEZ DE LA CRUZ', 'DNI', '75474940', '', '940367492', 'cristianmanfredy277@gmail.com', 'Admin', '$2y$10$hNcy5sDWFd8fiprsKSsdHOqNXIjC0rstbBb6nJCh45iMOX/zcfKky', '', 1),
+(19, 1, 1, 'CARLOS JHEREMY SERPA CORTEZ', 'DNI', '74417406', 'Eleodoro Coral 270', '966853147', 'cjsc2002.2002@gmail.com', 'Admin', '$2y$10$.5t6DFhrnD7V0WXuH6cdOefL6BqS6DHjcew4.DtweVvM/70qTAV8S', 'vendedor.png', 1),
+(20, 1, 1, 'FABIAN ALEXIS PAICO CARRILLO', 'DNI', '76960068', '', '', 'fabianpcfb@gmail.com', 'Admin', '$2y$10$s67ZH.X/xBvuQ4127TFMwOoGcLwNcQCbz/9I6eKvvH2sbWabzvshK', 'default.png', 1),
+(21, 1, 2, 'ROBERTO MARTIN CELIS OSORES', 'DNI', '40029519', 'chiclayo', '+51979813011', 'c23919@utp.edu.pe', 'Vendedor', '1ef04d7d359377efa061d4e8512714f95b3ff70b502e7d7020755b8aa5067a92', 'vendedor.png', 1),
+(22, 2, 1, 'CORTEZ FLORES ANDREA DEL CARMEN', 'RUC', '10406980788', 'Lambayeque- lambayeque', '921263349', 'carjher_neko2010@hotmail.com', 'Admin', '$2y$10$53uHDzv/cNYfRE1uQpQmBOFxzP0cQBs0ZtAEcBJSv7bM/b/Fo4o7y', 'vendedor.png', 1);
 
 --
 -- Disparadores `usuario`
@@ -471,19 +496,44 @@ CREATE TABLE `usuario_permiso` (
 --
 
 INSERT INTO `usuario_permiso` (`idusuario_permiso`, `idusuario`, `idpermiso`) VALUES
-(126, 5, 1),
-(127, 5, 2),
-(128, 5, 3),
-(129, 5, 4),
-(130, 5, 5),
-(131, 5, 6),
-(132, 5, 7),
-(170, 16, 1),
-(171, 16, 4),
-(172, 16, 7),
-(250, 19, 1),
-(251, 19, 4),
-(252, 19, 7);
+(274, 5, 1),
+(275, 5, 2),
+(276, 5, 3),
+(277, 5, 4),
+(278, 5, 5),
+(279, 5, 6),
+(280, 5, 7),
+(281, 19, 1),
+(282, 19, 2),
+(283, 19, 3),
+(284, 19, 4),
+(285, 19, 5),
+(286, 19, 6),
+(287, 19, 7),
+(288, 20, 1),
+(289, 20, 2),
+(290, 20, 3),
+(291, 20, 4),
+(292, 20, 5),
+(293, 20, 6),
+(294, 20, 7),
+(295, 16, 1),
+(296, 16, 2),
+(297, 16, 3),
+(298, 16, 4),
+(299, 16, 5),
+(300, 16, 6),
+(301, 16, 7),
+(302, 21, 1),
+(303, 21, 4),
+(304, 21, 7),
+(308, 22, 1),
+(309, 22, 2),
+(310, 22, 3),
+(311, 22, 4),
+(312, 22, 5),
+(313, 22, 6),
+(314, 22, 7);
 
 -- --------------------------------------------------------
 
@@ -510,7 +560,8 @@ CREATE TABLE `venta` (
 
 INSERT INTO `venta` (`idventa`, `idcliente`, `idusuario`, `tipo_comprobante`, `serie_comprobante`, `num_comprobante`, `fecha_hora`, `impuesto`, `total_venta`, `estado`) VALUES
 (10, 14, 16, 'Boleta', '1', '1', '2025-10-30 00:00:00', 0.00, 427.90, 'Aceptado'),
-(11, 15, 5, 'Boleta', '11', '11', '2025-10-31 00:00:00', 0.00, 215.00, 'Aceptado');
+(11, 15, 5, 'Boleta', '11', '11', '2025-10-31 00:00:00', 0.00, 215.00, 'Aceptado'),
+(12, 15, 20, 'Boleta', '1', '1', '2025-10-31 00:00:00', 0.00, 165.00, 'Aceptado');
 
 -- --------------------------------------------------------
 
@@ -525,22 +576,6 @@ CREATE TABLE `v_precios_actuales` (
 ,`precio_compra` decimal(11,2)
 ,`stock` int(11)
 );
-
--- --------------------------------------------------------
-
---
--- Estructura para la vista `v_precios_actuales`
---
-DROP TABLE IF EXISTS `v_precios_actuales`;
-
-CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `v_precios_actuales` AS 
-SELECT 
-  `a`.`idarticulo` AS `idarticulo`, 
-  `a`.`nombre` AS `nombre`, 
-  `a`.`precio_venta` AS `precio_venta`, 
-  `a`.`precio_compra` AS `precio_compra`, 
-  `a`.`stock` AS `stock` 
-FROM `articulo` AS `a`;
 
 --
 -- Índices para tablas volcadas
@@ -679,13 +714,13 @@ ALTER TABLE `venta`
 -- AUTO_INCREMENT de la tabla `articulo`
 --
 ALTER TABLE `articulo`
-  MODIFY `idarticulo` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `idarticulo` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
 
 --
 -- AUTO_INCREMENT de la tabla `categoria`
 --
 ALTER TABLE `categoria`
-  MODIFY `idcategoria` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `idcategoria` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT de la tabla `detalle_ingreso`
@@ -697,13 +732,13 @@ ALTER TABLE `detalle_ingreso`
 -- AUTO_INCREMENT de la tabla `detalle_venta`
 --
 ALTER TABLE `detalle_venta`
-  MODIFY `iddetalle_venta` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
+  MODIFY `iddetalle_venta` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
 
 --
 -- AUTO_INCREMENT de la tabla `historial_precios`
 --
 ALTER TABLE `historial_precios`
-  MODIFY `id_historial` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id_historial` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT de la tabla `ingreso`
@@ -715,7 +750,7 @@ ALTER TABLE `ingreso`
 -- AUTO_INCREMENT de la tabla `password_reset`
 --
 ALTER TABLE `password_reset`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT de la tabla `permiso`
@@ -727,7 +762,7 @@ ALTER TABLE `permiso`
 -- AUTO_INCREMENT de la tabla `persona`
 --
 ALTER TABLE `persona`
-  MODIFY `idpersona` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `idpersona` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
 
 --
 -- AUTO_INCREMENT de la tabla `rol_permiso`
@@ -745,25 +780,34 @@ ALTER TABLE `rol_usuarios`
 -- AUTO_INCREMENT de la tabla `user_otp`
 --
 ALTER TABLE `user_otp`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=48;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=67;
 
 --
 -- AUTO_INCREMENT de la tabla `usuario`
 --
 ALTER TABLE `usuario`
-  MODIFY `idusuario` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
+  MODIFY `idusuario` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
 
 --
 -- AUTO_INCREMENT de la tabla `usuario_permiso`
 --
 ALTER TABLE `usuario_permiso`
-  MODIFY `idusuario_permiso` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=253;
+  MODIFY `idusuario_permiso` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=319;
 
 --
 -- AUTO_INCREMENT de la tabla `venta`
 --
 ALTER TABLE `venta`
-  MODIFY `idventa` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `idventa` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura para la vista `v_precios_actuales`
+--
+DROP TABLE IF EXISTS `v_precios_actuales`;
+
+CREATE ALGORITHM=UNDEFINED DEFINER=`admin`@`localhost` SQL SECURITY DEFINER VIEW `v_precios_actuales`  AS SELECT `a`.`idarticulo` AS `idarticulo`, `a`.`nombre` AS `nombre`, `a`.`precio_venta` AS `precio_venta`, `a`.`precio_compra` AS `precio_compra`, `a`.`stock` AS `stock` FROM `articulo` AS `a` ;
 
 --
 -- Restricciones para tablas volcadas
