@@ -235,11 +235,19 @@ function guardaryeditar() {
       bootbox.alert(datos);
       mostrarform(false);
       tabla.ajax.reload();
+      limpiar(); // ← SOLO limpiar cuando fue éxito
     },
-    complete: function () { $("#btnGuardar").prop("disabled", false); }
+    error: function (xhr) {
+      bootbox.alert(xhr.responseText || "Error al guardar.");
+      // no limpiamos el formulario aquí
+    },
+    complete: function () {
+      $("#btnGuardar").prop("disabled", false);
+    }
   });
-  limpiar();
 }
+
+
 
 /* --- Mostrar para editar --- */
 function mostrar(idpersona) {
