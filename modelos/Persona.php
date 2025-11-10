@@ -95,7 +95,24 @@ public function proveedorEstaActivo($idpersona)
           LIMIT 1";
   $fila = ejecutarConsultaSimpleFila($sql);
   return isset($fila['condicion']) ? (int)$fila['condicion'] === 1 : false;
+} 
+// modelos/Persona.php
+
+public function existeProveedor($num_documento, $idpersona = 0)
+{
+  $idpersona = (int)$idpersona;
+  $num = mysqli_real_escape_string($GLOBALS['conexion'], $num_documento);
+  $sql = "SELECT idpersona 
+          FROM persona 
+          WHERE tipo_persona='Proveedor' 
+            AND num_documento='$num'
+            AND idpersona <> '$idpersona'
+          LIMIT 1";
+  $fila = ejecutarConsultaSimpleFila($sql);
+  return !empty($fila) && isset($fila['idpersona']);
 }
+
 }
 
 ?>
+
