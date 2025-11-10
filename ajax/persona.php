@@ -71,15 +71,26 @@ switch ($_GET["op"]){
 	// GUARDAR Y EDITAR
 	// ==============================
 	case 'guardaryeditar':
-		if (empty($idpersona)){
-			$rspta=$persona->insertar($tipo_persona,$nombre,$tipo_documento,$num_documento,$direccion,$telefono,$email);
-			echo $rspta ? "Persona registrada" : "Persona no se pudo registrar";
-		}
-		else {
-			$rspta=$persona->editar($idpersona,$tipo_persona,$nombre,$tipo_documento,$num_documento,$direccion,$telefono,$email);
-			echo $rspta ? "Persona actualizada" : "Persona no se pudo actualizar";
-		}
-	break;
+  // DUPLICADO: validar antes de tocar la BD
+  if (empty($idpersona)) {
+	if ($persona->existeProveedor($num_documento, 0)) {
+  	http_response_code(409);
+  	echo "El proveedor ya existe en el sistema.";
+  break;
+	}
+    $rspta = $persona->insertar($tipo_persona,$nombre,$tipo_documento,$num_documento,$direccion,$telefono,$email);
+    echo $rspta ? "Persona registrada" : "Persona no se pudo registrar";
+  } else {
+    if ($persona->existeProveedor($num_documento, $idpersona)) {
+      http_response_code(409);
+      echo "Error: el documento ya está registrado en otro proveedor";
+      break;
+    }
+    $rspta = $persona->editar($idpersona,$tipo_persona,$nombre,$tipo_documento,$num_documento,$direccion,$telefono,$email);
+    echo $rspta ? "Persona actualizada" : "Persona no se pudo actualizar";
+  }
+break;
+
 
 	// ==============================
 	// DESACTIVAR
@@ -182,3 +193,4 @@ else
 }
 ob_end_flush();
 ?>
+
