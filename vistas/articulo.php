@@ -3,7 +3,7 @@
 ob_start();
 if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
 require_once __DIR__ . '/_requires_auth.php';
-require 'header.php';
+require 'header.php'; 
 
 $canAlmacen = !empty($_SESSION['almacen']) && (int)$_SESSION['almacen'] === 1;
 
@@ -146,14 +146,6 @@ $nekoPrimaryDark = '#0d47a1';
                   <div class="help-hint">Base para sugerir el precio de venta.</div>
                 </div>
 
-                <div class="form-group col-lg-3 col-md-3 col-sm-6">
-                  <label>Precio venta(*):</label>
-                  <input type="text" class="form-control" name="precio_venta" id="precio_venta"
-                         placeholder="0.00" inputmode="decimal"
-                         pattern="^\d{1,7}(\.\d{1,2})?$"
-                         title="Solo números (máx. 2 decimales)" required>
-                  <div class="help-hint" id="pv_sugerido_hint">Sugerido: —</div>
-                </div>
               </div>
 
               <!-- Fila 3: Descripción -->
