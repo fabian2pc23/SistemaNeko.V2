@@ -1,4 +1,4 @@
-ya borre esa columna ahora debo modificar algo en el siguiente codigo? <?php
+<?php
 /**
  * ajax/articulo.php – Respuestas JSON limpias para DataTables
  */
