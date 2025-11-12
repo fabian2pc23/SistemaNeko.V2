@@ -3,6 +3,10 @@
 Version 4.0.0
 -Sergio Gil Reyes
 
+Header
+
+- Se muestra el rol del usuario
+
 Se añadio al Login
 
 - El login verifica el estado del usuario para poder ingresar, mientras no este habilitado no puede ingresar.(condicion 1)
