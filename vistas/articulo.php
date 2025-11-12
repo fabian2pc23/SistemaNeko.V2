@@ -86,7 +86,6 @@ $nekoPrimaryDark = '#0d47a1';
                 <th>Código</th>
                 <th>Stock</th>
                 <th>Precio Compra</th>
-                <th>Precio Venta</th>
                 <th>Imagen</th>
                 <th>Estado</th>
               </thead>
@@ -98,7 +97,6 @@ $nekoPrimaryDark = '#0d47a1';
                 <th>Código</th>
                 <th>Stock</th>
                 <th>Precio Compra</th>
-                <th>Precio Venta</th>
                 <th>Imagen</th>
                 <th>Estado</th>
               </tfoot>
