@@ -31,9 +31,9 @@ private function existeNombre($nombre, $idarticulo = null){
     if ($this->existeNombre($nombre)) { return "duplicado"; }
 
     $sql = "INSERT INTO articulo
-            (idcategoria,codigo,nombre,stock,precio_compra,precio_venta,descripcion,imagen,condicion)
+            (idcategoria,codigo,nombre,stock,precio_compra,descripcion,imagen,condicion)
             VALUES
-            ('$idcategoria','$codigo','$nombre','$stock','$precio_compra','$precio_venta','$descripcion','$imagen','1')";
+            ('$idcategoria','$codigo','$nombre','$stock','$precio_compra','$descripcion','$imagen','1')";
     return ejecutarConsulta($sql);
   }
 
