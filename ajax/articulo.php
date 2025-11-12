@@ -1,4 +1,4 @@
-<?php 
+ya borre esa columna ahora debo modificar algo en el siguiente codigo? <?php
 /**
  * ajax/articulo.php – Respuestas JSON limpias para DataTables
  */
@@ -39,6 +39,7 @@ $codigo         = isset($_POST["codigo"])         ? limpiarCadena($_POST["codigo
 $nombre         = isset($_POST["nombre"])         ? limpiarCadena($_POST["nombre"])         : "";
 $stock          = isset($_POST["stock"])          ? limpiarCadena($_POST["stock"])          : "0";
 $precio_compra  = isset($_POST["precio_compra"])  ? limpiarCadena($_POST["precio_compra"])  : "0";
+$precio_venta   = isset($_POST["precio_venta"])   ? limpiarCadena($_POST["precio_venta"])   : "0";
 $descripcion    = isset($_POST["descripcion"])    ? limpiarCadena($_POST["descripcion"])    : "";
 $imagen         = isset($_POST["imagen"])         ? limpiarCadena($_POST["imagen"])         : "";
 
@@ -68,11 +69,11 @@ try {
       }
 
       if (empty($idarticulo)) {
-        $rspta = $articulo->insertar($idcategoria, $codigo, $nombre, $stock, $precio_compra, $descripcion, $imagen);
+        $rspta = $articulo->insertar($idcategoria, $codigo, $nombre, $stock, $precio_compra, $precio_venta, $descripcion, $imagen);
         if ($rspta === "duplicado") json_msg(false, "duplicado", 409);
         json_msg((bool)$rspta, $rspta ? "Artículo registrado" : "Artículo no se pudo registrar");
       } else {
-        $rspta = $articulo->editar($idarticulo, $idcategoria, $codigo, $nombre, $stock, $precio_compra, $descripcion, $imagen);
+        $rspta = $articulo->editar($idarticulo, $idcategoria, $codigo, $nombre, $stock, $precio_compra, $precio_venta, $descripcion, $imagen);
         if ($rspta === "duplicado") json_msg(false, "duplicado", 409);
         json_msg((bool)$rspta, $rspta ? "Artículo actualizado" : "Artículo no se pudo actualizar");
       }
@@ -124,6 +125,7 @@ try {
           htmlspecialchars($reg->codigo ?? '', ENT_QUOTES, 'UTF-8'),
           (string)(int)($reg->stock ?? 0),
           number_format((float)($reg->precio_compra ?? 0), 2, '.', ''),
+          number_format((float)($reg->precio_venta ?? 0), 2, '.', ''),
           '<img src="'.$img.'" style="'.$thumbStyle.'">',
           ($reg->condicion ? '<span class="label bg-green">Activado</span>' : '<span class="label bg-red">Desactivado</span>')
         ];
