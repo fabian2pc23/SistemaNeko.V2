@@ -6,61 +6,70 @@ require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/mailer_smtp.php';
 
 $message = '';
-$error = '';
+$error   = '';
+
+function is_valid_email(string $email): bool {
+  return (bool)filter_var($email, FILTER_VALIDATE_EMAIL);
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $email = trim($_POST['email'] ?? '');
 
-  if ($email !== '') {
-    // Verificar si el usuario existe y está activo
+  // 1) Validación básica
+  if ($email === '') {
+    $error = 'Por favor ingresa tu correo electrónico.';
+  } elseif (!is_valid_email($email)) {
+    $error = 'Formato de correo inválido.';
+  }
+
+  if ($error === '') {
+    // 2) Verificar si el usuario existe y está ACTIVO
     $stmt = $pdo->prepare(
-      'SELECT idusuario, nombre, email 
-       FROM usuario 
-       WHERE email = ? AND condicion = 1
-       LIMIT 1'
+      'SELECT idusuario, nombre, email
+         FROM usuario
+        WHERE email = ? AND condicion = 1
+        LIMIT 1'
     );
     $stmt->execute([$email]);
-    $user = $stmt->fetch();
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if ($user) {
-      $userId = (int)$user['idusuario'];
+    if (!$user) {
+      // Mensaje explícito, tal como pediste
+      $error = 'El correo no está asociado a ningún usuario activo.';
+    } else {
+      $userId   = (int)$user['idusuario'];
       $userName = trim((string)$user['nombre']);
-      
-      // Generar token único
-      $token = bin2hex(random_bytes(32));
-      $tokenHash = hash('sha256', $token);
-      $expires = (new DateTime('+1 hour'))->format('Y-m-d H:i:s');
 
-      // Guardar token en la base de datos
-      // Primero eliminar tokens antiguos del usuario
+      // 3) Limpiar tokens anteriores de este usuario (opcional pero recomendable)
       $pdo->prepare('DELETE FROM password_reset WHERE user_id = ?')->execute([$userId]);
-      
-      // Insertar nuevo token
+
+      // 4) Generar y guardar nuevo token
+      $token     = bin2hex(random_bytes(32));     // token visible
+      $tokenHash = hash('sha256', $token);        // sólo guardamos el hash
+      $expires   = (new DateTime('+1 hour'))->format('Y-m-d H:i:s');
+
       $ins = $pdo->prepare(
-        'INSERT INTO password_reset (user_id, token_hash, expires_at) 
-         VALUES (?, ?, ?)'
+        'INSERT INTO password_reset (user_id, token_hash, expires_at, used, created_at)
+         VALUES (?, ?, ?, 0, NOW())'
       );
       $ins->execute([$userId, $tokenHash, $expires]);
 
-      // Construir URL de reset
-      $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-      $host = $_SERVER['HTTP_HOST'];
-      $resetUrl = "{$protocol}://{$host}" . dirname($_SERVER['PHP_SELF']) . "/reset_password.php?token={$token}";
+      // 5) Construir URL absoluta al reset
+      $isHttps  = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+      $scheme   = $isHttps ? 'https' : 'http';
+      $host     = $_SERVER['HTTP_HOST'] ?? 'localhost';
+      $basePath = rtrim(dirname($_SERVER['PHP_SELF'] ?? '/'), '/\\');
+      $resetUrl = $scheme . '://' . $host . $basePath . '/reset_password.php?token=' . urlencode($token);
 
-      // Enviar correo
+      // 6) Enviar correo
       $mailOk = sendPasswordResetEmail($email, $userName, $resetUrl);
 
       if ($mailOk) {
-        $message = 'Se ha enviado un enlace de recuperación a tu correo electrónico. Por favor revisa tu bandeja de entrada.';
+        $message = 'Te enviamos un enlace de recuperación a tu correo (válido por 60 minutos). Revisa tu bandeja de entrada y spam.';
       } else {
         $error = 'Error al enviar el correo. Por favor contacta al administrador.';
       }
-    } else {
-      // Por seguridad, mostramos el mismo mensaje aunque el usuario no exista
-      $message = 'Se ha enviado un enlace de recuperación a tu correo electrónico. Por favor revisa tu bandeja de entrada.';
     }
-  } else {
-    $error = 'Por favor ingresa tu correo electrónico.';
   }
 }
 ?>
@@ -71,6 +80,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <title>Recuperar Contraseña - Neko SAC</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="css/estilos.css?v=<?= time() ?>">
+  <style>
+    .alert { padding:12px; margin-bottom:16px; border-radius:8px; }
+    .alert-error   { background:#fed7d7; color:#742a2a; border-left:4px solid #f56565; }
+    .alert-success { background:#c6f6d5; color:#22543d; border-left:4px solid #48bb78; }
+    .hint { font-size:.9rem; opacity:.9; }
+  </style>
 </head>
 <body class="auth-body">
   <div class="auth-wrapper">
@@ -96,17 +111,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <div class="alert alert-error"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></div>
         <?php endif; ?>
 
+        <?php if (!$message): ?>
         <form method="post" action="forgot_password.php" class="auth-form" autocomplete="off" novalidate>
           <label class="field">
             <span class="field-label">Correo electrónico</span>
             <div class="input">
-              <input type="email" name="email" placeholder="tucorreo@empresa.com" required autocomplete="email">
+              <input id="email" type="email" name="email" placeholder="tucorreo@empresa.com" required autocomplete="email">
               <span class="icon">
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
                 </svg>
               </span>
             </div>
+            <small id="email-hint" class="hint">Debe estar asociado a un usuario activo.</small>
           </label>
 
           <button type="submit" class="btn btn-primary w-full">Enviar enlace de recuperación</button>
@@ -115,8 +132,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ¿Recordaste tu contraseña? <a href="login.php" class="link-strong">Inicia sesión</a>
           </p>
         </form>
+        <?php endif; ?>
       </div>
     </section>
   </div>
+
+<script>
+// Validación rápida de formato en cliente (extra UX, el backend ya valida)
+(function(){
+  const email = document.getElementById('email');
+  const hint  = document.getElementById('email-hint');
+  if (!email) return;
+  function fmtOk(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
+  email.addEventListener('input', ()=>{
+    const v = email.value.trim();
+    if (!v) { email.setCustomValidity(''); hint.textContent='Debe estar asociado a un usuario activo.'; hint.style.color=''; return; }
+    if (!fmtOk(v)) { email.setCustomValidity('Formato de correo inválido'); hint.textContent='Formato de correo inválido'; hint.style.color='#ef4444'; }
+    else { email.setCustomValidity(''); hint.textContent='Formato correcto'; hint.style.color='#10b981'; }
+  });
+})();
+</script>
 </body>
 </html>

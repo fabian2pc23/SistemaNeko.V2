@@ -14,114 +14,107 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $password = (string)($_POST['password'] ?? '');
 
   if ($identity === '' || $password === '') {
-    $error = 'Usuario o contraseña incorrectos';
+    $error = 'Las credenciales ingresadas son incorrectas';
   } else {
-    // Buscar por email o por num_documento (no usamos "login" porque no existe esa columna)
-
-$sql = '
-  SELECT 
-    u.idusuario       AS id_usuario,
-    u.nombre          AS nombre,
-    u.email,
-    u.clave,          
-    u.imagen,
-    u.condicion       AS estado_usuario,
-    u.id_tipodoc,
-    u.num_documento,
-    r.id_rol          AS id_rol,
-    r.nombre          AS nombre_rol,
-    r.estado          AS estado_rol
-  FROM usuario u
-  INNER JOIN rol_usuarios r ON u.id_rol = r.id_rol
-  WHERE u.email = ?
-     OR u.num_documento = ?
-  LIMIT 1
-';
-
+    // LEFT JOIN para permitir usuarios SIN ROL (registro pendiente)
+    $sql = '
+      SELECT 
+        u.idusuario       AS id_usuario,
+        u.nombre          AS nombre,
+        u.email,
+        u.clave,          
+        u.imagen,
+        u.condicion       AS estado_usuario,  -- 0 inactivo, 1 activo, 3 pendiente
+        u.id_tipodoc,
+        u.num_documento,
+        u.id_rol          AS id_rol,
+        r.nombre          AS nombre_rol,
+        r.estado          AS estado_rol
+      FROM usuario u
+      LEFT JOIN rol_usuarios r ON u.id_rol = r.id_rol
+      WHERE u.email = ?
+         OR u.num_documento = ?
+      LIMIT 1
+    ';
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute([$identity, $identity]);
-    $user = $stmt->fetch();
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    // Validaciones de estado y existencia
-if (!$user) {
-  $error = 'Usuario o contraseña incorrectos';
-} 
-elseif ((int)$user['estado_usuario'] == 0) {
-  $error = 'Usuario inactivo. Contacte al administrador.';
-}elseif ((int)$user['estado_usuario'] === 3) {
-    $error = 'Tu cuenta está pendiente de aprobación. Espera la activación por parte del administrador.';
-}elseif ((int)$user['estado_rol'] == 0) {
-  $error = 'Rol desactivado. Contacte al administrador del sistema.';
-}
-else {
-  // continúa con la verificación de contraseña y OTP...
-
+    if (!$user) {
+      $error = 'Las credenciales ingresadas son incorrectas.';
+    } else {
+      // --- Verificar contraseña primero ---
       $hashDb = (string)$user['clave'];
       $userId = (int)$user['id_usuario'];
       $email  = (string)$user['email'];
       $name   = trim((string)$user['nombre']);
 
       $ok = false;
-
-      // 1) Intentar verificar como bcrypt/password_hash
       $info = password_get_info($hashDb);
       if (!empty($info['algo'])) {
-        // Es un hash de password_hash()
         $ok = password_verify($password, $hashDb);
-
-        // Si verifica y necesita rehash (cambiar cost), actualizar
         if ($ok && password_needs_rehash($hashDb, PASSWORD_BCRYPT)) {
           $newHash = password_hash($password, PASSWORD_BCRYPT);
-          $upd = $pdo->prepare('UPDATE usuario SET clave = ? WHERE idusuario = ?');
-          $upd->execute([$newHash, $userId]);
+          $pdo->prepare('UPDATE usuario SET clave = ? WHERE idusuario = ?')->execute([$newHash, $userId]);
         }
       } else {
-        // 2) Compatibilidad: base antigua con SHA-256 (hex)
-        // Compara de forma constante e insensible a mayúsculas/minúsculas de hex
         $inputSha = hash('sha256', $password);
         $ok = hash_equals(strtolower($hashDb), strtolower($inputSha));
-
-        // Si coincide, migramos automáticamente a bcrypt
         if ($ok) {
           $newHash = password_hash($password, PASSWORD_BCRYPT);
-          $upd = $pdo->prepare('UPDATE usuario SET clave = ? WHERE idusuario = ?');
-          $upd->execute([$newHash, $userId]);
+          $pdo->prepare('UPDATE usuario SET clave = ? WHERE idusuario = ?')->execute([$newHash, $userId]);
         }
       }
 
-      if ($ok) {
-        // === Generar OTP y enviarlo por correo ===
-        try {
-          $otp      = str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-          $otpHash  = hash('sha256', $otp);
-          $expires  = (new DateTime('+10 minutes'))->format('Y-m-d H:i:s');
-
-          // Limpiar OTPs previas
-          $pdo->prepare('DELETE FROM user_otp WHERE user_id = ?')->execute([$userId]);
-
-          // Guardar OTP
-          $ins = $pdo->prepare('INSERT INTO user_otp (user_id, code_hash, expires_at) VALUES (?, ?, ?)');
-          $ins->execute([$userId, $otpHash, $expires]);
-
-          // Enviar correo
-          $mailOk = sendAuthCode($email, $otp);
-          if (!$mailOk) {
-            $error = 'No se pudo enviar el correo: revisa tu configuración SMTP en includes/mailer_smtp.php';
-          } else {
-            $_SESSION['otp_uid']    = $userId;
-            $_SESSION['otp_name']   = $name;
-            $_SESSION['otp_email']  = $email;
-            $_SESSION['otp_sent']   = time();
-            $_SESSION['imagen'] = $user['imagen'];
-            header('Location: verify.php');
-            exit;
-          }
-        } catch (Throwable $e) {
-          $error = 'No se pudo generar/enviar el código de verificación. Inténtalo nuevamente.';
-        }
+      if (!$ok) {
+        // Contraseña mala -> mensaje genérico
+        $error = 'Las credenciales ingresadas son incorrectas.';
       } else {
-        $error = 'Usuario o contraseña incorrectos';
+        // Credenciales correctas -> revisar estado
+        $estadoUsuario = (int)$user['estado_usuario'];           // 0,1,3
+        $idRol         = $user['id_rol'] !== null ? (int)$user['id_rol'] : null;
+        $estadoRol     = $user['estado_rol'] !== null ? (int)$user['estado_rol'] : null;
+
+        if ($estadoUsuario === 0) {
+          $error = 'Usuario inactivo. Contacte al administrador.';
+        } elseif ($estadoUsuario === 3 || $idRol === null) {
+          // pendiente de aprobación o sin rol asignado
+          $error = 'Tu cuenta está pendiente de aprobación. Espera la activación por parte del administrador.';
+        } elseif ($estadoRol === 0) {
+          $error = 'Rol desactivado. Contacte al administrador del sistema.';
+        } else {
+          // === Generar OTP y enviarlo por correo ===
+          try {
+            $otp      = str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+            $otpHash  = hash('sha256', $otp);
+            $expires  = (new DateTime('+10 minutes'))->format('Y-m-d H:i:s');
+
+            $pdo->prepare('DELETE FROM user_otp WHERE user_id = ?')->execute([$userId]);
+            $pdo->prepare('INSERT INTO user_otp (user_id, code_hash, expires_at) VALUES (?, ?, ?)')
+                ->execute([$userId, $otpHash, $expires]);
+
+            $mailOk = sendAuthCode($email, $otp);
+            if (!$mailOk) {
+              $error = 'No se pudo enviar el correo: revisa tu configuración SMTP en includes/mailer_smtp.php';
+            } else {
+              // Sesión temporal para OTP
+              $_SESSION['otp_uid']       = $userId;
+              $_SESSION['otp_name']      = $name;
+              $_SESSION['otp_email']     = $email;
+              $_SESSION['otp_sent']      = time();
+              $_SESSION['imagen']        = $user['imagen'] ?: 'default.png';
+              $_SESSION['otp_role_id']   = $idRol ?? 0;
+              $_SESSION['otp_role_name'] = (string)($user['nombre_rol'] ?? '');
+              $_SESSION['otp_cargo']     = $_SESSION['otp_role_name'];
+
+              header('Location: verify.php');
+              exit;
+            }
+          } catch (Throwable $e) {
+            $error = 'No se pudo generar/enviar el código de verificación. Inténtalo nuevamente.';
+          }
+        }
       }
     }
   }

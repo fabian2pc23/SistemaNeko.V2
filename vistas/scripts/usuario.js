@@ -1,5 +1,24 @@
 var tabla;
 
+/* ==================== Avatar por rol (preview) ==================== */
+function getDefaultAvatarForRole(roleText){
+  const k = (roleText || '').toLowerCase().trim();
+  if (k === 'administrador') return 'administrador.png';
+  if (k === 'almacenero')   return 'almacenero.png';
+  if (k === 'vendedor')     return 'vendedor.png';
+  return 'usuario.png';
+}
+function actualizarPreviewAvatarPorRol(){
+  var $sel = $("#cargo option:selected");
+  var nombreRol = $.trim($sel.text() || "");
+  var file = getDefaultAvatarForRole(nombreRol);
+  var hasFileChosen = ($("#imagen").val() || "").length > 0; // si el usuario eligió archivo, no forzar
+  if (!hasFileChosen){
+    $("#imagenmuestra").attr("src","../files/usuarios/" + file).show();
+    $("#imagenactual").val(file);
+  }
+}
+
 //Función que se ejecuta al inicio
 function init(){
 	mostrarform(false);
@@ -64,15 +83,14 @@ function cargarRoles(selectedId, selectedLabel) {
 					return false;
 				}
 			});
-			// Si no se encontró por nombre, lo dejamos como "Seleccione..."
 		}
 		$("#cargo").selectpicker('refresh');
-		console.log('✓ Roles cargados exitosamente');
 
 		/* ============================================================
 		   ✅ Al CAMBIAR rol manualmente:
 		      1) modo_permisos='rol'
 		      2) pedir permisos del rol y tildar checkboxes
+		      3) preview avatar por rol
 		   ============================================================ */
 		$("#cargo").off("change.autoPermisos").on("change.autoPermisos", function(){
 			var idRolSel = $(this).val();
@@ -80,7 +98,11 @@ function cargarRoles(selectedId, selectedLabel) {
 				$("#modo_permisos").val('rol');
 				cargarPermisosDeRol(idRolSel);
 			}
+      actualizarPreviewAvatarPorRol();
 		});
+
+    // Preview inicial
+    setTimeout(actualizarPreviewAvatarPorRol, 150);
 
 	}).fail(function(xhr, status, error) {
 		console.error('❌ Error cargando roles:', error);
@@ -391,7 +413,7 @@ function setupEmailValidation() {
 
 		if (email === lastChecked) {
 			return;
-		}
+	}
 
 		if (!isValidFormat(email)) {
 			$(emailStatus).text('❌');
@@ -564,6 +586,10 @@ function limpiar()
 	
 	// ✅ Recargar roles al limpiar (sin selección)
 	cargarRoles();
+  setTimeout(actualizarPreviewAvatarPorRol, 200);
+
+	// 🔄 Quitar banner de pendiente si existiera
+	$("#pendiente-msg").remove();
 }
 
 function mostrarform(flag)
@@ -632,9 +658,12 @@ function listar()
 function guardaryeditar(e)
 {
 	e.preventDefault();
-	
+
+	// ⛳ Permisos requeridos SOLO si NO estamos en modo 'rol'
+	var modo = ($("#modo_permisos").val() || "").trim();
 	var permisosChecked = $("input[name='permiso[]']:checked").length;
-	if (permisosChecked === 0) {
+
+	if (modo !== 'rol' && permisosChecked === 0) {
 		bootbox.alert("Debes seleccionar al menos un permiso para el usuario.");
 		return;
 	}
@@ -717,16 +746,14 @@ function mostrar(idusuario)
 		// Cargar roles y seleccionar el que corresponda
 		cargarRoles(idRolDelUsuario, nombreRolDelUsuario);
 
-		// Nota: NO llamamos cargarPermisosDeRol aquí para NO pisar
-		// los permisos propios del usuario en edición. Solo se
-		// aplicarán permisos del rol si el usuario cambia de rol.
+		// ❗ No aplicar permisos del rol automáticamente al editar
 		$("#cargo").selectpicker('refresh');
 
-		// ❗ Seguridad: nunca mostrar hash/clave en el input
-		$("#clave").val("");                             // vacío al editar
-		$("#clave").prop("required", false);             // opcional en edición
+		// Contraseña
+		$("#clave").val("");
+		$("#clave").prop("required", false);
 		$("#clave").attr("placeholder","Dejar en blanco para mantener la contraseña");
-		$("#toggleClave").text('👁️');                   // reset estado ojito
+		$("#toggleClave").text('👁️');
 		$("#clave").attr('type','password');
 		
 		$("#imagenmuestra").show();
@@ -734,10 +761,15 @@ function mostrar(idusuario)
 		$("#imagenactual").val(data.imagen);
 		$("#idusuario").val(data.idusuario);
 
+    // Si avatar es default, ajusta preview al rol
+    var defaults = ['administrador.png','almacenero.png','vendedor.png','usuario.png'];
+    if (!data.imagen || defaults.indexOf(String(data.imagen)) >= 0){
+      setTimeout(actualizarPreviewAvatarPorRol, 250);
+    }
+
  	});
  	$.post("../ajax/usuario.php?op=permisos&id="+idusuario,function(r){
 	    $("#permisos").html(r);
-		// Si toca manualmente un permiso en edición => personalizado
 		$("#permisos").off('change.modo').on('change.modo', "input[name='permiso[]']", function(){
 			$("#modo_permisos").val('personalizado');
 		});
