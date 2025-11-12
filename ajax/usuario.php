@@ -102,7 +102,7 @@ case 'guardaryeditar':
     if (!file_exists($_FILES['imagen']['tmp_name']) || !is_uploaded_file($_FILES['imagen']['tmp_name'])) {
       $imagen = $_POST["imagenactual"] ?? $imagen; // puede venir vacío
     } else {
-      $ext = explode(".", $_FILES["imagen"]["name"]);
+      $ext  = explode(".", $_FILES["imagen"]["name"]);
       $mime = $_FILES['imagen']['type'] ?? '';
       if (in_array($mime, ["image/jpg","image/jpeg","image/png"])) {
         $imagen = round(microtime(true)) . '.' . end($ext);
@@ -134,7 +134,7 @@ case 'guardaryeditar':
     if (empty($idusuario)) {
       if ($imagen === null || $imagen === '') { $imagen = avatar_por_rol($cargo); }
     } else {
-      $defaults = ['administrador.png','almacenero.png','vendedor.png','usuario.png'];
+      $defaults  = ['administrador.png','almacenero.png','vendedor.png','usuario.png'];
       $imgActual = $_POST["imagenactual"] ?? '';
       if (($imagen === null || $imagen === '') && ($imgActual === '' || in_array($imgActual, $defaults, true))) {
         $imagen = avatar_por_rol($cargo);
@@ -277,6 +277,8 @@ case 'verificar':
     $_SESSION['nombre']    = $fetch->nombre;
     $_SESSION['imagen']    = $fetch->imagen;
     $_SESSION['email']     = $fetch->email;
+    // ✅ Guarda también el id_rol para que el header pueda mostrar el rol real o usar fallback
+    if (isset($fetch->id_rol)) { $_SESSION['id_rol'] = (int)$fetch->id_rol; }
 
     $marcados = $usuario->listarmarcados($fetch->idusuario);
     $valores  = array();

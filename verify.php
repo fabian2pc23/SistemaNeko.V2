@@ -79,7 +79,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'verif
         if (hash_equals(strtolower((string)$otpRow['code_hash']), strtolower($inputHash))) {
           $pdo->prepare('DELETE FROM user_otp WHERE id = ?')->execute([(int)$otpRow['id']]);
 
-          $u = $pdo->prepare('SELECT idusuario, nombre, imagen, condicion, id_rol FROM usuario WHERE idusuario = ? LIMIT 1');
+          // Traer usuario + nombre del rol para mostrar el rol real en el header
+          $u = $pdo->prepare('
+            SELECT u.idusuario, u.nombre, u.imagen, u.condicion, u.id_rol, u.email,
+                   COALESCE(r.nombre, "") AS rol_nombre
+            FROM usuario u
+            LEFT JOIN rol_usuarios r ON r.id_rol = u.id_rol
+            WHERE u.idusuario = ?
+            LIMIT 1
+          ');
           $u->execute([(int)$userId]);
           $usr = $u->fetch();
 
@@ -91,9 +99,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'verif
             $_SESSION['idusuario']  = (int)$usr['idusuario'];
             $_SESSION['nombre']     = (string)$usr['nombre'];
             $_SESSION['imagen']     = (string)($usr['imagen'] ?: 'default.png');
+            $_SESSION['email']      = (string)$usr['email'];
+            $_SESSION['id_rol']     = (int)($usr['id_rol'] ?? 0);
 
-            // ======= CARGAR PERMISOS DESDE ROL =======
-            // Inicializar todos los permisos en 0
+            // Para que el header muestre el rol real (compat con distintas claves de sesión)
+            if (!empty($usr['rol_nombre'])) {
+              $_SESSION['rol_nombre'] = (string)$usr['rol_nombre'];
+              $_SESSION['rol']        = (string)$usr['rol_nombre'];
+              $_SESSION['cargo']      = (string)$usr['rol_nombre'];
+            }
+
+            // ======= CARGAR PERMISOS DESDE ROL + USUARIO =======
             $_SESSION['escritorio'] = 0;
             $_SESSION['almacen']    = 0;
             $_SESSION['compras']    = 0;
@@ -103,62 +119,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'verif
             $_SESSION['consultav']  = 0;
 
             try {
-              // 1. Cargar permisos del ROL
+              // 1) Permisos del rol
               $qRolPerm = $pdo->prepare("
-                SELECT p.idpermiso, p.nombre
+                SELECT p.idpermiso
                 FROM rol_permiso rp
                 JOIN permiso p ON p.idpermiso = rp.idpermiso
                 WHERE rp.id_rol = ?
               ");
-              $qRolPerm->execute([(int)$usr['id_rol']]);
-              $permsRol = $qRolPerm->fetchAll(PDO::FETCH_ASSOC);
+              $qRolPerm->execute([(int)($usr['id_rol'] ?? 0)]);
+              $permsRol = $qRolPerm->fetchAll(PDO::FETCH_COLUMN, 0);
 
-              // 2. Cargar permisos DIRECTOS del usuario (sobrescriben al rol)
+              // 2) Permisos directos del usuario (sobre-escriben rol)
               $qUsrPerm = $pdo->prepare("
-                SELECT p.idpermiso, p.nombre
+                SELECT p.idpermiso
                 FROM usuario_permiso up
                 JOIN permiso p ON p.idpermiso = up.idpermiso
                 WHERE up.idusuario = ?
               ");
               $qUsrPerm->execute([(int)$usr['idusuario']]);
-              $permsUsr = $qUsrPerm->fetchAll(PDO::FETCH_ASSOC);
+              $permsUsr = $qUsrPerm->fetchAll(PDO::FETCH_COLUMN, 0);
 
-              // Combinar permisos (usuario tiene prioridad)
-              $permisos = array_merge($permsRol, $permsUsr);
-              
-              // Mapeo de permisos
+              $all = array_unique(array_map('intval', array_merge($permsRol ?: [], $permsUsr ?: [])));
+
               $map = [
-                1 => 'escritorio',   // Escritorio
-                2 => 'almacen',      // Almacen
-                3 => 'compras',      // Compras
-                4 => 'ventas',       // Ventas
-                5 => 'acceso',       // Acceso (usuarios)
-                6 => 'consultac',    // Consulta Compras
-                7 => 'consultav',    // Consulta Ventas
+                1 => 'escritorio',
+                2 => 'almacen',
+                3 => 'compras',
+                4 => 'ventas',
+                5 => 'acceso',
+                6 => 'consultac',
+                7 => 'consultav',
               ];
+              foreach ($all as $p) { if (isset($map[$p])) { $_SESSION[$map[$p]] = 1; } }
 
-              // Activar permisos en la sesión
-              foreach ($permisos as $p) {
-                $idpermiso = (int)$p['idpermiso'];
-                if (isset($map[$idpermiso])) {
-                  $_SESSION[$map[$idpermiso]] = 1;
-                }
-              }
-
-              // Log para debugging (opcional, comentar en producción)
-              error_log("Usuario {$usr['idusuario']} - Permisos cargados: " . json_encode([
-                'escritorio' => $_SESSION['escritorio'],
-                'almacen' => $_SESSION['almacen'],
-                'compras' => $_SESSION['compras'],
-                'ventas' => $_SESSION['ventas'],
-                'acceso' => $_SESSION['acceso'],
-                'consultac' => $_SESSION['consultac'],
-                'consultav' => $_SESSION['consultav'],
-              ]));
-              
             } catch (Throwable $e) {
-              error_log("Error cargando permisos: " . $e->getMessage());
-              // En caso de error, dar acceso mínimo (solo escritorio)
+              // fallback mínimo si algo falla
               $_SESSION['escritorio'] = 1;
             }
 
