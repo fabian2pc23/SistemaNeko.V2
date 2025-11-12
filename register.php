@@ -25,39 +25,148 @@ function validar_pasaporte(string $doc): bool { return (bool)preg_match('/^[A-Za
 function validar_patron_email(string $email): ?string {
   $partes = explode('@', $email);
   if (count($partes) !== 2) return 'Formato de email inválido';
+  
   $local = strtolower($partes[0]);
-  if (strlen($local) < 3) return 'El nombre de usuario es demasiado corto (mín. 3 caracteres)';
-  if (preg_match('/(.)\1{3,}/', $local)) return 'El correo contiene caracteres repetitivos sospechosos';
-  $patrones_sospechosos = [
-    '/^[a-z]{3}\d{3,}$/','/^[a-z]{6,}$/','/^\d{4,}$/','/^(x+|y+|z+|a+)(x+|y+|z+|a+)/',
-    '/^test\d*$/','/^user\d*$/','/^admin\d*$/','/^demo\d*$/','/^(abc|xyz|qwe|asd|zxc)\d*$/',
+  $local_len = strlen($local);
+  
+  // ============================================================
+  // LISTAS NEGRAS - SOLO PALABRAS EXACTAS
+  // ============================================================
+  
+  // Contenido inapropiado - SOLO coincidencia EXACTA
+  $blacklist_inappropriate = [
+    'pene', 'pito', 'verga', 'pija', 'chota', 'polla', 'picha', 'pichula', 'pichulon',
+    'concha', 'cono', 'chocho', 'vagina', 'sexo', 'sex', 'porn', 'porno', 'xxx',
+    'culo', 'ass', 'coño', 'pussy', 'dick', 'cock', 'tits', 'boobs', 'puta', 'puto',
+    'mierda', 'shit', 'fuck', 'cunt', 'bitch', 'whore', 'slut',
+    'nude', 'naked', 'desnudo', 'anal', 'oral', 'dildo',
+    'sexx', 'sexxo', 'sexy', 'p0rn', 'pr0n', 'fck', 'fuk',
+    'gamp',
   ];
-  foreach ($patrones_sospechosos as $p) if (preg_match($p, $local)) return 'El correo parece ser generado aleatoriamente o de prueba';
-  $tiene_numeros = preg_match('/[0-9]/', $local);
-  $tiene_simbolos = preg_match('/[._\-]/', $local);
-  if (!$tiene_numeros && !$tiene_simbolos) {
-    $vocales = preg_match_all('/[aeiou]/', $local);
-    $total_letras = strlen(preg_replace('/[^a-z]/', '', $local));
-    if ($total_letras > 8 && $vocales === 0) return 'El correo parece no ser válido (sin vocales)';
-    $caracteres_unicos = count(array_unique(str_split($local)));
-    if (strlen($local) > 6 && $caracteres_unicos <= 3) return 'El correo tiene un patrón demasiado repetitivo';
+  
+  // Genéricos y prueba
+  $blacklist_generic = [
+    'test', 'testing', 'demo', 'admin', 'user', 'usuario', 
+    'correo', 'email', 'example', 'sample', 'fake', 'temp', 
+    'spam', 'dummy', 'prueba', 'noresponder', 'noreply',
+    'asdf', 'qwerty', 'abc', 'xyz', 'xxx', 'aaa', 'zzz',
+    'foo', 'bar', 'baz', 'qux', 'root',
+    'gay', 'hot', 'wtf', 'lol', 'omg', 'win', 'fail',
+  ];
+  
+  $blacklist_combined = array_merge($blacklist_inappropriate, $blacklist_generic);
+  
+  // ============================================================
+  // VALIDACIÓN 1: LONGITUD MÍNIMA (5 caracteres)
+  // ============================================================
+  if ($local_len < 5) {
+    return 'El nombre de usuario es muy corto (mínimo 5 caracteres)';
   }
-  for ($i = 0; $i < strlen($local) - 3; $i++) {
-    $seq = substr($local, $i, 4);
-    if (preg_match('/^[a-z]+$/', $seq)) {
-      $ok=true; for($j=1;$j<4;$j++){ if(ord($seq[$j])!==ord($seq[$j-1])+1){$ok=false;break;} }
-      if($ok) return 'El correo contiene secuencias alfabéticas sospechosas';
+  
+  // ============================================================
+  // VALIDACIÓN 2: CONTENIDO INAPROPIADO (SOLO EXACTO)
+  // ============================================================
+  $local_clean = explode('+', $local)[0]; // Remover +tag
+  
+  // Verificación EXACTA solamente (no buscar dentro)
+  if (in_array($local_clean, $blacklist_combined, true)) {
+    return 'Este correo no es válido para registro';
+  }
+  
+  // Verificación leetspeak solo para coincidencias EXACTAS
+  $local_normalized = str_replace(
+    ['0', '1', '3', '4', '5', '7', '8'], 
+    ['o', 'i', 'e', 'a', 's', 't', 'b'], 
+    $local_clean
+  );
+  
+  if (in_array($local_normalized, $blacklist_inappropriate, true)) {
+    return 'Este correo contiene contenido no permitido';
+  }
+  
+  // ============================================================
+  // VALIDACIÓN 3: CARACTERES REPETIDOS
+  // ============================================================
+  if (preg_match('/(.)\1{2,}/', $local)) {
+    return 'El correo contiene demasiados caracteres repetitivos consecutivos';
+  }
+  
+  // ============================================================
+  // VALIDACIÓN 4: PUNTOS INVÁLIDOS
+  // ============================================================
+  if ($local[0] === '.' || substr($local, -1) === '.') {
+    return 'El correo no puede empezar ni terminar con punto';
+  }
+  if (strpos($local, '..') !== false) {
+    return 'El correo no puede contener puntos consecutivos';
+  }
+  
+  // ============================================================
+  // VALIDACIÓN 5: DIVERSIDAD DE CARACTERES (mínimo 3)
+  // ============================================================
+  $unique_chars = count(array_unique(str_split($local)));
+  if ($unique_chars < 3) {
+    return 'El correo es demasiado simple (necesita más variedad)';
+  }
+  
+  // ============================================================
+  // VALIDACIÓN 6: PATRONES OBVIOS DE PRUEBA
+  // ============================================================
+  $patrones_obvios = [
+    '/^x{3,}$/',           // xxx, xxxx
+    '/^a{3,}$/',           // aaa, aaaa
+    '/^z{3,}$/',           // zzz, zzzz
+    '/^\d{1,3}$/',         // 1, 12, 123
+    '/^test\d{1,3}$/i',    // test1, test12
+    '/^user\d{1,3}$/i',    // user1, user12
+    '/^demo\d{1,3}$/i',    // demo1, demo12
+  ];
+  
+  foreach ($patrones_obvios as $p) {
+    if (preg_match($p, $local)) {
+      return 'El correo parece ser de prueba';
     }
-    if (preg_match('/^\d+$/', $seq)) {
-      $ok=true; for($j=1;$j<4;$j++){ if(((int)$seq[$j])!==((int)$seq[$j-1])+1){$ok=false;break;} }
-      if($ok) return 'El correo contiene secuencias numéricas sospechosas';
+  }
+  
+  // ============================================================
+  // VALIDACIÓN 7: SOLO NÚMEROS MUY CORTOS
+  // ============================================================
+  if (preg_match('/^\d+$/', $local) && $local_len < 8) {
+    return 'Email numérico poco confiable (mínimo 8 dígitos)';
+  }
+  
+  // ============================================================
+  // VALIDACIÓN 8: SECUENCIAS ALFABÉTICAS/NUMÉRICAS
+  // ============================================================
+  if (preg_match('/abcd|bcde|cdef|defg|wxyz|stuv/i', $local)) {
+    return 'El correo contiene secuencias alfabéticas sospechosas';
+  }
+  
+  if (preg_match('/1234|2345|3456|4567|5678|6789|9876|8765|7654|6543|5432|4321/', $local)) {
+    return 'El correo contiene secuencias numéricas sospechosas';
+  }
+  
+  // ============================================================
+  // VALIDACIÓN 9: PALABRAS DE BASURA
+  // ============================================================
+  $basura_patterns = [
+    '/^temporal\d{0,2}$/i',
+    '/^basura\d{0,2}$/i',
+    '/^fake\d{0,2}$/i',
+    '/^noname\d{0,2}$/i',
+    '/^random\d{0,2}$/i',
+  ];
+  
+  foreach ($basura_patterns as $p) {
+    if (preg_match($p, $local)) {
+      return 'El correo parece ser temporal o de prueba';
     }
   }
-  foreach (['asdasd','asdfgh','qwerty','qwertyui','zxcvbn','testtest','test123','prueba','ejemplo','xxxyyy','aaabbb','noname','random','fake','temporal','temp','basura','spam'] as $f) {
-    if (strpos($local,$f)!==false) return 'El correo parece ser temporal o de prueba';
-  }
+  
+  // Si pasó todas las validaciones, el correo es válido
   return null;
 }
+
 function validar_email_real(string $email): ?string {
   if (!filter_var($email, FILTER_VALIDATE_EMAIL)) return 'El formato del correo no es válido.';
   $p = validar_patron_email($email); if ($p!==null) return $p;
@@ -67,6 +176,7 @@ function validar_email_real(string $email): ?string {
   if (in_array(strtolower($domain), $disposable, true)) return 'No se permiten correos temporales o desechables.';
   return null;
 }
+
 function validar_password_robusta(string $pwd, string $email='', string $nombres='', string $apellidos=''): ?string {
   if (strlen($pwd) < 10 || strlen($pwd) > 64) return 'La contraseña debe tener entre 10 y 64 caracteres.';
   if (preg_match('/\s/', $pwd)) return 'La contraseña no debe contener espacios.';

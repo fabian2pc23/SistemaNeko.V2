@@ -16,6 +16,41 @@ function avatar_por_rol($cargo){
   return 'usuario.png';
 }
 
+/* ===== Helper: validar email existente (server-side) usando ajax/validate_email.php ===== */
+function validar_email_externo($email){
+  $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+  $host   = $_SERVER['HTTP_HOST'] ?? 'localhost';
+  $base   = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\'); // ej: /ajax
+  $url    = $scheme . '://' . $host . $base . '/validate_email.php?email=' . urlencode($email);
+
+  // Preferir cURL si está disponible (timeouts más finos)
+  if (function_exists('curl_init')) {
+    $ch = curl_init($url);
+    curl_setopt_array($ch, [
+      CURLOPT_RETURNTRANSFER => true,
+      CURLOPT_CONNECTTIMEOUT => 5,
+      CURLOPT_TIMEOUT        => 10,
+      CURLOPT_SSL_VERIFYPEER => false, // si usas https local sin cert
+    ]);
+    $resp = curl_exec($ch);
+    $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    if ($code === 200 && $resp) {
+      $j = json_decode($resp, true);
+      return (is_array($j) && !empty($j['valid'])) ? [true, $j] : [false, $j];
+    }
+    return [false, ['message' => 'HTTP '.$code.' al verificar email']];
+  } else {
+    $ctx = stream_context_create(['http'=>['timeout'=>10]]);
+    $resp = @file_get_contents($url, false, $ctx);
+    if ($resp !== false) {
+      $j = json_decode($resp, true);
+      return (is_array($j) && !empty($j['valid'])) ? [true, $j] : [false, $j];
+    }
+    return [false, ['message' => 'No se pudo contactar verificador']];
+  }
+}
+
 /* ===== Inputs comunes ===== */
 $idusuario       = isset($_POST["idusuario"])       ? limpiarCadena($_POST["idusuario"])       : "";
 $nombre          = isset($_POST["nombre"])          ? limpiarCadena($_POST["nombre"])          : "";
@@ -42,10 +77,18 @@ case 'guardaryeditar':
   else if ($_SESSION['acceso'] != 1) { require 'noacceso.php'; }
   else {
 
-    // Validaciones
+    // Validaciones de unicidad y formato
     if ($usuario->verificarEmailExiste($email, (int)$idusuario)) { echo "Error: Este correo electrónico ya está registrado por otro usuario."; break; }
     if ($usuario->verificarDocumentoExiste($tipo_documento, $num_documento, (int)$idusuario)) { echo "Error: Este documento ya está registrado por otro usuario."; break; }
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) { echo "Error: El formato del correo electrónico no es válido."; break; }
+
+    // ✅ Validación fuerte de existencia de correo (server-side)
+    list($okMail, $mailInfo) = validar_email_externo($email);
+    if (!$okMail) {
+      $detalle = is_array($mailInfo) && !empty($mailInfo['message']) ? $mailInfo['message'] : 'verificación fallida';
+      echo "Error: El correo no pudo verificarse como existente. Detalle: " . $detalle;
+      break;
+    }
 
     // Permisos requeridos si NO es modo='rol'
     if ($modo_permisos !== 'rol') {
@@ -60,9 +103,10 @@ case 'guardaryeditar':
       $imagen = $_POST["imagenactual"] ?? $imagen; // puede venir vacío
     } else {
       $ext = explode(".", $_FILES["imagen"]["name"]);
-      if (in_array($_FILES['imagen']['type'], ["image/jpg","image/jpeg","image/png"])) {
+      $mime = $_FILES['imagen']['type'] ?? '';
+      if (in_array($mime, ["image/jpg","image/jpeg","image/png"])) {
         $imagen = round(microtime(true)) . '.' . end($ext);
-        move_uploaded_file($_FILES["imagen"]["tmp_name"], "../files/usuarios/" . $imagen);
+        @move_uploaded_file($_FILES["imagen"]["tmp_name"], "../files/usuarios/" . $imagen);
       }
     }
 
@@ -86,7 +130,7 @@ case 'guardaryeditar':
 
     $permisos = (isset($_POST['permiso']) && is_array($_POST['permiso'])) ? $_POST['permiso'] : array();
 
-    /* Avatar automático */
+    /* Avatar automático por rol si no hay imagen */
     if (empty($idusuario)) {
       if ($imagen === null || $imagen === '') { $imagen = avatar_por_rol($cargo); }
     } else {
