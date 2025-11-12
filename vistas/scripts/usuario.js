@@ -12,7 +12,7 @@ function actualizarPreviewAvatarPorRol(){
   var $sel = $("#cargo option:selected");
   var nombreRol = $.trim($sel.text() || "");
   var file = getDefaultAvatarForRole(nombreRol);
-  var hasFileChosen = ($("#imagen").val() || "").length > 0; // si el usuario eligió archivo, no forzar
+  var hasFileChosen = ($("#imagen").val() || "").length > 0;
   if (!hasFileChosen){
     $("#imagenmuestra").attr("src","../files/usuarios/" + file).show();
     $("#imagenactual").val(file);
@@ -98,11 +98,11 @@ function cargarRoles(selectedId, selectedLabel) {
 				$("#modo_permisos").val('rol');
 				cargarPermisosDeRol(idRolSel);
 			}
-      actualizarPreviewAvatarPorRol();
+			actualizarPreviewAvatarPorRol();
 		});
 
-    // Preview inicial
-    setTimeout(actualizarPreviewAvatarPorRol, 150);
+		// Preview inicial
+		setTimeout(actualizarPreviewAvatarPorRol, 150);
 
 	}).fail(function(xhr, status, error) {
 		console.error('❌ Error cargando roles:', error);
@@ -209,6 +209,7 @@ function setupDocumentValidation() {
 	$(tipo_documento).on('change', function(){
 		$(num_documento).val('');
 		$(nombre).val('');
+		$('#direccion').val('');
 		$(nombre).attr('readonly', 'readonly');
 		lastQueried = '';
 		
@@ -262,7 +263,10 @@ function setupDocumentValidation() {
 		inflight = new AbortController();
 
 		const prevNombre = $(nombre).val();
+		const prevDireccion = $('#direccion').val();
+		
 		$(nombre).val('Consultando RENIEC...').css('background', '#ffffcc');
+		$('#direccion').val('Obteniendo dirección...').css('background', '#ffffcc');
 		$(hint_numero).html('<i class="fa fa-spinner fa-spin text-info"></i> Consultando...').removeClass().addClass('text-info');
 
 		$.ajax({
@@ -272,16 +276,31 @@ function setupDocumentValidation() {
 			dataType: 'json',
 			timeout: 10000,
 			success: function(data) {
-				console.log('✓ Respuesta RENIEC:', data);
+				console.log('✓ Respuesta RENIEC completa:', data);
 				
 				if (data.success === true) {
+					// Asignar nombre
 					const nombreCompleto = ((data.nombres || '') + ' ' + (data.apellidos || '')).trim();
 					$(nombre).val(nombreCompleto).css('background', '#d4edda');
+					
+					// 🔥 Asignar dirección si viene en la respuesta
+					if (data.direccion && data.direccion.trim() !== '') {
+						$('#direccion').val(data.direccion).css('background', '#d4edda');
+						console.log('✅ Dirección obtenida:', data.direccion);
+						
+						setTimeout(function() { 
+							$('#direccion').css('background', '');
+						}, 3000);
+					} else {
+						$('#direccion').val('').css('background', '');
+						console.warn('⚠️ No se obtuvo dirección desde RENIEC');
+					}
+					
 					$(hint_numero).html('<i class="fa fa-check text-success"></i> Datos verificados por RENIEC').removeClass().addClass('text-success');
 					lastQueried = numDoc;
 					
 					setTimeout(function() { 
-						$(nombre).css('background', ''); 
+						$(nombre).css('background', '');
 						$(hint_numero).removeClass().addClass('text-muted');
 					}, 3000);
 				} else {
@@ -291,6 +310,7 @@ function setupDocumentValidation() {
 			error: function(xhr, status, error) {
 				console.error('❌ Error RENIEC:', error, xhr.responseText);
 				$(nombre).val(prevNombre).css('background', '#f8d7da');
+				$('#direccion').val(prevDireccion).css('background', '');
 				$(hint_numero).html('<i class="fa fa-times text-danger"></i> ' + (error || 'Error al consultar RENIEC')).removeClass().addClass('text-danger');
 				
 				setTimeout(function() { 
@@ -319,7 +339,10 @@ function setupDocumentValidation() {
 		inflight = new AbortController();
 
 		const prevNombre = $(nombre).val();
+		const prevDireccion = $('#direccion').val();
+		
 		$(nombre).val('Consultando SUNAT...').css('background', '#ffffcc');
+		$('#direccion').val('Obteniendo dirección...').css('background', '#ffffcc');
 		$(hint_numero).html('<i class="fa fa-spinner fa-spin text-info"></i> Consultando...').removeClass().addClass('text-info');
 
 		$.ajax({
@@ -329,15 +352,30 @@ function setupDocumentValidation() {
 			dataType: 'json',
 			timeout: 10000,
 			success: function(data) {
-				console.log('✓ Respuesta SUNAT:', data);
+				console.log('✓ Respuesta SUNAT completa:', data);
 				
 				if (data.success === true) {
+					// Asignar razón social
 					$(nombre).val(data.razon_social || '').css('background', '#d4edda');
+					
+					// 🔥 Asignar dirección si viene en la respuesta
+					if (data.direccion && data.direccion.trim() !== '') {
+						$('#direccion').val(data.direccion).css('background', '#d4edda');
+						console.log('✅ Dirección obtenida:', data.direccion);
+						
+						setTimeout(function() { 
+							$('#direccion').css('background', '');
+						}, 3000);
+					} else {
+						$('#direccion').val('').css('background', '');
+						console.warn('⚠️ No se obtuvo dirección desde SUNAT');
+					}
+					
 					$(hint_numero).html('<i class="fa fa-check text-success"></i> Datos verificados por SUNAT').removeClass().addClass('text-success');
 					lastQueried = numDoc;
 					
 					setTimeout(function() { 
-						$(nombre).css('background', ''); 
+						$(nombre).css('background', '');
 						$(hint_numero).removeClass().addClass('text-muted');
 					}, 3000);
 				} else {
@@ -347,6 +385,7 @@ function setupDocumentValidation() {
 			error: function(xhr, status, error) {
 				console.error('❌ Error SUNAT:', error, xhr.responseText);
 				$(nombre).val(prevNombre).css('background', '#f8d7da');
+				$('#direccion').val(prevDireccion).css('background', '');
 				$(hint_numero).html('<i class="fa fa-times text-danger"></i> ' + (error || 'Error al consultar SUNAT')).removeClass().addClass('text-danger');
 				
 				setTimeout(function() { 
@@ -413,7 +452,7 @@ function setupEmailValidation() {
 
 		if (email === lastChecked) {
 			return;
-	}
+		}
 
 		if (!isValidFormat(email)) {
 			$(emailStatus).text('❌');
@@ -542,7 +581,7 @@ function togglePasswordVisibility() {
 	$(toggleBtn).on('click', function() {
 		if ($(pwdInput).attr('type') === 'password') {
 			$(pwdInput).attr('type', 'text');
-			$(this).text('🙈');
+			$(this).text('👁️');
 		} else {
 			$(pwdInput).attr('type', 'password');
 			$(this).text('👁️');
@@ -586,7 +625,7 @@ function limpiar()
 	
 	// ✅ Recargar roles al limpiar (sin selección)
 	cargarRoles();
-  setTimeout(actualizarPreviewAvatarPorRol, 200);
+	setTimeout(actualizarPreviewAvatarPorRol, 200);
 
 	// 🔄 Quitar banner de pendiente si existiera
 	$("#pendiente-msg").remove();
@@ -659,6 +698,13 @@ function guardaryeditar(e)
 {
 	e.preventDefault();
 
+	// 🔥 VALIDACIÓN: Debe tener un rol seleccionado
+	var rolSeleccionado = $("#cargo").val();
+	if (!rolSeleccionado || rolSeleccionado === '' || rolSeleccionado === '0') {
+		bootbox.alert("⚠️ Debes seleccionar un ROL antes de guardar el usuario.");
+		return;
+	}
+
 	// ⛳ Permisos requeridos SOLO si NO estamos en modo 'rol'
 	var modo = ($("#modo_permisos").val() || "").trim();
 	var permisosChecked = $("input[name='permiso[]']:checked").length;
@@ -674,23 +720,18 @@ function guardaryeditar(e)
 	// ✅ Lógica clave: si la contraseña está vacía, mantén la actual
 	var _claveActual = ($("#clave").val() || "").trim();
 	if(!_claveActual){
-		formData.delete('clave');                // no enviar campo vacío
-		formData.append('mantener_clave','1');   // bandera para backend
+		formData.delete('clave');
+		formData.append('mantener_clave','1');
 	}else{
-		formData.append('mantener_clave','0');   // hay nueva contraseña
+		formData.append('mantener_clave','0');
 	}
 
-	/* ============================================================
-	   ✅ Guardar:
-	      - id_rol: el value del select (id)
-	      - cargo : el texto del select (nombre del rol) para mostrar en la lista
-	   ============================================================ */
 	var $sel = $("#cargo option:selected");
 	var rolId = $sel.val() || "";
 	var rolNombre = $.trim($sel.text() || "");
 
 	if (rolNombre) {
-		formData.set('cargo', rolNombre);  // guardar nombre visible
+		formData.set('cargo', rolNombre);
 	}
 	formData.set('id_rol', rolId);
 
@@ -735,18 +776,12 @@ function mostrar(idusuario)
 		$("#telefono").val(data.telefono);
 		$("#email").val(data.email);
 
-		/* ============================================================
-		   ✅ Selección del rol al cargar:
-		      - Si backend devuelve data.id_rol => seleccionamos por id
-		      - Si no, usamos data.cargo (nombre) para buscar por texto
-		   ============================================================ */
 		var idRolDelUsuario = (typeof data.id_rol !== "undefined" && data.id_rol !== null) ? String(data.id_rol) : "";
 		var nombreRolDelUsuario = data.cargo || "";
 
 		// Cargar roles y seleccionar el que corresponda
 		cargarRoles(idRolDelUsuario, nombreRolDelUsuario);
 
-		// ❗ No aplicar permisos del rol automáticamente al editar
 		$("#cargo").selectpicker('refresh');
 
 		// Contraseña
@@ -761,11 +796,11 @@ function mostrar(idusuario)
 		$("#imagenactual").val(data.imagen);
 		$("#idusuario").val(data.idusuario);
 
-    // Si avatar es default, ajusta preview al rol
-    var defaults = ['administrador.png','almacenero.png','vendedor.png','usuario.png'];
-    if (!data.imagen || defaults.indexOf(String(data.imagen)) >= 0){
-      setTimeout(actualizarPreviewAvatarPorRol, 250);
-    }
+		// Si avatar es default, ajusta preview al rol
+		var defaults = ['administrador.png','almacenero.png','vendedor.png','usuario.png'];
+		if (!data.imagen || defaults.indexOf(String(data.imagen)) >= 0){
+			setTimeout(actualizarPreviewAvatarPorRol, 250);
+		}
 
  	});
  	$.post("../ajax/usuario.php?op=permisos&id="+idusuario,function(r){

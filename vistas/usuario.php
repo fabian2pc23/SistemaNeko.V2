@@ -66,6 +66,7 @@ if ($canAcceso) {
   .input-eye {
     position:absolute; right:12px; top:50%;
     transform:translateY(-50%); cursor:pointer; opacity:.75; user-select:none;
+    font-size:1.2rem;
   }
   .input-eye:hover { opacity:1; }
 </style>
@@ -120,7 +121,7 @@ if ($canAcceso) {
             </table>
           </div>
 
-          <!-- FORMULARIO (mantiene IDs esperados por scripts/usuario.js) -->
+          <!-- FORMULARIO -->
           <div class="neko-card__body panel-body" id="formularioregistros" style="display:none;">
             <form name="formulario" id="formulario" method="POST" enctype="multipart/form-data" novalidate>
               <input type="hidden" name="idusuario" id="idusuario">
@@ -135,12 +136,12 @@ if ($canAcceso) {
                     <option value="RUC">RUC</option>
                     <option value="Carnet de Extranjería">Carnet de Extranjería</option>
                   </select>
-                  <small class="text-muted">Selecciona el tipo de documento</small>
+                  <small class="text-muted" id="hint_tipo">Selecciona el tipo de documento</small>
                 </div>
                 <div class="form-group col-lg-6 col-md-6 col-sm-6 col-xs-12">
                   <label>Número de Documento (*):</label>
                   <input type="text" class="form-control" name="num_documento" id="num_documento" required>
-                  <small class="text-muted">Ingresa el número de documento</small>
+                  <small class="text-muted" id="hint_numero">Ingresa el número de documento</small>
                 </div>
               </div>
 
@@ -160,7 +161,7 @@ if ($canAcceso) {
                     <input type="email" class="form-control" name="email" id="email" maxlength="50" placeholder="ejemplo@dominio.com" required>
                     <span id="email-status" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:1.1rem;opacity:.8;"></span>
                   </div>
-                  <small class="text-muted">Se usará como usuario de acceso</small>
+                  <small class="text-muted" id="email-hint">Se usará como usuario de acceso</small>
                 </div>
                 <div class="form-group col-lg-6 col-md-6 col-sm-6 col-xs-12">
                   <label>Teléfono (*):</label>
@@ -172,15 +173,13 @@ if ($canAcceso) {
               <div class="row">
                 <div class="form-group col-lg-6 col-md-6 col-sm-6 col-xs-12">
                   <label>Dirección:</label>
-                  <input type="text" class="form-control" name="direccion" id="direccion" maxlength="70" placeholder="Dirección completa">
+                  <input type="text" class="form-control" name="direccion" id="direccion" maxlength="70" placeholder="Se autocompletará con RENIEC/SUNAT">
+                  <small class="text-info"><i class="fa fa-map-marker"></i> La dirección se obtiene automáticamente al validar el documento</small>
                 </div>
                 <div class="form-group col-lg-6 col-md-6 col-sm-6 col-xs-12">
                   <label>Rol (*):</label>
-                  <select class="form-control" name="cargo" id="cargo" required>
+                  <select class="form-control selectpicker" name="cargo" id="cargo" data-live-search="true" required>
                     <option value="">Seleccione...</option>
-                    <option value="Administrador">Administrador</option>
-                    <option value="Almacenero">Almacenero</option>
-                    <option value="Vendedor">Vendedor</option>
                   </select>
                   <small class="text-muted">Rol del usuario en el sistema</small>
                 </div>
@@ -191,7 +190,7 @@ if ($canAcceso) {
                 <div class="form-group col-lg-6 col-md-6 col-sm-12 col-xs-12">
                   <label>Contraseña (*):</label>
                   <div style="position:relative;">
-                    <input type="password" class="form-control" name="clave" id="clave" maxlength="64" placeholder="Mínimo 10 caracteres" required>
+                    <input type="password" class="form-control" name="clave" id="clave" maxlength="64" placeholder="Mínimo 10 caracteres" required style="padding-right:45px;">
                     <span class="input-eye" id="toggleClave">👁️</span>
                   </div>
                   <div id="pwd-strength" style="margin-top:8px; display:none;">
@@ -254,24 +253,5 @@ require 'footer.php';
 <!-- Scripts específicos de esta vista -->
 <script type="text/javascript" src="scripts/usuario.js"></script>
 
-<!-- Helpers mínimos (no interfieren con usuario.js) -->
-<script>
-  (function ready(fn){document.readyState!=='loading'?fn():document.addEventListener('DOMContentLoaded',fn)})(function(){
-    // Mostrar/ocultar formulario (si tu usuario.js ya lo maneja, esto no molesta)
-    // Ojito de contraseña
-    var inputClave = document.getElementById('clave');
-    var toggle = document.getElementById('toggleClave');
-    if (toggle && inputClave) {
-      toggle.addEventListener('click', function(){
-        var type = inputClave.getAttribute('type') === 'password' ? 'text' : 'password';
-        inputClave.setAttribute('type', type);
-        this.textContent = (type === 'password') ? '👁️' : '🙈';
-      });
-      inputClave.addEventListener('focus', function(){
-        var p = document.getElementById('pwd-strength'); if (p) p.style.display='block';
-      });
-    }
-  });
-</script>
 <?php
 ob_end_flush();

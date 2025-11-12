@@ -127,6 +127,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <title>Login - Neko SAC</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="css/estilos.css?v=<?= time() ?>">
+  <style>
+    .input-password-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    
+    .toggle-password {
+      position: absolute;
+      right: 40px;
+      cursor: pointer;
+      padding: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+      z-index: 2;
+    }
+    
+    .toggle-password svg {
+      width: 20px;
+      height: 20px;
+      fill: #666;
+      transition: fill 0.2s;
+    }
+    
+    .toggle-password:hover svg {
+      fill: #333;
+    }
+    
+    .input.has-toggle input {
+      padding-right: 70px;
+    }
+  </style>
 </head>
 <body class="auth-body">
   <div class="auth-wrapper">
@@ -149,7 +183,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <form method="post" action="login.php" class="auth-form" autocomplete="off" novalidate>
           <label class="field">
-            <span class="field-label">Email o N° de documento:.</span>
+            <span class="field-label">Email o N° de documento:</span>
             <div class="input">
               <input type="text" name="email" placeholder="tucorreo@empresa.com o tu N° de documento" required autocomplete="username">
               <span class="icon">
@@ -160,8 +194,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
           <label class="field">
             <span class="field-label">Contraseña</span>
-            <div class="input">
-              <input type="password" name="password" placeholder="••••••••" required autocomplete="current-password">
+            <div class="input has-toggle">
+              <input type="password" id="passwordInput" name="password" placeholder="••••••••" required autocomplete="current-password">
+              <span class="toggle-password" id="togglePassword" title="Mostrar/Ocultar contraseña">
+                <!-- Ícono ojo cerrado (password oculta) -->
+                <svg id="eyeOff" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46A11.804 11.804 0 0 0 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78 3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z"/>
+                </svg>
+                <!-- Ícono ojo abierto (password visible) -->
+                <svg id="eyeOn" viewBox="0 0 24 24" aria-hidden="true" style="display: none;">
+                  <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+                </svg>
+              </span>
               <span class="icon">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 9h-1V7a4 4 0 0 0-8 0v2H7a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2Zm-7-2a2 2 0 0 1 4 0v2H10Zm7 12H7v-8h10Z"/></svg>
               </span>
@@ -181,5 +225,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </div>
     </section>
   </div>
+
+  <script>
+    // Toggle password visibility
+    const togglePassword = document.getElementById('togglePassword');
+    const passwordInput = document.getElementById('passwordInput');
+    const eyeOff = document.getElementById('eyeOff');
+    const eyeOn = document.getElementById('eyeOn');
+
+    togglePassword.addEventListener('click', function() {
+      // Cambiar el tipo de input
+      const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+      passwordInput.setAttribute('type', type);
+      
+      // Cambiar el ícono
+      if (type === 'text') {
+        eyeOff.style.display = 'none';
+        eyeOn.style.display = 'block';
+      } else {
+        eyeOff.style.display = 'block';
+        eyeOn.style.display = 'none';
+      }
+    });
+  </script>
 </body>
 </html>
