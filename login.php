@@ -149,7 +149,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <form method="post" action="login.php" class="auth-form" autocomplete="off" novalidate>
           <label class="field">
-            <span class="field-label">Email o N° de documento: </span>
+            <span class="field-label">Email o N° de documento:: </span>
             <div class="input">
               <input type="text" name="email" placeholder="tucorreo@empresa.com o tu N° de documento" required autocomplete="username">
               <span class="icon">
