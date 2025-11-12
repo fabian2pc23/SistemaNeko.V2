@@ -111,40 +111,42 @@ $nekoPrimaryDark = '#0d47a1';
               <h4 class="section-title"><span class="dot"></span> Datos del artículo</h4>
 
               <!-- Fila 1: Nombre + Categoría -->
-              <div class="row">
-                <div class="form-group col-lg-8 col-md-8">
-                  <label>Nombre(*):</label>
-                  <input type="text" class="form-control" name="nombre" id="nombre"
-                         maxlength="100" placeholder="Nombre del artículo" required
-                         title="Solo letras y espacios (3 a 50 caracteres)">
-                  <div class="help-hint">Usa un nombre claro y único.</div>
-                </div>
+          <div class="row">
+  <div class="form-group col-lg-3 col-md-3 col-sm-6">
+    <label>Stock(*):</label>
+    <input type="number" class="form-control" name="stock" id="stock"
+           min="0" step="1" required>
+  </div>
 
-                <div class="form-group col-lg-4 col-md-4">
-                  <label>Categoría(*):</label>
-                  <select id="idcategoria" name="idcategoria" class="form-control selectpicker"
-                          data-live-search="true" required></select>
-                </div>
-              </div>
+  <div class="form-group col-lg-3 col-md-3 col-sm-6">
+    <label>Precio compra(*):</label>
+    <input type="text" class="form-control" name="precio_compra" id="precio_compra"
+           placeholder="0.00" inputmode="decimal"
+           pattern="^\d{1,7}(\.\d{1,2})?$"
+           title="Solo números (máx. 2 decimales)" required>
+    <div class="help-hint">Base para cálculos de costos o márgenes.</div>
+  </div>
+</div>
 
-              <!-- Fila 2: Stock + Precio compra + Precio venta -->
-              <div class="row">
-                <div class="form-group col-lg-3 col-md-3 col-sm-6">
-                  <label>Stock(*):</label>
-                  <input type="number" class="form-control" name="stock" id="stock"
-                         min="0" step="1" required>
-                </div>
 
-                <div class="form-group col-lg-3 col-md-3 col-sm-6">
-                  <label>Precio compra(*):</label>
-                  <input type="text" class="form-control" name="precio_compra" id="precio_compra"
-                         placeholder="0.00" inputmode="decimal"
-                         pattern="^\d{1,7}(\.\d{1,2})?$"
-                         title="Solo números (máx. 2 decimales)" required>
-                  <div class="help-hint">Base para sugerir el precio de venta.</div>
-                </div>
+              <!-- Fila 2: Stock + Precio compra -->
 
-              </div>
+<div class="row">
+  <div class="form-group col-lg-3 col-md-3 col-sm-6">
+    <label>Stock(*):</label>
+    <input type="number" class="form-control" name="stock" id="stock"
+           min="0" step="1" required>
+  </div>
+
+  <div class="form-group col-lg-3 col-md-3 col-sm-6">
+    <label>Precio compra(*):</label>
+    <input type="text" class="form-control" name="precio_compra" id="precio_compra"
+           placeholder="0.00" inputmode="decimal"
+           pattern="^\d{1,7}(\.\d{1,2})?$"
+           title="Solo números (máx. 2 decimales)" required>
+    <div class="help-hint">Indica el costo unitario de adquisición.</div>
+  </div>
+</div>
 
               <!-- Fila 3: Descripción -->
               <div class="row">
