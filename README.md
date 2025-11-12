@@ -12,6 +12,7 @@ Se modifico Register
 - Eliminacion de Roles 
 - Validacion de Telefono 
 - Validaciones de numero de documento
+- Validacion de correos actualizada
 
 Se modifico el ChangePassword 
 
