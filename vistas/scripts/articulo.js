@@ -3,29 +3,25 @@ var tabla;
 
 /* ======================= Helpers de validación ======================= */
 
-// Nombre: solo letras (con acentos) y espacios, 3..50, sin repeticiones absurdas.
 function esNombreValido(nombre) {
   const txt = (nombre || "").trim();
   if (!/^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ\s]{3,50}$/.test(txt)) return false;
-  if (/([A-Za-z])\1{2,}/.test(txt)) return false;               // repeticiones tipo aaaaa
-  if (!/[AEIOUaeiouÁÉÍÓÚáéíóúüÜ]/.test(txt)) return false;       // sin vocales
+  if (/([A-Za-z])\1{2,}/.test(txt)) return false;
+  if (!/[AEIOUaeiouÁÉÍÓÚáéíóúüÜ]/.test(txt)) return false;
   const invalidos = ["xxx", "asdf", "test", "prueba", "rol", "role", "wewqeq", "qwe"];
   if (invalidos.some(p => txt.toLowerCase().includes(p))) return false;
   return true;
 }
 
-// Precio: ^\d{1,7}(\.\d{1,2})?$
 function esPrecioValido(v) {
   return /^\d{1,7}(\.\d{1,2})?$/.test((v || "").trim());
 }
 
-// Código de barras: solo dígitos y largo 8..13
 function esCodigoValido(v) {
   const txt = (v || "").trim();
   return /^\d{8,13}$/.test(txt);
 }
 
-// Aviso sutil en el input (un solo mensaje, nada invasivo)
 function setValidity(el, ok, msg) {
   if (!el) return;
   el.setCustomValidity(ok ? "" : msg);
@@ -34,36 +30,33 @@ function setValidity(el, ok, msg) {
 
 /* ======================= Generación EAN ======================= */
 
-// Dígito de control EAN-13 (recibe 12 dígitos, devuelve 0..9)
 function ean13Checksum(d12) {
   const s = String(d12).replace(/\D/g, "").padStart(12, "0").slice(0, 12);
   let sumOdd = 0, sumEven = 0;
   for (let i = 0; i < 12; i++) {
     const n = s.charCodeAt(i) - 48;
-    if ((i + 1) % 2 === 0) sumEven += n; // posiciones pares (2,4,...,12)
-    else sumOdd += n;                     // posiciones impares (1,3,...,11)
+    if ((i + 1) % 2 === 0) sumEven += n;
+    else sumOdd += n;
   }
   const total = sumOdd + sumEven * 3;
   return (10 - (total % 10)) % 10;
 }
 
-// Genera un EAN-13 válido (13 dígitos)
 function generarEAN13() {
   let base = "";
-  base += "77"; // prefijo arbitrario (puedes cambiarlo)
+  base += "77";
   for (let i = base.length; i < 12; i++) base += Math.floor(Math.random() * 10);
   const check = ean13Checksum(base);
   return base + String(check);
 }
 
 /* ======================= Sugerencia Precio Venta ======================= */
-const IGV = 0.18;                 // Perú
-const MARGEN_SUGERIDO = 0.30;     // 30% margen
+const IGV = 0.18;
+const MARGEN_SUGERIDO = 0.30;
 let precioVentaEditadoManualmente = false;
 
 function f2(n){ return (Math.round(parseFloat(n||0)*100)/100).toFixed(2); }
 
-// Calcula sugerido = compra * (1+IGV) * (1+MARGEN)
 function calcularPV(compra){
   const c = parseFloat(String(compra).replace(',', '.'));
   if (isNaN(c) || c <= 0) return "";
@@ -83,27 +76,22 @@ function actualizarSugerido(){
 
 /* =========================== Inicialización =========================== */
 function init() {
-  // Evita que DataTables muestre alert de error por defecto
   if ($.fn.dataTable) $.fn.dataTable.ext.errMode = 'none';
 
   mostrarform(false);
   construirTabla();
 
-  // submit del formulario
   $("#formulario").on("submit", function (e) { guardaryeditar(e); });
 
-  // cargar categorías
   $.get("../ajax/articulo.php?op=selectCategoria", function (r) {
     $("#idcategoria").html(r);
     try { $("#idcategoria").selectpicker('refresh'); } catch(_){}
   });
 
-  // UI menor
   $("#imagenmuestra").hide();
   $("#mAlmacen").addClass("treeview active");
   $("#lArticulos").addClass("active");
 
-  // Validaciones en vivo
   $("#precio_compra").on("input", function(){
     const ok = esPrecioValido(this.value);
     setValidity(this, ok, "Precio inválido. Use solo números y hasta 2 decimales.");
@@ -116,10 +104,7 @@ function init() {
     setValidity(this, ok, "Precio inválido. Use solo números y hasta 2 decimales.");
   });
 
-  $("#precio_venta").on("blur", function(){
-    if (esPrecioValido(this.value)) this.value = f2(this.value);
-  });
-  $("#precio_compra").on("blur", function(){
+  $("#precio_venta, #precio_compra").on("blur", function(){
     if (esPrecioValido(this.value)) this.value = f2(this.value);
   });
 
@@ -132,7 +117,6 @@ function init() {
     }
   });
 
-  // Código: fuerza dígitos, máx 13; render si es válido
   $("#codigo").on("input", function () {
     this.value = this.value.replace(/\D+/g, "").slice(0, 13);
     const ok = esCodigoValido(this.value);
@@ -140,15 +124,13 @@ function init() {
     if (ok) renderBarcode(this.value);
   });
 
-  // ================= Delegación de eventos (botones en la tabla) =================
-  // Editar (lápiz)
+  // Delegación de eventos
   $(document).on('click', '#tbllistado .btn-edit', function () {
     const id = $(this).data('id');
     if (!id) return;
     mostrar(id);
   });
 
-  // Desactivar
   $(document).on('click', '#tbllistado .btn-off', function () {
     const id = $(this).data('id');
     bootbox.confirm("¿Está seguro de desactivar el artículo?", function (ok) {
@@ -161,7 +143,6 @@ function init() {
     });
   });
 
-  // Activar
   $(document).on('click', '#tbllistado .btn-on', function () {
     const id = $(this).data('id');
     bootbox.confirm("¿Está seguro de activar el artículo?", function (ok) {
@@ -217,6 +198,54 @@ function cancelarform() {
 }
 
 /* ======================= DataTable (listar) ======================= */
+
+function setupToolbarFilters() {
+  if (!tabla) return;
+
+  // Mover botones de exportación al contenedor
+  setTimeout(function(){
+    var $dtButtons = $('.dt-buttons');
+    if ($dtButtons.length) {
+      $dtButtons.appendTo('#export-buttons-container');
+    }
+  }, 100);
+
+  function setEstadoActive(which){
+    $('.toolbar-btn').removeClass('active');
+    if (which === 'todos') $('#filter-todos').addClass('active');
+    if (which === 'activos') $('#filter-activos').addClass('active');
+    if (which === 'desactivos') $('#filter-desactivos').addClass('active');
+  }
+
+  // ✅ FILTROS CORREGIDOS: usamos el texto simple "Activado"/"Desactivado"
+  //   sin regex estricta ni anchors, y con búsqueda de columna.
+  $('#filter-todos').off('click').on('click', function(){
+    tabla.column(8).search('', false, false).draw();  // Muestra todos
+    setEstadoActive('todos');
+  });
+
+  $('#filter-activos').off('click').on('click', function(){
+    tabla.column(8).search('Activado', false, false).draw();
+    setEstadoActive('activos');
+  });
+
+  $('#filter-desactivos').off('click').on('click', function(){
+    tabla.column(8).search('Desactivado', false, false).draw();
+    setEstadoActive('desactivos');
+  });
+
+  // Categoría
+  $('#filter-categoria').off('change').on('change', function(){
+    var val = this.value || '';
+    tabla.column(2).search(val, false, false).draw();
+  });
+
+  // Búsqueda personalizada global
+  $('#search-input').off('keyup').on('keyup', function(){
+    tabla.search(this.value).draw();
+  });
+}
+
 function construirTabla() {
   if ($.fn.DataTable.isDataTable('#tbllistado')) {
     $('#tbllistado').DataTable().destroy();
@@ -225,28 +254,30 @@ function construirTabla() {
 
   tabla = $('#tbllistado').DataTable({
     processing: true,
-    serverSide: false,         // dataset completo desde PHP
+    serverSide: false,
     deferRender: true,
     responsive: true,
     autoWidth: false,
     destroy: true,
     dom: 'Bfrtip',
-    buttons: ['copyHtml5', 'excelHtml5', 'csvHtml5', 'pdf'],
+    buttons: [
+      { extend:'copyHtml5',  text:'<i class="fa fa-copy"></i> Copiar' },
+      { extend:'excelHtml5', text:'<i class="fa fa-file-excel-o"></i> Excel' },
+      { extend:'csvHtml5',   text:'<i class="fa fa-file-text-o"></i> CSV' },
+      { extend:'pdf',        text:'<i class="fa fa-file-pdf-o"></i> PDF' }
+    ],
     ajax: {
       url: '../ajax/articulo.php?op=listar',
       type: 'GET',
       dataType: 'json',
       dataSrc: function (json) {
-        // Si backend retorna error JSON
         if (json && json.success === false) {
           bootbox.alert(json.message || 'Error al listar artículos.');
           return [];
         }
-        // Acepta 'data' (moderno) o 'aaData' (legacy)
         if (json && Array.isArray(json.data))   return json.data;
         if (json && Array.isArray(json.aaData)) return json.aaData;
 
-        // Si llega string, intenta parsearlo
         try {
           if (typeof json === 'string') {
             var j = JSON.parse(json);
@@ -261,20 +292,47 @@ function construirTabla() {
         bootbox.alert('No se pudo cargar el listado (revisa la consola).');
       }
     },
-    // 9 columnas: [opciones, nombre, categoría, código, stock, pcompra, pventa, imagen, estado]
     columns: [
-      { data: 0, orderable:false, searchable:false }, // botones
+      { data: 0, orderable:false, searchable:false },
       { data: 1 },
       { data: 2 },
       { data: 3 },
       { data: 4, className:'text-right' },
       { data: 5, className:'text-right' },
       { data: 6, className:'text-right' },
-      { data: 7, orderable:false, searchable:false }, // img
-      { data: 8, orderable:false, searchable:false }  // estado
+      { data: 7, orderable:false, searchable:false },
+      // 👇 AHORA esta columna SÍ es searchable para que funcionen los filtros
+      { data: 8, orderable:false, searchable:true }
     ],
     pageLength: 10,
-    order: [[1, "asc"]]
+    order: [[1, "asc"]],
+    language: {
+      "sProcessing":     "Procesando...",
+      "sLengthMenu":     "Mostrar _MENU_ registros",
+      "sZeroRecords":    "No se encontraron resultados",
+      "sEmptyTable":     "Ningún dato disponible en esta tabla",
+      "sInfo":           "Mostrando registros del _START_ al _END_ de un total de _TOTAL_",
+      "sInfoEmpty":      "Mostrando registros del 0 al 0 de un total de 0",
+      "sInfoFiltered":   "(filtrado de un total de _MAX_ registros)",
+      "sInfoPostFix":    "",
+      "sSearch":         "Buscar:",
+      "sUrl":            "",
+      "sInfoThousands":  ",",
+      "sLoadingRecords": "Cargando...",
+      "oPaginate": {
+        "sFirst":    "Primero",
+        "sLast":     "Último",
+        "sNext":     "Siguiente",
+        "sPrevious": "Anterior"
+      },
+      "oAria": {
+        "sSortAscending":  ": Activar para ordenar la columna de manera ascendente",
+        "sSortDescending": ": Activar para ordenar la columna de manera descendente"
+      }
+    },
+    initComplete: function(){
+      setupToolbarFilters();
+    }
   });
 }
 
@@ -333,7 +391,6 @@ function guardaryeditar(e) {
     if (/duplicado/i.test(msg)) {
       bootbox.alert("⚠️ El nombre ya existe. No se permiten duplicados.");
     } else {
-      // si backend nuevo devuelve JSON con message
       try { var j = JSON.parse(msg); bootbox.alert(j.message || msg); }
       catch { bootbox.alert(msg); }
     }
@@ -365,7 +422,7 @@ function mostrar(idarticulo) {
       $("#nombre").val(d.nombre || "");
       $("#stock").val(d.stock || "");
       $("#precio_compra").val(d.precio_compra || "");
-      $("#precio_venta").val(d.precio_venta || "");
+      $("#precio_venta").val(d.preccio_venta || d.precio_venta || "");
       $("#descripcion").val(d.descripcion || "");
 
       if (d.imagen) {
@@ -376,7 +433,6 @@ function mostrar(idarticulo) {
       $("#imagenactual").val(d.imagen || "");
       $("#idarticulo").val(d.idarticulo);
 
-      // Sugerido / barcode
       precioVentaEditadoManualmente = false;
       actualizarSugerido();
 
@@ -394,10 +450,9 @@ function mostrar(idarticulo) {
 
 /* =================== Código de barras (Generar/Imprimir) =================== */
 
-// Renderiza el código (elige EAN-8 o EAN-13 según longitud)
 function renderBarcode(code) {
   const clean = String(code).replace(/\D/g, "");
-  const fmt = clean.length === 8 ? "EAN8" : "EAN13"; // 8 -> EAN8, 12/13 -> EAN13
+  const fmt = clean.length === 8 ? "EAN8" : "EAN13";
   JsBarcode("#barcode", clean, {
     format: fmt,
     displayValue: true,
@@ -410,9 +465,6 @@ function renderBarcode(code) {
   $("#print").show();
 }
 
-// Genera automáticamente un EAN-13 válido si el campo está vacío o inválido.
-// Si ingresas 12 dígitos, completa el dígito de control y renderiza.
-// Si ingresas 8 dígitos válidos, renderiza EAN-8.
 function generarbarcode() {
   let code = $("#codigo").val().replace(/\D/g, "");
 
@@ -425,7 +477,6 @@ function generarbarcode() {
   renderBarcode(code);
 }
 
-// Imprime el área de código
 function imprimir() {
   $("#print").printArea();
 }

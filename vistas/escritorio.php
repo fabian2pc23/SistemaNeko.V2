@@ -1,18 +1,89 @@
 <?php
+// Muestra errores mientras desarrollas (opcional, puedes quitar luego)
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 // Activamos el almacenamiento en buffer
 ob_start();
 
 require_once __DIR__ . '/_requires_auth.php';
 require 'header.php';
 
+// Solo escritorio si tiene permiso
 if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
 
+  require_once "../config/Conexion.php";   // para ejecutarConsulta
   require_once "../modelos/Consultas.php";
   $consulta = new Consultas();
 
-  // Totales hoy (con fallback)
-  $rsptac = $consulta->totalcomprahoy();  $regc = $rsptac ? $rsptac->fetch_object() : null;  $totalc = $regc->total_compra ?? 0;
-  $rsptav = $consulta->totalventahoy();   $regv = $rsptav ? $rsptav->fetch_object() : null;  $totalv = $regv->total_venta  ?? 0;
+  /* ============================================================
+     TOTALES HOY (usa tu modelo original)
+     ============================================================ */
+  $rsptac = $consulta->totalcomprahoy();
+  $regc   = $rsptac ? $rsptac->fetch_object() : null;
+  $totalc = $regc->total_compra ?? 0;
+
+  $rsptav = $consulta->totalventahoy();
+  $regv   = $rsptav ? $rsptav->fetch_object() : null;
+  $totalv = $regv->total_venta ?? 0;
+
+  /* ============================================================
+     KPIs ADICIONALES PARA EL DASHBOARD
+     (ventas acumuladas, mes, pedidos, etc.)
+     ============================================================ */
+
+  // Ventas acumuladas (histórico)
+  $sql = "SELECT IFNULL(SUM(total_venta),0) AS total
+          FROM venta
+          WHERE estado = 'Aceptado'";
+  $rs = ejecutarConsulta($sql);
+  $row = $rs ? $rs->fetch_object() : null;
+  $totalVentasAcumuladas = $row ? (float)$row->total : 0;
+
+  // Compras acumuladas (histórico)
+  $sql = "SELECT IFNULL(SUM(total_compra),0) AS total
+          FROM ingreso
+          WHERE estado = 'Aceptado'";
+  $rs = ejecutarConsulta($sql);
+  $row = $rs ? $rs->fetch_object() : null;
+  $totalComprasAcumuladas = $row ? (float)$row->total : 0;
+
+  // Ventas del mes actual
+  $sql = "SELECT IFNULL(SUM(total_venta),0) AS total
+          FROM venta
+          WHERE estado = 'Aceptado'
+            AND MONTH(fecha_hora) = MONTH(CURDATE())
+            AND YEAR(fecha_hora)  = YEAR(CURDATE())";
+  $rs = ejecutarConsulta($sql);
+  $row = $rs ? $rs->fetch_object() : null;
+  $totalVentasMes = $row ? (float)$row->total : 0;
+
+  // Compras del mes actual
+  $sql = "SELECT IFNULL(SUM(total_compra),0) AS total
+          FROM ingreso
+          WHERE estado = 'Aceptado'
+            AND MONTH(fecha_hora) = MONTH(CURDATE())
+            AND YEAR(fecha_hora)  = YEAR(CURDATE())";
+  $rs = ejecutarConsulta($sql);
+  $row = $rs ? $rs->fetch_object() : null;
+  $totalComprasMes = $row ? (float)$row->total : 0;
+
+  // Pedidos (ventas) del mes actual
+  $sql = "SELECT COUNT(*) AS cant
+          FROM venta
+          WHERE estado = 'Aceptado'
+            AND MONTH(fecha_hora) = MONTH(CURDATE())
+            AND YEAR(fecha_hora)  = YEAR(CURDATE())";
+  $rs = ejecutarConsulta($sql);
+  $row = $rs ? $rs->fetch_object() : null;
+  $totalPedidosMes = $row ? (int)$row->cant : 0;
+
+  // Ticket promedio del mes
+  $ticketPromedioMes = $totalPedidosMes > 0 ? ($totalVentasMes / $totalPedidosMes) : 0;
+
+  /* ============================================================
+     SERIES PARA LOS GRÁFICOS (usa tu modelo original)
+     ============================================================ */
 
   // Compras últimos 10 días
   $compras10 = $consulta->comprasultimos_10dias();
@@ -74,8 +145,11 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
     }
     .kpi__label{ color:#334155; margin:0; font-size:.95rem; }
     .kpi__value{ margin:0; font-weight:700; color:#0b2752; font-size:1.25rem; }
+    .kpi__sub{
+      margin:2px 0 0; font-size:.78rem; color:#6b7280;
+    }
 
-    /* Contenedor de gráfico (altura fija para evitar bucle infinito) */
+    /* Contenedor de gráfico */
     .chart-card{
       background:#fff; border:var(--card-border); border-radius:12px; box-shadow:var(--shadow);
       padding:14px 16px;
@@ -85,11 +159,10 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
     }
     .chart-holder{
       position: relative;
-      height: 280px;      /* ajustable: 240–320px */
+      height: 280px;
       width: 100%;
     }
 
-    /* Utilidades */
     .mb-16{ margin-bottom:16px; }
   </style>
 
@@ -107,32 +180,85 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
             </div>
 
             <div class="neko-card__body">
-              <!-- KPIs -->
+              <!-- ================== Fila 1: Hoy ================== -->
               <div class="row mb-16">
                 <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 mb-16">
                   <div class="kpi">
-                    <div class="kpi__icon"><i class="ion ion-bag"></i></div>
+                    <div class="kpi__icon"><i class="ion ion-ios-download"></i></div>
                     <div>
                       <p class="kpi__label">Compras de hoy</p>
                       <h3 class="kpi__value">S/ <?php echo number_format((float)$totalc, 2, '.', ''); ?></h3>
-                      <a href="ingreso.php" class="small text-primary">Ir a Compras <i class="fa fa-arrow-circle-right"></i></a>
+                      <p class="kpi__sub">Movimiento de abastecimiento del día.</p>
+                      <a href="ingreso.php" class="small text-primary">
+                        Ir a Compras <i class="fa fa-arrow-circle-right"></i>
+                      </a>
                     </div>
                   </div>
                 </div>
 
                 <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 mb-16">
                   <div class="kpi">
-                    <div class="kpi__icon"><i class="ion ion-bag"></i></div>
+                    <div class="kpi__icon"><i class="ion ion-ios-cart"></i></div>
                     <div>
                       <p class="kpi__label">Ventas de hoy</p>
                       <h3 class="kpi__value">S/ <?php echo number_format((float)$totalv, 2, '.', ''); ?></h3>
-                      <a href="venta.php" class="small text-primary">Ir a Ventas <i class="fa fa-arrow-circle-right"></i></a>
+                      <p class="kpi__sub">Ingresos generados en la jornada actual.</p>
+                      <a href="venta.php" class="small text-primary">
+                        Ir a Ventas <i class="fa fa-arrow-circle-right"></i>
+                      </a>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <!-- Gráficos -->
+              <!-- ================== Fila 2: KPIs del negocio ================== -->
+              <div class="row mb-16">
+                <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12 mb-16">
+                  <div class="kpi">
+                    <div class="kpi__icon"><i class="fa fa-line-chart"></i></div>
+                    <div>
+                      <p class="kpi__label">Ventas acumuladas</p>
+                      <h3 class="kpi__value">S/ <?php echo number_format($totalVentasAcumuladas, 2, '.', ''); ?></h3>
+                      <p class="kpi__sub">Todo lo facturado a la fecha.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12 mb-16">
+                  <div class="kpi">
+                    <div class="kpi__icon"><i class="fa fa-calendar"></i></div>
+                    <div>
+                      <p class="kpi__label">Ventas del mes</p>
+                      <h3 class="kpi__value">S/ <?php echo number_format($totalVentasMes, 2, '.', ''); ?></h3>
+                      <p class="kpi__sub">Mes actual (ventas aceptadas).</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12 mb-16">
+                  <div class="kpi">
+                    <div class="kpi__icon"><i class="fa fa-file-text-o"></i></div>
+                    <div>
+                      <p class="kpi__label">Pedidos del mes</p>
+                      <h3 class="kpi__value"><?php echo number_format($totalPedidosMes, 0, '.', ''); ?></h3>
+                      <p class="kpi__sub">N.º de comprobantes emitidos.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12 mb-16">
+                  <div class="kpi">
+                    <div class="kpi__icon"><i class="fa fa-money"></i></div>
+                    <div>
+                      <p class="kpi__label">Ticket promedio (mes)</p>
+                      <h3 class="kpi__value">S/ <?php echo number_format($ticketPromedioMes, 2, '.', ''); ?></h3>
+                      <p class="kpi__sub">Venta promedio por operación.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ================== Gráficos ================== -->
               <div class="row">
                 <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 mb-16">
                   <div class="chart-card">
@@ -161,12 +287,10 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
 
   <?php require 'footer.php'; ?>
 
-  <!-- IMPORTANTE: deja solo uno -->
+  <!-- Chart.js (ya lo usabas) -->
   <script src="../public/js/Chart.bundle.min.js"></script>
-  <!-- <script src="../public/js/chart.min.js"></script>  --><!-- NO usar junto con el anterior -->
 
   <script>
-    // Vars globales para destruir si se reinyecta
     var chartCompras, chartVentas;
 
     // --------- Compras (10 días) ----------
@@ -189,7 +313,7 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
         },
         options: {
           responsive: true,
-          maintainAspectRatio: false,   // usa la altura de .chart-holder
+          maintainAspectRatio: false,
           scales: {
             yAxes: [{ ticks: { beginAtZero: true } }]
           },

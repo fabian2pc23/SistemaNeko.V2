@@ -61,7 +61,7 @@ if (!function_exists('curl_init')) {
 
 /* ---------- Token ---------- */
 $TOKEN = getenv('MIAPI_CLOUD_TOKEN')
-  ?: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1NDEsImV4cCI6MTc2MzE4NTkyOX0.71eARtYsK-NgamZ4q1cHzRfN42fzqeApzQ8TIcVBlp0';
+  ?: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1NzEsImV4cCI6MTc2MzYzNTAxMH0.4dFEej8wDT4vvuMqgLeECVvEB0ZTMA_IuzKR3Sh4UBw';
 
 /* ---------- Llamada al proveedor ---------- */
 $url = "https://miapi.cloud/v1/dni/{$dni}";
