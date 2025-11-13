@@ -1,40 +1,40 @@
 /* vistas/scripts/ingreso.js
- * Ingresos con toolbar propia (botones + length + search + fechas)
+ * Ingresos sin precio_venta — actualizado 2025
  */
 
-var tabla;          // DataTable principal
-var tablaArticulos; // DataTable del modal
-var impuesto = 18;
+var tabla;
+var tablaArticulos;
+var tasa_igv = 18;
 var cont = 0;
 var detalles = 0;
 
 // ===============================
 // Init
 // ===============================
+// ===============================
+// Init
+// ===============================
 function init () {
-  mostrarform(false);
-  construirTabla();                 // crea DataTable una sola vez
+  mostrarform(false);
+  construirTabla();
 
-  $("#formulario").on("submit", function (e) { guardaryeditar(e); });
+  $("#formulario").on("submit", function (e) { guardaryeditar(e); });
 
-  // Proveedores
-  $.post("../ajax/ingreso.php?op=selectProveedor", function (r) {
-    $("#idproveedor").html(r);
-    $('#idproveedor').selectpicker('refresh');
-  });
+  $.post("../ajax/ingreso.php?op=selectProveedor", function (r) {
+    $("#idproveedor").html(r);
+    $('#idproveedor').selectpicker('refresh');
+  });
 
-  // Menú activo
-  $('#mCompras').addClass("treeview active");
-  $('#lIngresos').addClass("active");
+  $('#mCompras').addClass("treeview active");
+  $('#lIngresos').addClass("active");
 
-  // Impuesto por comprobante
-  $("#tipo_comprobante").change(marcarImpuesto);
+  // ELIMINAR LA LÍNEA: $("#tipo_comprobante").change(marcarImpuesto);
 
-  autoprepararFecha();
+  autoprepararFecha();
 }
 
 // ===============================
-// UI helpers
+// Utilidades
 // ===============================
 function autoprepararFecha () {
   var f = document.getElementById('fecha_hora');
@@ -48,10 +48,9 @@ function autoprepararFecha () {
 }
 
 // ===============================
-// Listado (DataTable)
+// Listado principal
 // ===============================
 function construirTabla () {
-  // Si existía, destruye y limpia (evitamos doble init)
   if ($.fn.DataTable.isDataTable('#tbllistado')) {
     $('#tbllistado').DataTable().destroy();
     $('#tbllistado tbody').empty();
@@ -62,8 +61,8 @@ function construirTabla () {
     aServerSide: true,
     iDisplayLength: 5,
     lengthMenu: [5, 10, 25, 50, 100],
-    order: [[1, 'desc']],    // fecha desc
-    dom: 'Brtip',            // sin l/f nativos
+    order: [[1, 'desc']],
+    dom: 'Brtip',
     buttons: [
       { extend: 'copyHtml5', text: 'Copy' },
       { extend: 'excelHtml5', text: 'Excel' },
@@ -84,38 +83,26 @@ function construirTabla () {
       lengthMenu: 'Mostrar : MENU registros',
       paginate: { previous: 'Anterior', next: 'Siguiente' },
       info: 'Mostrando START a END de TOTAL registros',
-      infoEmpty: 'Mostrando 0 a 0 de 0 registros',
-      zeroRecords: 'No se encontraron resultados',
-      infoFiltered: '(filtrado de MAX registros)',
-      buttons: { copyTitle: 'Tabla Copiada', copySuccess: { _: '%d líneas copiadas', 1: '1 línea copiada' } }
+      zeroRecords: 'No se encontraron resultados'
     },
     drawCallback: function(){
-      // Si algún global inyecta length/filter otra vez, los ocultamos
       $('#tbllistado_wrapper .dataTables_length, #tbllistado_wrapper .dataTables_filter').hide();
     }
   });
 
-  // Anclar botones a la toolbar propia (solo una vez)
   var $holder = $('.dt-buttons-holder');
   if ($holder.length && !$holder.find('.dt-buttons').length) {
-    $holder.append( tabla.buttons().container() );
+    $holder.append(tabla.buttons().container());
   }
 
-  // Controles propios
-  $('#customLength')
-    .val(tabla.page.len())
-    .off('change')
-    .on('change', function () {
-      tabla.page.len(parseInt(this.value, 10) || 5).draw();
-    });
+  $('#customLength').val(tabla.page.len()).off('change').on('change', function () {
+    tabla.page.len(parseInt(this.value, 10) || 5).draw();
+  });
 
-  $('#customSearch')
-    .off('keyup change input')
-    .on('keyup change input', function () {
-      tabla.search(this.value).draw();
-    });
+  $('#customSearch').off('keyup change input').on('keyup change input', function () {
+    tabla.search(this.value).draw();
+  });
 
-  // Fechas → reload sin reinit
   $('#filtro_desde, #filtro_hasta').off('change input').on('change input', function(){
     tabla.ajax.reload(null, false);
   });
@@ -127,22 +114,30 @@ function construirTabla () {
 }
 
 // ===============================
-// Form helpers
+// Formularios
 // ===============================
 function limpiar () {
-  $("#idingreso").val("");
-  $("#idproveedor").val(""); $("#idproveedor").selectpicker('refresh');
-  $("#tipo_comprobante").val("Boleta"); $("#tipo_comprobante").selectpicker('refresh');
-  $("#serie_comprobante").val("");
-  $("#num_comprobante").val("");
-  $("#impuesto").val("0");
-  $("#total_compra").val("");
+  $("#idingreso").val("");
+  $("#idproveedor").val("").selectpicker('refresh');
+  $("#tipo_comprobante").val("Boleta").selectpicker('refresh');
+  $("#serie_comprobante").val("");
+  $("#num_comprobante").val("");
+  $("#impuesto").val(tasa_igv); // Establece el 18% por defecto (Válido para Factura y Boleta)
+  $("#total_compra").val("");
+  $(".filas").remove();
+  
+  // --- NUEVO: Limpiar los nuevos totales desglosados (asumiendo cambios en ingreso.php) ---
+  $("#total").html("S/. 0.00");
+  $("#total_neto_h4").html("S/. 0.00");
+  $("#total_impuesto_h4").html("S/. 0.00");
+  $("#total_neto").val("0.00");
+  // ---------------------------------------------------------------------------------------
 
-  $(".filas").remove();
-  $("#total").html("S/. 0.00");
-  detalles = 0;
-
-  autoprepararFecha();
+  detalles = 0;
+  autoprepararFecha();
+  // Se ELIMINA la llamada a marcarImpuesto() para que el valor de IGV (tasa_igv) se mantenga, 
+  // ya que la Boleta ahora también debe llevar el desglose del 18%.
+  // La lógica de cálculo total se basará solo en el valor numérico del campo #impuesto.
 }
 
 function mostrarform (flag) {
@@ -150,7 +145,6 @@ function mostrarform (flag) {
     $("#listadoregistros").hide();
     $("#formularioregistros").show();
     $("#btnagregar").hide();
-
     listarArticulos();
     $("#btnGuardar").hide();
     $("#btnCancelar").show();
@@ -217,50 +211,39 @@ function guardaryeditar (e) {
 // ===============================
 // Mostrar / Anular
 // ===============================
-function mostrar (idingreso) {
-  mostrarform(true);
 
-  $.ajax({
-    url: "../ajax/ingreso.php?op=mostrar",
-    type: "POST",
-    data: { idingreso: idingreso },
-    dataType: "json",
-    success: function (data) {
-      if (typeof data === 'string') data = JSON.parse(data);
+  function mostrar (idingreso) {
+  mostrarform(true);
 
-      $("#idproveedor").val(data.idproveedor).selectpicker('refresh');
-      $("#tipo_comprobante").val(data.tipo_comprobante).selectpicker('refresh');
-      $("#serie_comprobante").val(data.serie_comprobante || '');
-      $("#num_comprobante").val(data.num_comprobante || '');
-      $("#fecha_hora").val(data.fecha || '');
-      $("#impuesto").val(data.impuesto || '0');
-      $("#idingreso").val(data.idingreso || idingreso);
+  $.post("../ajax/ingreso.php?op=mostrar", { idingreso: idingreso }, function (data) {
+    data = JSON.parse(data);
 
-      $("#btnGuardar").hide();
-      $("#btnCancelar").show();
-      $("#btnAgregarArt").hide();
-    },
-    error: function (xhr) {
-      const msg = xhr.responseText ? xhr.responseText.substr(0, 500) : 'Sin detalle';
-      console.error('Error AJAX op=mostrar:', xhr.status, xhr.responseText);
-      bootbox.alert("Error al cargar el ingreso (" + xhr.status + ").\n\n" + msg);
-    }
-  });
+    $("#idproveedor").val(data.idproveedor).selectpicker('refresh');
+    $("#tipo_comprobante").val(data.tipo_comprobante).selectpicker('refresh');
+    $("#serie_comprobante").val(data.serie_comprobante);
+    $("#num_comprobante").val(data.num_comprobante);
+    $("#fecha_hora").val(data.fecha_hora);
+    
+    // 1. Cargamos el impuesto en el campo con el ID corregido
+    $("#impuesto").val(data.impuesto); 
+    
+    $("#idingreso").val(data.idingreso);
 
-  $.ajax({
-    url: "../ajax/ingreso.php?op=listarDetalle&id=" + encodeURIComponent(idingreso),
-    type: "GET",
-    success: function (html) { $("#detalles").html(html); },
-    error: function (xhr) {
-      console.error('Error AJAX op=listarDetalle:', xhr.status, xhr.responseText);
-      $("#detalles").html(
-        '<thead><th>Opciones</th><th>Artículo</th><th>Cantidad</th><th>Precio Compra</th><th>Precio Venta</th><th>Subtotal</th></thead>' +
-        '<tbody><tr><td colspan="6">No se pudo cargar el detalle (' + xhr.status + ').</td></tr></tbody>' +
-        '<tfoot><th>TOTAL</th><th></th><th></th><th></th><th></th><th><h4 id="total">S/. 0.00</h4></th></tfoot>'
-      );
-    }
-  });
-}
+    $("#btnGuardar").hide();
+    $("#btnCancelar").show();
+    $("#btnAgregarArt").hide();
+  });
+
+  // 2. Lógica para el detalle: Se mantiene la carga del detalle
+  $.get("../ajax/ingreso.php?op=listarDetalle&id=" + idingreso, function (r) {
+    // CORRECCIÓN CLAVE: Solo actualizamos el cuerpo (tbody) de la tabla #detalles.
+    // Usamos el selector "#detalles tbody" para no borrar el nuevo tfoot.
+    $("#detalles tbody").html(r);
+    
+    // 3. LLAMADA CLAVE: Calculamos los totales inmediatamente después de cargar las filas.
+    calcularTotales();
+  });
+}  
 
 function anular (idingreso) {
   bootbox.confirm("¿Está Seguro de anular el ingreso?", function (result) {
@@ -274,20 +257,14 @@ function anular (idingreso) {
 }
 
 // ===============================
-// Detalle (form)
+// Detalle
 // ===============================
 $("#btnGuardar").hide();
 
-function marcarImpuesto () {
-  var tipo = $("#tipo_comprobante option:selected").text();
-  if (tipo === 'Factura') { $("#impuesto").val(impuesto); }
-  else { $("#impuesto").val("0"); }
-}
 
-// id, nombre, precio_compra, precio_venta
-function agregarDetalle (idarticulo, articulo, pcompra, pventa) {
+
+function agregarDetalle (idarticulo, articulo, pcompra) {
   var cantidad = 1;
-
   if (idarticulo !== "") {
     var subtotal = cantidad * pcompra;
 
@@ -295,14 +272,12 @@ function agregarDetalle (idarticulo, articulo, pcompra, pventa) {
         fila +=   '<td><button type="button" class="btn btn-danger" onclick="eliminarDetalle(' + cont + ')">X</button></td>';
         fila +=   '<td><input type="hidden" name="idarticulo[]" value="' + idarticulo + '">' + articulo + '</td>';
         fila +=   '<td><input type="number" name="cantidad[]" value="' + cantidad + '" min="1" oninput="modificarSubototales()"></td>';
-        fila +=   '<td><input type="number" name="precio_compra[]" value="' + Number(pcompra).toFixed(2) + '" step="0.01" min="0" readonly></td>';
-        fila +=   '<td><input type="number" name="precio_venta[]"  value="' + Number(pventa ).toFixed(2) + '" step="0.01" min="0" readonly></td>';
+        fila +=   '<td><input type="number" name="precio_compra[]" value="' + Number(pcompra).toFixed(2) + '" step="0.01" min="0" oninput="modificarSubototales()"></td>';
         fila +=   '<td><span name="subtotal" id="subtotal' + cont + '">' + subtotal.toFixed(2) + '</span></td>';
-        fila +=   '<td><button type="button" onclick="modificarSubototales()" class="btn btn-info"><i class="fa fa-refresh"></i></button></td>';
         fila += '</tr>';
 
     cont++;
-    detalles = detalles + 1;
+    detalles++;
     $('#detalles tbody').append(fila);
     modificarSubototales();
   } else {
@@ -317,112 +292,64 @@ function modificarSubototales () {
 
   for (var i = 0; i < cant.length; i++) {
     var scalc = (parseFloat(cant[i].value || 0) * parseFloat(prec[i].value || 0)).toFixed(2);
-    sub[i].value = scalc;
-    document.getElementsByName("subtotal")[i].innerHTML = scalc;
+    sub[i].innerHTML = scalc;
   }
   calcularTotales();
 }
 
 function calcularTotales () {
-  var sub = document.getElementsByName("subtotal");
-  var total = 0.0;
-  for (var i = 0; i < sub.length; i++) {
-    total += parseFloat(sub[i].value || "0");
-  }
-  $("#total").html("S/. " + total.toFixed(2));
-  $("#total_compra").val(total.toFixed(2));
-  evaluar();
+  var sub = document.getElementsByName("subtotal");
+  var totalSinIGV = 0.0;
+  
+  // Obtener el porcentaje de impuesto del campo. 
+  // Si el usuario pone "0" (por ejemplo, para un Ticket o una operación exonerada), el IGV será 0.
+  var impuesto_porcentaje = parseFloat($("#impuesto").val() || 0); 
+
+  // 1. Sumar todos los Subtotales (Base Imponible/Neto)
+  for (var i = 0; i < sub.length; i++) {
+    totalSinIGV += parseFloat(sub[i].innerHTML || "0");
+  }
+
+  var igv_total = 0.0;
+  var totalConIGV = totalSinIGV;
+  
+  // --- LÓGICA MODIFICADA: Si hay un porcentaje de impuesto > 0, se aplica a cualquier comprobante. ---
+  if (impuesto_porcentaje > 0) {
+    igv_total = totalSinIGV * (impuesto_porcentaje / 100);
+    totalConIGV = totalSinIGV + igv_total;
+  }
+  
+  // --- 2. Actualizar la interfaz con el desglose (ESTE DESGLOSE APLICA A TODOS) ---
+
+  // a) Actualizar el Subtotal Neto (Base Imponible)
+  $("#total_neto_h4").text("S/. " + totalSinIGV.toFixed(2));
+  $("#total_neto").val(totalSinIGV.toFixed(2));
+
+  // b) Actualizar el IGV Total y el texto de la etiqueta
+  $("#total_impuesto_h4").text("S/. " + igv_total.toFixed(2));
+  $("#mostrar_impuesto").text('IGV (' + impuesto_porcentaje.toFixed(0) + '%)'); // Muestra el %
+
+  // c) Actualizar el TOTAL FINAL (Total Compra Bruto)
+  $("#total").text("S/. " + totalConIGV.toFixed(2));
+  $("#total_compra").val(totalConIGV.toFixed(2)); // Este es el valor que se guardará en la BD
+
+  evaluar();
 }
 
 function evaluar () {
-  if (detalles > 0) { $("#btnGuardar").show(); }
+  if (detalles > 0) $("#btnGuardar").show();
   else { $("#btnGuardar").hide(); cont = 0; }
 }
 
 function eliminarDetalle (indice) {
   $("#fila" + indice).remove();
-  detalles = detalles - 1;
+  detalles--;
   calcularTotales();
   evaluar();
 }
 
-// Exponer para botones inline
 window.agregarDetalle = agregarDetalle;
-window.mostrar        = mostrar;
-window.anular         = anular;
-/* ===============================
-   HISTORIAL DE PRECIOS – UI
-   =============================== */
-
-// Abre el modal con los datos del artículo
-$(document).on('click', '.btn-abrir-actualizar-precio', function(){
-  var id    = $(this).data('idarticulo');
-  var name  = $(this).data('articulo') || '';
-  var p     = parseFloat($(this).data('precio') || 0).toFixed(2);
-
-  $('#ap_idarticulo').val(id);
-  $('#ap_articulo').val(name);
-
-  // Traer precio vigente real por seguridad
-  $.getJSON('../ajax/historial_precios.php?op=ultimo&idarticulo=' + encodeURIComponent(id), function(resp){
-    if(resp && resp.success){
-      $('#ap_precio_actual').val(parseFloat(resp.precio_venta || 0).toFixed(2));
-    }else{
-      $('#ap_precio_actual').val(p);
-    }
-    $('#ap_precio_nuevo').val('');
-    $('#ap_motivo').val('');
-    $('#modalActualizarPrecio').modal('show');
-  }).fail(function(){
-    $('#ap_precio_actual').val(p);
-    $('#ap_precio_nuevo').val('');
-    $('#ap_motivo').val('');
-    $('#modalActualizarPrecio').modal('show');
-  });
-});
-
-// Guardar actualización
-$('#ap_btn_guardar').on('click', function(){
-  var id    = $('#ap_idarticulo').val();
-  var pAct  = $('#ap_precio_actual').val();
-  var pNew  = $('#ap_precio_nuevo').val();
-  var mot   = $('#ap_motivo').val();
-
-  if(!id){ bootbox.alert('Artículo inválido'); return; }
-  if(!pNew || parseFloat(pNew) < 0){ bootbox.alert('Ingresa un precio nuevo válido'); return; }
-
-  var formData = new FormData();
-  formData.append('idarticulo', id);
-  formData.append('precio_actual', pAct);
-  formData.append('precio_nuevo', pNew);
-  formData.append('motivo', mot);
-
-  $.ajax({
-    url: '../ajax/historial_precios.php?op=actualizar_precio',
-    type: 'POST',
-    data: formData,
-    contentType: false,
-    processData: false,
-    success: function(resRaw){
-      var resp = {};
-      try { resp = JSON.parse(resRaw); } catch(e){}
-      if(resp && resp.success){
-        bootbox.alert(resp.message || 'Precio actualizado');
-        $('#modalActualizarPrecio').modal('hide');
-
-        // Si en tu detalle/tbl articulos tienes el precio visible, lo refrescas:
-        // 1) Si usas DataTable principal:
-        if(typeof tabla !== 'undefined' && tabla.ajax){ tabla.ajax.reload(null,false); }
-        // 2) O actualiza la celda/label de la fila según tu HTML (ejemplo):
-        // $(selectorDePrecioDeEsaFila).text(parseFloat(pNew).toFixed(2));
-      }else{
-        bootbox.alert( (resp && resp.message) ? resp.message : 'No se pudo actualizar.');
-      }
-    },
-    error: function(){
-      bootbox.alert('Error de red. Intenta nuevamente.');
-    }
-  });
-});
+window.mostrar = mostrar;
+window.anular = anular;
 
 init();

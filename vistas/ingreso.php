@@ -233,7 +233,7 @@ if ($canCompras) {
 
                 <div class="form-group col-lg-2 col-md-2 col-sm-6 col-xs-12">
                   <label>Impuesto:</label>
-                  <input type="text" class="form-control" name="impuesto" id="impuesto" onkeypress='return event.charCode >= 48 && event.charCode <= 57' required>
+<input type="text" class="form-control" name="impuesto" id="impuesto" required value="18" onchange="modificarSubototales()">
                 </div>
               </div>
 
@@ -256,20 +256,30 @@ if ($canCompras) {
                     <th>Artículo</th>
                     <th>Cantidad</th>
                     <th>Precio Compra</th>
-                    <th>Precio Venta</th>
                     <th>Subtotal</th>
                   </thead>
-                  <tfoot>
-                    <th>TOTAL</th>
-                    <th></th>
-                    <th></th>
-                    <th></th>
-                    <th></th>
-                    <th>
-                      <h4 id="total">S/. 0.00</h4>
-                      <input type="hidden" name="total_compra" id="total_compra">
-                    </th>
-                  </tfoot>
+            <tfoot>
+                    <tr>
+                      <th colspan="4" style="text-align:right">SUBTOTAL (Neto)</th>
+                      <th>
+                        <h4 id="total_neto_h4">S/. 0.00</h4>
+                        <input type="hidden" name="total_neto" id="total_neto">
+                      </th>
+                    </tr>
+                    <tr>
+                      <th colspan="4" style="text-align:right"><span id="mostrar_impuesto">IGV (18%)</span></th>
+                      <th>
+                        <h4 id="total_impuesto_h4">S/. 0.00</h4>
+                      </th>
+                    </tr>
+                    <tr>
+                      <th colspan="4" style="text-align:right">TOTAL A PAGAR (Bruto)</th>
+                      <th>
+                        <h4 id="total">S/. 0.00</h4>
+                        <input type="hidden" name="total_compra" id="total_compra">
+                      </th>
+                    </tr>
+                  </tfoot>
                   <tbody></tbody>
                 </table>
               </div>
@@ -291,52 +301,6 @@ if ($canCompras) {
       </div><!-- /.col -->
     </div><!-- /.row -->
 
-<!-- =========================
-     Modal Actualizar Precio
-========================== -->
-<div class="modal fade" id="modalActualizarPrecio" tabindex="-1" role="dialog" aria-hidden="true">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-
-      <div class="modal-header" style="background:#3c8dbc;color:#fff;">
-        <h4 class="modal-title">Actualizar precio de venta</h4>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
-          <span aria-hidden="true" style="color:#fff;">&times;</span>
-        </button>
-      </div>
-
-      <div class="modal-body">
-        <input type="hidden" id="ap_idarticulo">
-
-        <div class="form-group">
-          <label>Artículo</label>
-          <input type="text" id="ap_articulo" class="form-control" readonly>
-        </div>
-
-        <div class="form-group">
-          <label>Precio actual</label>
-          <input type="number" step="0.01" id="ap_precio_actual" class="form-control" readonly>
-        </div>
-
-        <div class="form-group">
-          <label>Precio nuevo</label>
-          <input type="number" step="0.01" id="ap_precio_nuevo" class="form-control" placeholder="0.00">
-        </div>
-
-        <div class="form-group">
-          <label>Motivo (opcional)</label>
-          <input type="text" id="ap_motivo" class="form-control" placeholder="Ej: Ajuste por lista proveedor">
-        </div>
-      </div>
-
-      <div class="modal-footer">
-        <button class="btn btn-default" data-dismiss="modal">Cancelar</button>
-        <button class="btn btn-primary" id="ap_btn_guardar"><i class="fa fa-save"></i> Actualizar precio</button>
-      </div>
-
-    </div>
-  </div>
-</div>
 
 
   </section><!-- /.content -->
@@ -360,7 +324,6 @@ if ($canCompras) {
             <th>Código</th>
             <th>Stock</th>
             <th>Precio Compra</th>  <!-- NUEVO -->
-            <th>Precio Venta</th>
             <th>Imagen</th>
           </thead>
           <tbody></tbody>
@@ -371,7 +334,6 @@ if ($canCompras) {
             <th>Código</th>
             <th>Stock</th>
             <th>Precio Compra</th>  <!-- NUEVO -->
-            <th>Precio Venta</th>
             <th>Imagen</th>
           </tfoot>
         </table>
