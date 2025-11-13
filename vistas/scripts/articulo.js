@@ -56,6 +56,11 @@ function generarEAN13() {
   return base + String(check);
 }
 
+/* ======================= Sugerencia Precio Venta ======================= */
+const IGV = 0.18;                 // Perú
+const MARGEN_SUGERIDO = 0.30;     // 30% margen
+let precioVentaEditadoManualmente = false;
+
 function f2(n){ return (Math.round(parseFloat(n||0)*100)/100).toFixed(2); }
 
 // Calcula sugerido = compra * (1+IGV) * (1+MARGEN)
@@ -66,6 +71,15 @@ function calcularPV(compra){
   return f2(sugerido);
 }
 
+function actualizarSugerido(){
+  const pc = $("#precio_compra").val();
+  const sug = calcularPV(pc);
+  const hint = document.getElementById('pv_sugerido_hint');
+  if (hint) hint.textContent = sug ? `Sugerido: S/ ${sug} (IGV ${IGV*100}%, margen ${MARGEN_SUGERIDO*100}%)` : "Sugerido: —";
+  if (sug && !precioVentaEditadoManualmente) {
+    $("#precio_venta").val(sug);
+  }
+}
 
 /* =========================== Inicialización =========================== */
 function init() {
@@ -96,9 +110,15 @@ function init() {
     actualizarSugerido();
   });
 
+  $("#precio_venta").on("input", function(){
+    precioVentaEditadoManualmente = true;
+    const ok = esPrecioValido(this.value);
+    setValidity(this, ok, "Precio inválido. Use solo números y hasta 2 decimales.");
+  });
 
-
-
+  $("#precio_venta").on("blur", function(){
+    if (esPrecioValido(this.value)) this.value = f2(this.value);
+  });
   $("#precio_compra").on("blur", function(){
     if (esPrecioValido(this.value)) this.value = f2(this.value);
   });
@@ -162,12 +182,21 @@ function limpiar() {
   $("#descripcion").val("");
   $("#stock").val("");
   $("#precio_compra").val("");
+  $("#precio_venta").val("");
   $("#imagenmuestra").attr("src", "").hide();
   $("#imagenactual").val("");
   $("#print").hide();
   $("#idarticulo").val("");
 
+  precioVentaEditadoManualmente = false;
+  const hint = document.getElementById('pv_sugerido_hint');
+  if (hint) hint.textContent = "Sugerido: —";
 
+  ["#precio_compra", "#precio_venta", "#codigo"].forEach(sel => {
+    const el = document.querySelector(sel);
+    if (el) el.setCustomValidity("");
+  });
+}
 
 function mostrarform(flag) {
   if (flag) {
@@ -232,7 +261,7 @@ function construirTabla() {
         bootbox.alert('No se pudo cargar el listado (revisa la consola).');
       }
     },
-    // 9 columnas: [opciones, nombre, categoría, código, stock, pcompra, imagen, estado]
+    // 9 columnas: [opciones, nombre, categoría, código, stock, pcompra, pventa, imagen, estado]
     columns: [
       { data: 0, orderable:false, searchable:false }, // botones
       { data: 1 },
@@ -240,6 +269,7 @@ function construirTabla() {
       { data: 3 },
       { data: 4, className:'text-right' },
       { data: 5, className:'text-right' },
+      { data: 6, className:'text-right' },
       { data: 7, orderable:false, searchable:false }, // img
       { data: 8, orderable:false, searchable:false }  // estado
     ],
@@ -269,6 +299,14 @@ function guardaryeditar(e) {
     setValidity(precioCompraEl, true, "");
   }
 
+  const precioVentaEl = document.querySelector("#precio_venta");
+  if (!esPrecioValido(precioVentaEl.value)) {
+    setValidity(precioVentaEl, false, "Precio inválido. Use solo números y hasta 2 decimales.");
+    $("#btnGuardar").prop("disabled", false);
+    return;
+  } else {
+    setValidity(precioVentaEl, true, "");
+  }
 
   const stockEl = document.querySelector("#stock");
   const stockVal = parseInt(stockEl.value);
@@ -327,6 +365,7 @@ function mostrar(idarticulo) {
       $("#nombre").val(d.nombre || "");
       $("#stock").val(d.stock || "");
       $("#precio_compra").val(d.precio_compra || "");
+      $("#precio_venta").val(d.precio_venta || "");
       $("#descripcion").val(d.descripcion || "");
 
       if (d.imagen) {
@@ -338,7 +377,8 @@ function mostrar(idarticulo) {
       $("#idarticulo").val(d.idarticulo);
 
       // Sugerido / barcode
-
+      precioVentaEditadoManualmente = false;
+      actualizarSugerido();
 
       if (d.codigo && /^\d{8,13}$/.test(String(d.codigo))) {
         renderBarcode(String(d.codigo));
