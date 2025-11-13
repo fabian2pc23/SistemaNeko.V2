@@ -370,21 +370,533 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="css/estilos.css?v=<?= time() ?>">
   <style>
-    .req { display:flex; align-items:center; gap:8px; font-size:.85rem; margin:4px 0; }
-    .req i{ width:16px; text-align:center; font-style:normal; }
-    .req.bad{ color:#ef4444; } .req.bad i::before { content:'✗'; }
-    .req.ok{ color:#10b981; }  .req.ok i::before { content:'✓'; }
-    .input-eye { position:absolute; right:12px; top:50%; transform:translateY(-50%); cursor:pointer; opacity:.7; user-select:none; font-size:1.2rem; }
-    .input-eye:hover { opacity:1; }
-    .input-wrap { position:relative; }
-    .hidden { display:none !important; }
-    .auth-form { max-height: 70vh; overflow-y: auto; padding-right: 10px; }
-    .auth-form::-webkit-scrollbar { width: 6px; }
-    .auth-form::-webkit-scrollbar-thumb { background: #4a5568; border-radius: 3px; }
-    .field { margin-bottom: 1rem; }
-    .alert { padding: 12px; margin-bottom: 16px; border-radius: 8px; }
-    .alert-error { background: #fed7d7; color: #742a2a; border-left: 4px solid #f56565; }
-    .alert-success { background: #c6f6d5; color: #22543d; border-left: 4px solid #48bb78; }
+    /* ========== ESTILOS PROFESIONALES Y CORPORATIVOS ========== */
+    
+    /* Variables CSS para modo claro/oscuro */
+    :root {
+      --text-error: #dc2626;
+      --text-error-light: #fca5a5;
+      --text-success: #059669;
+      --text-success-light: #6ee7b7;
+      --text-info: #3b82f6;
+      --text-info-light: #93c5fd;
+      --text-muted: #64748b;
+      --text-muted-light: #94a3b8;
+      --text-label: #1e293b;
+      --text-label-light: #e2e8f0;
+      
+      --bg-rules: #f8fafc;
+      --bg-rules-dark: rgba(30, 41, 59, 0.4);
+      --bg-req-error: rgba(220, 38, 38, 0.05);
+      --bg-req-error-dark: rgba(220, 38, 38, 0.15);
+      --bg-req-success: rgba(5, 150, 105, 0.05);
+      --bg-req-success-dark: rgba(5, 150, 105, 0.15);
+      
+      --eye-bg: rgba(148, 163, 184, 0.1);
+      --eye-bg-hover: rgba(148, 163, 184, 0.18);
+      --eye-border: rgba(148, 163, 184, 0.2);
+      --eye-border-hover: rgba(148, 163, 184, 0.35);
+      --eye-icon: #64748b;
+      --eye-icon-hover: #475569;
+      --eye-icon-active: #2563eb;
+      
+      --btn-edit-bg: linear-gradient(135deg, #f8fafc, #f1f5f9);
+      --btn-edit-border: #cbd5e1;
+      --btn-edit-color: #475569;
+    }
+    
+    /* Detección automática de modo oscuro */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --text-error: #fca5a5;
+        --text-success: #6ee7b7;
+        --text-info: #93c5fd;
+        --text-muted: #94a3b8;
+        --text-label: #e2e8f0;
+        --bg-rules: var(--bg-rules-dark);
+        --bg-req-error: var(--bg-req-error-dark);
+        --bg-req-success: var(--bg-req-success-dark);
+        
+        --eye-bg: rgba(148, 163, 184, 0.15);
+        --eye-bg-hover: rgba(148, 163, 184, 0.25);
+        --eye-border: rgba(148, 163, 184, 0.25);
+        --eye-border-hover: rgba(148, 163, 184, 0.4);
+        --eye-icon: #94a3b8;
+        --eye-icon-hover: #cbd5e1;
+        --eye-icon-active: #60a5fa;
+        
+        --btn-edit-bg: rgba(148, 163, 184, 0.15);
+        --btn-edit-border: rgba(148, 163, 184, 0.3);
+        --btn-edit-color: #cbd5e1;
+      }
+    }
+    
+    /* Forzar modo oscuro si el body tiene clase dark */
+    body.dark,
+    .dark-mode,
+    [data-theme="dark"] {
+      --text-error: #fca5a5;
+      --text-success: #6ee7b7;
+      --text-info: #93c5fd;
+      --text-muted: #94a3b8;
+      --text-label: #e2e8f0;
+      --bg-rules: var(--bg-rules-dark);
+      --bg-req-error: var(--bg-req-error-dark);
+      --bg-req-success: var(--bg-req-success-dark);
+      
+      --eye-bg: rgba(148, 163, 184, 0.15);
+      --eye-bg-hover: rgba(148, 163, 184, 0.25);
+      --eye-border: rgba(148, 163, 184, 0.25);
+      --eye-border-hover: rgba(148, 163, 184, 0.4);
+      --eye-icon: #94a3b8;
+      --eye-icon-hover: #cbd5e1;
+      --eye-icon-active: #60a5fa;
+      
+      --btn-edit-bg: rgba(148, 163, 184, 0.15);
+      --btn-edit-border: rgba(148, 163, 184, 0.3);
+      --btn-edit-color: #cbd5e1;
+    }
+    
+    /* Iconos de validación con estilo corporativo */
+    .validation-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      font-size: 11px;
+      font-weight: 600;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      flex-shrink: 0;
+    }
+    
+    .req {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.875rem;
+      margin: 6px 0;
+      padding: 6px 10px;
+      border-radius: 6px;
+      transition: all 0.25s ease;
+      font-weight: 500;
+    }
+    
+    .req.bad {
+      color: var(--text-error);
+      background: var(--bg-req-error);
+    }
+    
+    .req.bad .validation-icon {
+      background: linear-gradient(135deg, #dc2626, #b91c1c);
+      color: white;
+      box-shadow: 0 2px 4px rgba(220, 38, 38, 0.3);
+    }
+    
+    .req.bad .validation-icon::before {
+      content: '✕';
+      font-size: 12px;
+    }
+    
+    .req.ok {
+      color: var(--text-success);
+      background: var(--bg-req-success);
+    }
+    
+    .req.ok .validation-icon {
+      background: linear-gradient(135deg, #059669, #047857);
+      color: white;
+      box-shadow: 0 2px 4px rgba(5, 150, 105, 0.3);
+    }
+    
+    .req.ok .validation-icon::before {
+      content: '✓';
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    /* Botón de ojo empresarial - PERFECTAMENTE AJUSTADO */
+    .input-eye {
+      position: absolute;
+      right: 6px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 18px;
+      height: 18px;
+      min-width: 30px;
+      border-radius: 6px;
+      background: var(--eye-bg);
+      border: 1px solid var(--eye-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      user-select: none;
+      flex-shrink: 0;
+    }
+    
+    .input-eye:hover {
+      background: var(--eye-bg-hover);
+      border-color: var(--eye-border-hover);
+      transform: translateY(-50%) scale(1.05);
+    }
+    
+    .input-eye:active {
+      transform: translateY(-50%) scale(0.95);
+    }
+
+    /* Icono del ojo - MEJORADO Y MÁS VISIBLE */
+    .eye-icon {
+      width: 16px;
+      height: 16px;
+      position: relative;
+      transition: all 0.3s ease;
+    }
+    
+    .eye-icon::before {
+      content: '';
+      position: absolute;
+      width: 16px;
+      height: 9px;
+      border: 2px solid var(--eye-icon);
+      border-radius: 50% 50% 50% 50% / 100% 100% 0 0;
+      top: 3px;
+      left: 0;
+      transition: all 0.3s ease;
+    }
+    
+    .eye-icon::after {
+      content: '';
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      background: var(--eye-icon);
+      border-radius: 50%;
+      top: 6px;
+      left: 6px;
+      transition: all 0.3s ease;
+    }
+    
+    .input-eye:hover .eye-icon::before,
+    .input-eye:hover .eye-icon::after {
+      border-color: var(--eye-icon-hover);
+      background: var(--eye-icon-hover);
+    }
+    
+    /* Cuando está activo (mostrando contraseña) */
+    .input-eye.active {
+      background: rgba(59, 130, 246, 0.15);
+      border-color: rgba(59, 130, 246, 0.4);
+    }
+    
+    .input-eye.active .eye-icon::before,
+    .input-eye.active .eye-icon::after {
+      border-color: var(--eye-icon-active);
+      background: var(--eye-icon-active);
+    }
+    
+    .input-eye.active .eye-icon::before {
+      animation: blink 0.3s ease;
+    }
+    
+    @keyframes blink {
+      0%, 100% { height: 9px; }
+      50% { height: 2px; }
+    }
+
+    /* Contenedor de input mejorado */
+    .input-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    
+    .input-wrap input {
+      width: 100%;
+      padding-right: 44px !important;
+    }
+
+    /* Estado de validación visual en inputs */
+    input.validating {
+      border-color: #60a5fa !important;
+      box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15);
+    }
+    
+    input.valid {
+      border-color: #34d399 !important;
+    }
+    
+    input.invalid {
+      border-color: #f87171 !important;
+    }
+    
+    /* Iconos de validación en inputs */
+    @media (prefers-color-scheme: dark), (prefers-color-scheme: no-preference) {
+      body.dark input.valid,
+      .dark-mode input.valid,
+      [data-theme="dark"] input.valid {
+        background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M13.5 4.5L6 12L2.5 8.5' stroke='%2334d399' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 14px center;
+        background-size: 18px;
+      }
+      
+      body.dark input.invalid,
+      .dark-mode input.invalid,
+      [data-theme="dark"] input.invalid {
+        background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 4L4 12M4 4L12 12' stroke='%23f87171' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 14px center;
+        background-size: 18px;
+      }
+    }
+    
+    /* Modo claro */
+    input.valid {
+      background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M13.5 4.5L6 12L2.5 8.5' stroke='%23059669' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      background-size: 18px;
+    }
+    
+    input.invalid {
+      background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 4L4 12M4 4L12 12' stroke='%23dc2626' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      background-size: 18px;
+    }
+
+    /* Botón de edición mejorado */
+    .btn-edit {
+      min-width: 90px;
+      height: 42px;
+      background: var(--btn-edit-bg);
+      border: 1.5px solid var(--btn-edit-border);
+      border-radius: 8px;
+      color: var(--btn-edit-color);
+      font-weight: 600;
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      white-space: nowrap;
+      padding: 0 16px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .btn-edit:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+    }
+    
+    .btn-edit:active {
+      transform: translateY(0);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+    
+    .btn-edit.active {
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      border-color: #2563eb;
+      color: white;
+      box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
+    }
+
+    /* Estado de carga profesional */
+    .loading-spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(148, 163, 184, 0.3);
+      border-top-color: var(--text-muted);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Indicadores de estado mejorados */
+    .status-indicator {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 18px;
+      pointer-events: none;
+      transition: all 0.3s ease;
+    }
+    
+    .status-indicator.loading {
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* Hints mejorados - CON VARIABLES */
+    .hint {
+      display: block;
+      margin-top: 6px;
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      transition: all 0.3s ease;
+      font-weight: 500;
+    }
+    
+    .hint.success {
+      color: var(--text-success);
+    }
+    
+    .hint.error {
+      color: var(--text-error);
+    }
+    
+    .hint.info {
+      color: var(--text-info);
+    }
+
+    /* Contenedor de reglas de contraseña - CON VARIABLES */
+    #rules {
+      margin-top: 12px;
+      padding: 12px;
+      background: var(--bg-rules);
+      border-radius: 8px;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+    }
+
+    /* Ocultar elementos */
+    .hidden {
+      display: none !important;
+    }
+
+    /* Scrollbar personalizado */
+    .auth-form {
+      max-height: 70vh;
+      overflow-y: auto;
+      padding-right: 10px;
+    }
+    
+    .auth-form::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    .auth-form::-webkit-scrollbar-track {
+      background: rgba(148, 163, 184, 0.1);
+      border-radius: 4px;
+    }
+    
+    .auth-form::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, #94a3b8, #64748b);
+      border-radius: 4px;
+      transition: background 0.3s ease;
+    }
+    
+    .auth-form::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(180deg, #64748b, #475569);
+    }
+
+    /* Campo de formulario */
+    .field {
+      margin-bottom: 1.25rem;
+    }
+    
+    .field-label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+      color: var(--text-label);
+      font-size: 0.9rem;
+    }
+
+    /* Alertas mejoradas */
+    .alert {
+      padding: 14px 16px;
+      margin-bottom: 18px;
+      border-radius: 10px;
+      font-weight: 500;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+    }
+    
+    .alert-error {
+      background: rgba(220, 38, 38, 0.15);
+      color: var(--text-error);
+      border-left: 4px solid #dc2626;
+      border: 1px solid rgba(220, 38, 38, 0.3);
+    }
+    
+    .alert-success {
+      background: rgba(5, 150, 105, 0.15);
+      color: var(--text-success);
+      border-left: 4px solid #059669;
+      border: 1px solid rgba(5, 150, 105, 0.3);
+    }
+
+    /* Mejoras en inputs */
+    input, select {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    input:focus, select:focus {
+      outline: none;
+      border-color: #60a5fa;
+      box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .input-eye {
+        width: 28px;
+        height: 28px;
+        min-width: 28px;
+        right: 5px;
+      }
+      
+      .eye-icon {
+        width: 14px;
+        height: 14px;
+      }
+      
+      .eye-icon::before {
+        width: 14px;
+        height: 8px;
+        top: 3px;
+      }
+      
+      .eye-icon::after {
+        width: 3px;
+        height: 3px;
+        left: 5.5px;
+        top: 5px;
+      }
+      
+      .input-wrap input {
+        padding-right: 40px !important;
+      }
+      
+      .btn-edit {
+        min-width: 80px;
+        height: 38px;
+        font-size: 0.8125rem;
+      }
+    }
+    
+    /* Fix para que el botón nunca sobresalga en ningún tamaño */
+    @media (max-width: 480px) {
+      .input-eye {
+        width: 26px;
+        height: 26px;
+        min-width: 26px;
+        right: 4px;
+      }
+      
+      .input-wrap input {
+        padding-right: 36px !important;
+      }
+    }
   </style>
 </head>
 <body class="auth-body">
@@ -463,7 +975,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <span class="field-label">Correo electrónico *</span>
             <div style="position:relative;">
               <input id="email" type="email" name="email" value="<?= htmlspecialchars($email) ?>" style="width:100%;" required>
-              <span id="email-status" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:1.2rem;"></span>
+              <span id="email-status" class="status-indicator"></span>
             </div>
             <small id="email-hint" class="hint">Usarás este correo para iniciar sesión</small>
           </label>
@@ -476,47 +988,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               type="text"
               name="telefono"
               value="<?= htmlspecialchars($telefono) ?>"
-              placeholder="Telefono (Opcional)"
+              placeholder="Teléfono (Opcional)"
               inputmode="numeric"
               maxlength="9"
               pattern="^9\d{8}$"
             >
-            <small id="tel-hint" class="hint">Debe ser solo números, 9 dígitos.</small>
+            <small id="tel-hint" class="hint">Debe ser solo números, 9 dígitos, comenzar con 9</small>
           </label>
 
           <label class="field">
             <span class="field-label">Dirección (se autocompleta)</span>
-            <div style="display:flex; gap:8px; align-items:center;">
+            <div style="display:flex; gap:10px; align-items:center;">
               <input id="direccion" type="text" name="direccion" value="<?= htmlspecialchars($direccion) ?>" placeholder="Se llenará con RENIEC/SUNAT" style="flex:1;" readonly>
-              <button type="button" id="editDir" class="btn btn-outline" style="white-space:nowrap;">Editar</button>
+              <button type="button" id="editDir" class="btn-edit">
+                <span class="btn-text">Editar</span>
+              </button>
             </div>
-            <small class="hint">Si lo prefieres, puedes editar manualmente.</small>
+            <small class="hint">Si lo prefieres, puedes editar manualmente</small>
           </label>
 
           <label class="field">
             <span class="field-label">Contraseña *</span>
             <div class="input-wrap">
-              <input id="pwd" type="password" name="password" required aria-describedby="pwdHelp" style="width:90%;">
-              <span class="input-eye" id="togglePwd" title="Ver/Ocultar">👁️</span>
+              <input id="pwd" type="password" name="password" required aria-describedby="pwdHelp">
+              <button type="button" class="input-eye" id="togglePwd" title="Ver/Ocultar contraseña">
+                <span class="eye-icon"></span>
+              </button>
             </div>
             <small id="pwdHelp" class="hint">Debe cumplir todos los requisitos:</small>
-            <div id="rules" style="margin-top:8px;">
-              <div class="req bad" id="r-len"><i></i> 10–64 caracteres</div>
-              <div class="req bad" id="r-up"><i></i> Al menos 1 mayúscula (A-Z)</div>
-              <div class="req bad" id="r-low"><i></i> Al menos 1 minúscula (a-z)</div>
-              <div class="req bad" id="r-num"><i></i> Al menos 1 número (0-9)</div>
-              <div class="req bad" id="r-spe"><i></i> Al menos 1 especial (!@#$%^&*)</div>
-              <div class="req bad" id="r-spc"><i></i> Sin espacios</div>
-              <div class="req bad" id="r-pii"><i></i> No contiene correo/nombres</div>
-              <div class="req bad" id="r-common"><i></i> No es contraseña común</div>
+            <div id="rules">
+              <div class="req bad" id="r-len"><span class="validation-icon"></span> 10–64 caracteres</div>
+              <div class="req bad" id="r-up"><span class="validation-icon"></span> Al menos 1 mayúscula (A-Z)</div>
+              <div class="req bad" id="r-low"><span class="validation-icon"></span> Al menos 1 minúscula (a-z)</div>
+              <div class="req bad" id="r-num"><span class="validation-icon"></span> Al menos 1 número (0-9)</div>
+              <div class="req bad" id="r-spe"><span class="validation-icon"></span> Al menos 1 especial (!@#$%^&*)</div>
+              <div class="req bad" id="r-spc"><span class="validation-icon"></span> Sin espacios</div>
+              <div class="req bad" id="r-pii"><span class="validation-icon"></span> No contiene correo/nombres</div>
+              <div class="req bad" id="r-common"><span class="validation-icon"></span> No es contraseña común</div>
             </div>
           </label>
 
           <label class="field">
             <span class="field-label">Confirmar contraseña *</span>
             <div class="input-wrap">
-              <input id="pwd2" type="password" name="confirm" style="width:90%;" required>
-              <span class="input-eye" id="togglePwd2" title="Ver/Ocultar">👁️</span>
+              <input id="pwd2" type="password" name="confirm" required>
+              <button type="button" class="input-eye" id="togglePwd2" title="Ver/Ocultar contraseña">
+                <span class="eye-icon"></span>
+              </button>
             </div>
           </label>
 
@@ -538,8 +1056,15 @@ if (direccionInput) {
 if (editDirBtn && direccionInput) {
   editDirBtn.addEventListener('click', () => {
     const ro = direccionInput.hasAttribute('readonly');
-    if (ro) { direccionInput.removeAttribute('readonly'); editDirBtn.textContent = 'Bloquear'; direccionInput.focus(); }
-    else { direccionInput.setAttribute('readonly','readonly'); editDirBtn.textContent = 'Editar';
+    if (ro) { 
+      direccionInput.removeAttribute('readonly'); 
+      editDirBtn.classList.add('active');
+      editDirBtn.querySelector('.btn-text').textContent = 'Bloquear'; 
+      direccionInput.focus(); 
+    } else { 
+      direccionInput.setAttribute('readonly','readonly'); 
+      editDirBtn.classList.remove('active');
+      editDirBtn.querySelector('.btn-text').textContent = 'Editar';
       if (direccionInput.value === (window.lastAutoDir || '')) delete direccionInput.dataset.dirty;
     }
   });
@@ -558,12 +1083,9 @@ const empresa = document.getElementById('empresa');
 
 // bloquea teclas no numéricas cuando corresponde
 function allowOnlyDigitsKeydown(ev){
-  // Permitir navegación/edición básica
   const allowed = ['Backspace','Delete','ArrowLeft','ArrowRight','Tab','Home','End'];
   if (allowed.includes(ev.key)) return;
-  // Permitir Ctrl/Meta + (A,C,V,X)
   if (ev.ctrlKey || ev.metaKey) return;
-  // Solo dígitos 0..9
   if (!/^\d$/.test(ev.key)) ev.preventDefault();
 }
 
@@ -575,13 +1097,12 @@ function sanitizeDigitsMaxLen(input, maxLen){
 
 function setupDocMask(){
   const t = parseInt(tipodoc.value || '0', 10);
-
-  // Limpia handlers previos
   nrodoc.onkeydown = null;
   nrodoc.removeAttribute('pattern');
   nrodoc.removeAttribute('maxlength');
   nrodoc.removeAttribute('inputmode');
   nrodoc.placeholder = '';
+  nrodoc.classList.remove('valid', 'invalid', 'validating');
 
   if (t === 1){ // DNI
     nrodoc.setAttribute('pattern','^[0-9]{8}$');
@@ -589,10 +1110,9 @@ function setupDocMask(){
     nrodoc.setAttribute('inputmode','numeric');
     nrodoc.placeholder = 'DNI: 8 dígitos';
     hint.textContent = 'DNI: 8 dígitos (solo números)';
-    // Filtro en vivo y bloqueo de teclas
+    hint.className = 'hint';
     nrodoc.onkeydown = allowOnlyDigitsKeydown;
     nrodoc.addEventListener('input', () => sanitizeDigitsMaxLen(nrodoc, 8), { once:false });
-
     wrapEmp.classList.add('hidden'); wrapNom.classList.remove('hidden'); wrapApe.classList.remove('hidden');
   } else if (t === 2){ // RUC
     nrodoc.setAttribute('pattern','^[0-9]{11}$');
@@ -600,9 +1120,9 @@ function setupDocMask(){
     nrodoc.setAttribute('inputmode','numeric');
     nrodoc.placeholder = 'RUC: 11 dígitos';
     hint.textContent = 'RUC: 11 dígitos (solo números)';
+    hint.className = 'hint';
     nrodoc.onkeydown = allowOnlyDigitsKeydown;
     nrodoc.addEventListener('input', () => sanitizeDigitsMaxLen(nrodoc, 11), { once:false });
-
     wrapEmp.classList.remove('hidden'); wrapNom.classList.add('hidden'); wrapApe.classList.add('hidden');
   } else if (t === 3){ // Pasaporte
     nrodoc.setAttribute('pattern','^[A-Za-z0-9]{9,12}$');
@@ -610,23 +1130,34 @@ function setupDocMask(){
     nrodoc.setAttribute('inputmode','text');
     nrodoc.placeholder = 'Pasaporte: 9–12 caracteres';
     hint.textContent = 'Pasaporte: 9–12 caracteres (letras y números)';
-
+    hint.className = 'hint';
     wrapEmp.classList.add('hidden'); wrapNom.classList.remove('hidden'); wrapApe.classList.remove('hidden');
   } else {
     hint.textContent = '';
+    hint.className = 'hint';
     wrapEmp.classList.add('hidden'); wrapNom.classList.remove('hidden'); wrapApe.classList.remove('hidden');
   }
 }
 tipodoc.addEventListener('change', setupDocMask);
 document.addEventListener('DOMContentLoaded', setupDocMask);
 
-// ================= Ver/ocultar contraseñas =================
+// ================= Ver/ocultar contraseñas con animación =================
 function togglePass(id, btnId){
   const input = document.getElementById(id);
   const btn = document.getElementById(btnId);
-  btn.addEventListener('click', ()=>{ input.type = (input.type==='password'?'text':'password'); });
+  btn.addEventListener('click', (e)=>{
+    e.preventDefault();
+    if(input.type === 'password'){
+      input.type = 'text';
+      btn.classList.add('active');
+    } else {
+      input.type = 'password';
+      btn.classList.remove('active');
+    }
+  });
 }
-togglePass('pwd','togglePwd'); togglePass('pwd2','togglePwd2');
+togglePass('pwd','togglePwd'); 
+togglePass('pwd2','togglePwd2');
 
 // ================= Validación en vivo de contraseña =================
 (function(){
@@ -634,10 +1165,23 @@ togglePass('pwd','togglePwd'); togglePass('pwd2','togglePwd2');
   const pwd2 = document.getElementById('pwd2');
   const email = document.getElementById('email');
   const common = new Set(['123456','123456789','12345678','12345','qwerty','password','111111','abc123','123123','iloveyou','admin','welcome','monkey','dragon','qwertyuiop','000000']);
-  function mark(id, ok){ const el=document.getElementById(id); el.classList.toggle('ok', ok); el.classList.toggle('bad', !ok); }
+  
+  function mark(id, ok){ 
+    const el = document.getElementById(id); 
+    el.classList.toggle('ok', ok); 
+    el.classList.toggle('bad', !ok); 
+  }
+  
   function strongCheck(v){
-    const len = v.length>=10 && v.length<=64, up=/[A-Z]/.test(v), low=/[a-z]/.test(v), num=/[0-9]/.test(v), spe=/[!@#$%^&*()_\+\=\-\[\]{};:,.?]/.test(v), spc=!/\s/.test(v);
-    const lowers = v.toLowerCase(); let pii = true; const pieces=[];
+    const len = v.length>=10 && v.length<=64, 
+          up=/[A-Z]/.test(v), 
+          low=/[a-z]/.test(v), 
+          num=/[0-9]/.test(v), 
+          spe=/[!@#$%^&*()_\+\=\-\[\]{};:,.?]/.test(v), 
+          spc=!/\s/.test(v);
+    const lowers = v.toLowerCase(); 
+    let pii = true; 
+    const pieces=[];
     if (email && email.value) pieces.push((email.value.split('@')[0]||'').toLowerCase());
     (nombres.value+' '+apellidos.value).split(/\s+/).forEach(p=>{ p=p.toLowerCase(); if(p.length>=4) pieces.push(p); });
     for (const p of pieces){ if(p && lowers.includes(p)){ pii=false; break; } }
@@ -645,12 +1189,18 @@ togglePass('pwd','togglePwd'); togglePass('pwd2','togglePwd2');
     mark('r-len',len); mark('r-up',up); mark('r-low',low); mark('r-num',num); mark('r-spe',spe); mark('r-spc',spc); mark('r-pii',pii); mark('r-common',notCommon);
     return len&&up&&low&&num&&spe&&spc&&pii&&notCommon;
   }
+  
   function syncValidity(){
     strongCheck(pwd.value);
-    if (!strongCheck(pwd.value)) pwd.setCustomValidity('La contraseña no cumple los requisitos mínimos.'); else pwd.setCustomValidity('');
-    if (pwd2.value && pwd2.value !== pwd.value) pwd2.setCustomValidity('Las contraseñas no coinciden.'); else pwd2.setCustomValidity('');
+    if (!strongCheck(pwd.value)) pwd.setCustomValidity('La contraseña no cumple los requisitos mínimos.'); 
+    else pwd.setCustomValidity('');
+    if (pwd2.value && pwd2.value !== pwd.value) pwd2.setCustomValidity('Las contraseñas no coinciden.'); 
+    else pwd2.setCustomValidity('');
   }
-  pwd.addEventListener('input', syncValidity); pwd2.addEventListener('input', syncValidity); if(email) email.addEventListener('input', syncValidity);
+  
+  pwd.addEventListener('input', syncValidity); 
+  pwd2.addEventListener('input', syncValidity); 
+  if(email) email.addEventListener('input', syncValidity);
 })();
 
 // ====== Corrección: actualización inteligente de dirección (RENIEC/SUNAT) ======
@@ -675,14 +1225,29 @@ function setAutoDireccion(newDir) {
     if(!ready()) return;
     if (inflight) inflight.abort(); inflight = new AbortController();
     const prevN=nombres.value, prevA=apellidos.value;
+    nrodoc.classList.add('validating');
     nombres.value='Consultando RENIEC...'; apellidos.value='Consultando RENIEC...';
+    hint.textContent = 'Consultando RENIEC...';
+    hint.className = 'hint info';
     try{
       const res = await fetch(`ajax/reniec.php?dni=${encodeURIComponent(nrodoc.value)}`, { headers:{'X-Requested-With':'fetch'}, cache:'no-store', signal: inflight.signal });
       const data = await res.json();
       if(!res.ok || data.success===false) throw new Error(data.message || 'Error al consultar');
       nombres.value = data.nombres || ''; apellidos.value = data.apellidos || '';
       if (data.direccion) setAutoDireccion(data.direccion);
-    }catch(e){ if (e.name !== 'AbortError'){ nombres.value=prevN; apellidos.value=prevA; alert(e.message || 'Error al consultar RENIEC'); } }
+      nrodoc.classList.remove('validating');
+      nrodoc.classList.add('valid');
+      hint.textContent = 'Datos verificados correctamente';
+      hint.className = 'hint success';
+    }catch(e){ 
+      if (e.name !== 'AbortError'){ 
+        nombres.value=prevN; apellidos.value=prevA; 
+        nrodoc.classList.remove('validating');
+        nrodoc.classList.add('invalid');
+        hint.textContent = e.message || 'Error al consultar RENIEC';
+        hint.className = 'hint error';
+      } 
+    }
   }
   function debounce(){ clearTimeout(t); t=setTimeout(consulta, 450); }
   tip.addEventListener('change', debounce); nrodoc.addEventListener('input', debounce); nrodoc.addEventListener('blur', consulta);
@@ -696,14 +1261,30 @@ function setAutoDireccion(newDir) {
   async function consulta(){
     if(!ready()) return;
     if (inflight) inflight.abort(); inflight = new AbortController();
-    const prev = empresa.value; empresa.value = 'Consultando SUNAT...';
+    const prev = empresa.value; 
+    nrodoc.classList.add('validating');
+    empresa.value = 'Consultando SUNAT...';
+    hint.textContent = 'Consultando SUNAT...';
+    hint.className = 'hint info';
     try{
       const res = await fetch(`ajax/sunat.php?ruc=${encodeURIComponent(nrodoc.value)}`, { headers:{'X-Requested-With':'fetch'}, cache:'no-store', signal: inflight.signal });
       const data = await res.json();
       if(!res.ok || data.success===false) throw new Error(data.message || 'Error al consultar');
       empresa.value = data.razon_social || data.nombre_o_razon_social || '';
       if (data.direccion) setAutoDireccion(data.direccion);
-    }catch(e){ if (e.name!=='AbortError'){ empresa.value=prev; alert(e.message || 'Error al consultar SUNAT'); } }
+      nrodoc.classList.remove('validating');
+      nrodoc.classList.add('valid');
+      hint.textContent = 'Datos verificados correctamente';
+      hint.className = 'hint success';
+    }catch(e){ 
+      if (e.name!=='AbortError'){ 
+        empresa.value=prev; 
+        nrodoc.classList.remove('validating');
+        nrodoc.classList.add('invalid');
+        hint.textContent = e.message || 'Error al consultar SUNAT';
+        hint.className = 'hint error';
+      } 
+    }
   }
   function debounce(){ clearTimeout(t); t=setTimeout(consulta, 450); }
   tip.addEventListener('change', debounce); nrodoc.addEventListener('input', debounce); nrodoc.addEventListener('blur', consulta);
@@ -715,23 +1296,68 @@ function setAutoDireccion(newDir) {
   const emailHint = document.getElementById('email-hint');
   const emailStatus = document.getElementById('email-status');
   let timer; let inflight; let lastChecked='';
+  
   function isValidFormat(email){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); }
+  
   async function validateEmail(){
     const email = emailInput.value.trim();
-    if (!email){ emailStatus.textContent=''; emailHint.textContent='Usarás este correo para iniciar sesión'; emailHint.style.color=''; emailInput.setCustomValidity(''); return; }
+    if (!email){ 
+      emailStatus.textContent=''; 
+      emailHint.textContent='Usarás este correo para iniciar sesión'; 
+      emailHint.className='hint';
+      emailInput.classList.remove('valid', 'invalid', 'validating');
+      emailInput.setCustomValidity(''); 
+      return; 
+    }
     if (email === lastChecked) return;
-    if (!isValidFormat(email)){ emailStatus.textContent='❌'; emailHint.textContent='Formato de correo inválido'; emailHint.style.color='#ef4444'; emailInput.setCustomValidity('Formato inválido'); return; }
+    if (!isValidFormat(email)){ 
+      emailStatus.textContent='❌'; 
+      emailHint.textContent='Formato de correo inválido'; 
+      emailHint.className='hint error';
+      emailInput.classList.remove('valid', 'validating');
+      emailInput.classList.add('invalid');
+      emailInput.setCustomValidity('Formato inválido'); 
+      return; 
+    }
     if (inflight) inflight.abort(); inflight = new AbortController();
-    emailStatus.textContent='⏳'; emailHint.textContent='Verificando correo...'; emailHint.style.color='#3b82f6';
+    emailStatus.innerHTML='<div class="loading-spinner"></div>'; 
+    emailHint.textContent='Verificando correo...'; 
+    emailHint.className='hint info';
+    emailInput.classList.add('validating');
+    emailInput.classList.remove('valid', 'invalid');
     try{
       const res = await fetch(`ajax/validate_email.php?email=${encodeURIComponent(email)}`, { headers:{'X-Requested-With':'fetch'}, cache:'no-store', signal: inflight.signal });
       const data = await res.json();
-      if (data.success && data.valid){ emailStatus.textContent='✅'; emailHint.textContent = data.verified ? 'Correo verificado y válido' : 'Correo válido (dominio verificado)'; emailHint.style.color='#10b981'; emailInput.setCustomValidity(''); lastChecked=email; }
-      else { emailStatus.textContent='❌'; emailHint.textContent = data.message || 'Este correo no es válido'; emailHint.style.color='#ef4444'; emailInput.setCustomValidity(data.message || 'Email inválido'); }
-    } catch(e){ if(e.name!=='AbortError'){ emailStatus.textContent='⚠️'; emailHint.textContent='No se pudo verificar. Asegúrate que sea un correo real.'; emailHint.style.color='#f59e0b'; emailInput.setCustomValidity(''); } }
+      if (data.success && data.valid){ 
+        emailStatus.textContent='✅'; 
+        emailHint.textContent = data.verified ? 'Correo verificado y válido' : 'Correo válido (dominio verificado)'; 
+        emailHint.className='hint success';
+        emailInput.classList.remove('validating', 'invalid');
+        emailInput.classList.add('valid');
+        emailInput.setCustomValidity(''); 
+        lastChecked=email; 
+      } else { 
+        emailStatus.textContent='❌'; 
+        emailHint.textContent = data.message || 'Este correo no es válido'; 
+        emailHint.className='hint error';
+        emailInput.classList.remove('validating', 'valid');
+        emailInput.classList.add('invalid');
+        emailInput.setCustomValidity(data.message || 'Email inválido'); 
+      }
+    } catch(e){ 
+      if(e.name!=='AbortError'){ 
+        emailStatus.textContent='⚠️'; 
+        emailHint.textContent='No se pudo verificar. Asegúrate que sea un correo real.'; 
+        emailHint.className='hint';
+        emailInput.classList.remove('validating', 'valid', 'invalid');
+        emailInput.setCustomValidity(''); 
+      } 
+    }
   }
+  
   function debounce(){ clearTimeout(timer); timer=setTimeout(validateEmail, 800); }
-  emailInput.addEventListener('input', debounce); emailInput.addEventListener('blur', validateEmail);
+  emailInput.addEventListener('input', debounce); 
+  emailInput.addEventListener('blur', validateEmail);
 })();
 
 // ====== TELÉFONO: solo números, 9 dígitos, empieza con 9 ======
@@ -748,16 +1374,21 @@ function setAutoDireccion(newDir) {
     const ok = /^9\d{8}$/.test(v);
     if (!v) {
       tel.setCustomValidity('');
-      hint.textContent = 'Debe ser solo números, 9 dígitos y comenzar con 9.';
-      hint.style.color = '';
+      tel.classList.remove('valid', 'invalid');
+      hint.textContent = 'Debe ser solo números, 9 dígitos, comenzar con 9';
+      hint.className = 'hint';
     } else if (!ok) {
-      tel.setCustomValidity('Teléfono inválido: 9 dígitos o formato invalido .');
-      hint.textContent = 'Teléfono inválido: 9 dígitos o formato invalido .';
-      hint.style.color = '#ef4444';
+      tel.setCustomValidity('Teléfono inválido: 9 dígitos o formato inválido');
+      tel.classList.remove('valid');
+      tel.classList.add('invalid');
+      hint.textContent = 'Teléfono inválido: debe ser 9 dígitos y comenzar con 9';
+      hint.className = 'hint error';
     } else {
       tel.setCustomValidity('');
-      hint.textContent = 'Teléfono válido.';
-      hint.style.color = '#10b981';
+      tel.classList.remove('invalid');
+      tel.classList.add('valid');
+      hint.textContent = 'Teléfono válido';
+      hint.className = 'hint success';
     }
   }
   tel.addEventListener('input', sanitize);
