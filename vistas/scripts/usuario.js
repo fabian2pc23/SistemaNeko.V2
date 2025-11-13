@@ -178,6 +178,7 @@ function setupDocumentValidation() {
 	let timer;
 	let inflight;
 	let lastQueried = '';
+	let lastValidationCheck = '';
 
 	console.log('✓ Validación de documentos iniciada');
 
@@ -192,6 +193,7 @@ function setupDocumentValidation() {
 		}
 		
 		debounceConsulta();
+		debounceValidacionDocumento();
 	});
 
 	$(num_documento).on('keypress', function(e) {
@@ -212,6 +214,7 @@ function setupDocumentValidation() {
 		$('#direccion').val('');
 		$(nombre).attr('readonly', 'readonly');
 		lastQueried = '';
+		lastValidationCheck = '';
 		
 		const tipoSeleccionado = $(this).val();
 		
@@ -244,6 +247,77 @@ function setupDocumentValidation() {
 			$(hint_tipo).text("Selecciona el tipo de documento");
 		}
 	});
+
+	// ========== NUEVA FUNCIÓN: VALIDAR SI EL DOCUMENTO YA EXISTE ==========
+	function validarDocumentoExistente() {
+		const tipoDoc = $(tipo_documento).val();
+		const numDoc = $(num_documento).val().trim();
+		const idusuario = $("#idusuario").val() || 0;
+		
+		// Solo validar si hay tipo y número de documento
+		if (!tipoDoc || !numDoc) {
+			return;
+		}
+		
+		// Validar formato primero
+		if (tipoDoc === 'DNI' && numDoc.length !== 8) return;
+		if (tipoDoc === 'RUC' && numDoc.length !== 11) return;
+		if (tipoDoc === 'Carnet de Extranjería' && numDoc.length < 9) return;
+		
+		// No validar si es el mismo documento que se consultó antes
+		const checkKey = tipoDoc + '|' + numDoc;
+		if (checkKey === lastValidationCheck) {
+			return;
+		}
+		
+		console.log('🔍 Verificando si el documento ya existe:', tipoDoc, numDoc);
+		
+		$.ajax({
+			url: '../ajax/validate_documento.php',
+			type: 'GET',
+			data: { 
+				tipo_documento: tipoDoc,
+				num_documento: numDoc,
+				idusuario: idusuario
+			},
+			dataType: 'json',
+			timeout: 8000,
+			success: function(data) {
+				console.log('✓ Respuesta validación documento:', data);
+				
+				if (data.success && data.exists) {
+					// El documento ya está registrado
+					$(hint_numero).html(
+						'<i class="fa fa-times text-danger"></i> ' + 
+						(data.message || 'Este documento ya está registrado')
+					).removeClass().addClass('text-danger');
+					
+					// Marcar el input como inválido
+					num_documento.setCustomValidity(data.message || 'Documento ya registrado');
+					
+					// Opcional: Mostrar alerta
+					bootbox.alert({
+						message: '⚠️ ' + data.message + 
+								 (data.usuario_existente && data.usuario_existente.email 
+								  ? '<br><small>Email: ' + data.usuario_existente.email + '</small>' 
+								  : ''),
+						backdrop: true
+					});
+					
+					lastValidationCheck = checkKey;
+				} else if (data.success && data.valid) {
+					// El documento está disponible
+					console.log('✅ Documento disponible');
+					num_documento.setCustomValidity('');
+					lastValidationCheck = checkKey;
+				}
+			},
+			error: function(xhr, status, error) {
+				console.warn('⚠️ Error validación documento:', error);
+				num_documento.setCustomValidity('');
+			}
+		});
+	}
 
 	function consultarRENIEC() {
 		const tipoDoc = $(tipo_documento).val();
@@ -408,6 +482,13 @@ function setupDocumentValidation() {
 		}, 1000);
 	}
 
+	// ========== NUEVA FUNCIÓN: DEBOUNCE PARA VALIDACIÓN DE DOCUMENTO ==========
+	let validationTimer;
+	function debounceValidacionDocumento() {
+		clearTimeout(validationTimer);
+		validationTimer = setTimeout(validarDocumentoExistente, 1500);
+	}
+
 	$(num_documento).on('blur', function() {
 		const tipoDoc = $(tipo_documento).val();
 		if (tipoDoc === 'DNI') {
@@ -415,6 +496,8 @@ function setupDocumentValidation() {
 		} else if (tipoDoc === 'RUC') {
 			consultarSUNAT();
 		}
+		// También validar si existe al perder foco
+		validarDocumentoExistente();
 	});
 }
 
@@ -698,21 +781,124 @@ function guardaryeditar(e)
 {
 	e.preventDefault();
 
-	// 🔥 VALIDACIÓN: Debe tener un rol seleccionado
-	var rolSeleccionado = $("#cargo").val();
-	if (!rolSeleccionado || rolSeleccionado === '' || rolSeleccionado === '0') {
-		bootbox.alert("⚠️ Debes seleccionar un ROL antes de guardar el usuario.");
+	// ========== VALIDACIONES OBLIGATORIAS ==========
+	
+	// 1️⃣ Tipo de Documento
+	var tipoDocumento = $("#tipo_documento").val();
+	if (!tipoDocumento || tipoDocumento === '') {
+		bootbox.alert("⚠️ Debes seleccionar un TIPO DE DOCUMENTO.");
+		$("#tipo_documento").focus();
 		return;
 	}
 
-	// ⛳ Permisos requeridos SOLO si NO estamos en modo 'rol'
+	// 2️⃣ Número de Documento
+	var numDocumento = $("#num_documento").val().trim();
+	if (!numDocumento || numDocumento === '') {
+		bootbox.alert("⚠️ Debes ingresar el NÚMERO DE DOCUMENTO.");
+		$("#num_documento").focus();
+		return;
+	}
+
+	// Validar formato según tipo de documento
+	if (tipoDocumento === 'DNI' && !/^\d{8}$/.test(numDocumento)) {
+		bootbox.alert("⚠️ El DNI debe tener exactamente 8 dígitos numéricos.");
+		$("#num_documento").focus();
+		return;
+	}
+
+	if (tipoDocumento === 'RUC' && !/^\d{11}$/.test(numDocumento)) {
+		bootbox.alert("⚠️ El RUC debe tener exactamente 11 dígitos numéricos.");
+		$("#num_documento").focus();
+		return;
+	}
+
+	// 3️⃣ Nombre (debe haberse obtenido de RENIEC/SUNAT)
+	var nombre = $("#nombre").val().trim();
+	if (!nombre || nombre === '') {
+		bootbox.alert("⚠️ El NOMBRE es obligatorio. Debe autocompletarse al validar el documento.");
+		$("#nombre").focus();
+		return;
+	}
+
+	// 4️⃣ Email
+	var email = $("#email").val().trim();
+	if (!email || email === '') {
+		bootbox.alert("⚠️ Debes ingresar un EMAIL válido.");
+		$("#email").focus();
+		return;
+	}
+
+	// Validar formato de email
+	if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+		bootbox.alert("⚠️ El formato del EMAIL no es válido.");
+		$("#email").focus();
+		return;
+	}
+
+	// 5️⃣ Teléfono (OPCIONAL - no validar)
+	// No se valida porque es opcional según tu requerimiento
+
+	// 6️⃣ Rol
+	var rolSeleccionado = $("#cargo").val();
+	if (!rolSeleccionado || rolSeleccionado === '' || rolSeleccionado === '0') {
+		bootbox.alert("⚠️ Debes seleccionar un ROL antes de guardar el usuario.");
+		$("#cargo").focus();
+		return;
+	}
+
+	// 7️⃣ Contraseña (solo obligatoria al crear nuevo usuario)
+	var idusuario = $("#idusuario").val();
+	var clave = $("#clave").val().trim();
+	
+	if (!idusuario || idusuario === '') { // Es nuevo usuario
+		if (!clave || clave === '') {
+			bootbox.alert("⚠️ Debes ingresar una CONTRASEÑA para el nuevo usuario.");
+			$("#clave").focus();
+			return;
+		}
+
+		// Validar requisitos de contraseña
+		if (clave.length < 10 || clave.length > 64) {
+			bootbox.alert("⚠️ La contraseña debe tener entre 10 y 64 caracteres.");
+			$("#clave").focus();
+			return;
+		}
+
+		if (!/[A-Z]/.test(clave)) {
+			bootbox.alert("⚠️ La contraseña debe contener al menos una letra MAYÚSCULA.");
+			$("#clave").focus();
+			return;
+		}
+
+		if (!/[a-z]/.test(clave)) {
+			bootbox.alert("⚠️ La contraseña debe contener al menos una letra minúscula.");
+			$("#clave").focus();
+			return;
+		}
+
+		if (!/[0-9]/.test(clave)) {
+			bootbox.alert("⚠️ La contraseña debe contener al menos un NÚMERO.");
+			$("#clave").focus();
+			return;
+		}
+
+		if (!/[!@#$%^&*()_\+\=\-\[\]{};:,.?]/.test(clave)) {
+			bootbox.alert("⚠️ La contraseña debe contener al menos un carácter ESPECIAL (!@#$%^&*...).");
+			$("#clave").focus();
+			return;
+		}
+	}
+
+	// 8️⃣ Permisos
 	var modo = ($("#modo_permisos").val() || "").trim();
 	var permisosChecked = $("input[name='permiso[]']:checked").length;
 
 	if (modo !== 'rol' && permisosChecked === 0) {
-		bootbox.alert("Debes seleccionar al menos un permiso para el usuario.");
+		bootbox.alert("⚠️ Debes seleccionar al menos un PERMISO para el usuario.");
 		return;
 	}
+
+	// ========== SI TODAS LAS VALIDACIONES PASAN, PROCEDER ==========
 	
 	$("#btnGuardar").prop("disabled",true);
 	var formData = new FormData($("#formulario")[0]);
