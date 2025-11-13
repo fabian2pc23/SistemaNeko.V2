@@ -10,6 +10,7 @@ Header
 Se añadio al Login
 
 - El login verifica el estado del usuario para poder ingresar, mientras no este habilitado no puede ingresar.(condicion 1)
+- Se añadio ojito para visualizar contraseña
 
 Se modifico Register 
 
@@ -29,3 +30,4 @@ Se modifico la vista Usuario
 
 - Ahora aparece estado pendiente permitiendo al administrador solo editar y asignar un rol para poder activarlo
 - Se asigno imagenes predeterminadas por roles
+- Todas las validaciones han sido agregadas(nombre,tipo_documento,roles,etc) no dejara registrar si no completas los campos, añadio ajax/validate_documento
