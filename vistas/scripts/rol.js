@@ -99,7 +99,7 @@ function listar(){
 }
 // =========================================
 
-function guardaryeditar(e){ 
+function guardaryeditar(e){
   e.preventDefault();
   $("#btnGuardar").prop("disabled", true);
 
@@ -111,6 +111,14 @@ function guardaryeditar(e){
     return;
   }
 
+  // === VALIDACIÓN NUEVA: al menos un permiso marcado ===
+  if ($("#permisos_rol input[type='checkbox']:checked").length === 0){
+    bootbox.alert("⚠️ Debe seleccionar al menos un permiso para el rol.");
+    $("#btnGuardar").prop("disabled", false);
+    return;
+  }
+
+  // Enviar datos
   var formData = new FormData($("#formulario")[0]);
 
   $.ajax({
@@ -123,14 +131,6 @@ function guardaryeditar(e){
       bootbox.alert(datos);
       mostrarform(false);
       tabla.ajax.reload();
-    },
-    error: function(xhr, status, error){
-      console.error(error);
-      bootbox.alert("Ocurrió un error al guardar el rol.");
-    },
-    complete: function(){
-      // Siempre re-habilitamos el botón (éxito o fallo)
-      $("#btnGuardar").prop("disabled", false);
     }
   });
 
