@@ -26,7 +26,9 @@ $serie_comprobante = isset($_POST["serie_comprobante"]) ? limpiarCadena($_POST["
 $num_comprobante = isset($_POST["num_comprobante"]) ? limpiarCadena($_POST["num_comprobante"]) : "";
 $fecha_hora = isset($_POST["fecha_hora"]) ? limpiarCadena($_POST["fecha_hora"]) : "";
 $impuesto_porcentaje = isset($_POST["impuesto"]) ? limpiarCadena($_POST["impuesto"]) : "0";
-// ⭐ Para valores numéricos, NO usar limpiarCadena porque elimina el punto decimal
+
+// ⭐ CORRECCIÓN: Para valores numéricos decimales, NO usar limpiarCadena
+// porque elimina el punto decimal. Usar str_replace para cambiar coma por punto
 $total_neto_guardar = isset($_POST["total_neto"]) ? (float)str_replace(',', '.', $_POST["total_neto"]) : 0.00;
 $impuesto_total = isset($_POST["monto_impuesto"]) ? (float)str_replace(',', '.', $_POST["monto_impuesto"]) : 0.00;
 $total_compra = isset($_POST["total_compra"]) ? (float)str_replace(',', '.', $_POST["total_compra"]) : 0.00;
@@ -36,15 +38,25 @@ $op = isset($_GET["op"]) ? $_GET["op"] : '';
 switch ($op) {
 
     case 'guardaryeditar':
-            // ⭐ DEBUG TEMPORAL
-    error_log("=== POST RECIBIDO ===");
-    error_log("total_neto: " . $total_neto_guardar);
-    error_log("monto_impuesto POST: " . ($_POST["monto_impuesto"] ?? 'NO EXISTE'));
-    error_log("monto_impuesto limpio: " . $impuesto_total);
-    error_log("total_compra: " . $total_compra);
-    error_log("=====================");
+        // ⭐ DEBUG: Verificar valores recibidos
+        error_log("=== POST RECIBIDO ===");
+        error_log("total_neto RAW: " . ($_POST["total_neto"] ?? 'NO EXISTE'));
+        error_log("total_neto convertido: " . $total_neto_guardar);
+        error_log("monto_impuesto RAW: " . ($_POST["monto_impuesto"] ?? 'NO EXISTE'));
+        error_log("monto_impuesto convertido: " . $impuesto_total);
+        error_log("total_compra RAW: " . ($_POST["total_compra"] ?? 'NO EXISTE'));
+        error_log("total_compra convertido: " . $total_compra);
+        error_log("=====================");
+
         if (!empty($idingreso)) {
             echo "Este módulo solo inserta (no edita).";
+            break;
+        }
+
+        // Validar que los valores sean razonables
+        if ($total_neto_guardar <= 0 || $total_compra <= 0) {
+            error_log("ERROR: Valores inválidos - Neto: $total_neto_guardar, Total: $total_compra");
+            echo "Error: Los totales no pueden ser cero o negativos.";
             break;
         }
 
