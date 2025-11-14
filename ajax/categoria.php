@@ -21,19 +21,19 @@ $nombre=isset($_POST["nombre"])? limpiarCadena($_POST["nombre"]):"";
 $descripcion=isset($_POST["descripcion"])? limpiarCadena($_POST["descripcion"]):"";
 
 switch ($_GET["op"]){
-case 'guardaryeditar':
-    if (empty($idcategoria)){
-        $rspta = $categoria->insertar($nombre,$descripcion);
-        if ($rspta === "duplicado") {
-            echo "duplicado";
-        } else {
-            echo $rspta ? "Categoría registrada" : "No se pudo registrar";
-        }
-    } else {
-        $rspta = $categoria->editar($idcategoria,$nombre,$descripcion);
-        echo $rspta ? "Categoría actualizada" : "No se pudo actualizar";
-    }
-break;
+	case 'guardaryeditar':
+	    if (empty($idcategoria)){
+	        $rspta = $categoria->insertar($nombre,$descripcion);
+	        if ($rspta === "duplicado") {
+	            echo "duplicado";
+	        } else {
+	            echo $rspta ? "Categoría registrada" : "No se pudo registrar";
+	        }
+	    } else {
+	        $rspta = $categoria->editar($idcategoria,$nombre,$descripcion);
+	        echo $rspta ? "Categoría actualizada" : "No se pudo actualizar";
+	    }
+	break;
 
 	case 'desactivar':
 		$rspta=$categoria->desactivar($idcategoria);
@@ -74,7 +74,62 @@ break;
  			"iTotalDisplayRecords"=>count($data), //enviamos el total registros a visualizar
  			"aaData"=>$data);
  		echo json_encode($results);
+	break;
 
+	// ==================== ENDPOINTS PARA KPIs ====================
+	
+	case 'categorias_sin_articulos':
+		header('Content-Type: application/json; charset=utf-8');
+		$rspta = $categoria->categoriasSinArticulos();
+		$categorias = array();
+		$total = 0;
+		
+		if ($rspta) {
+			while ($reg = $rspta->fetch_object()) {
+				$categorias[] = $reg->nombre;
+				$total++;
+			}
+		}
+		
+		echo json_encode(array(
+			'success' => true,
+			'total' => $total,
+			'categorias' => $categorias
+		));
+	break;
+
+	case 'categorias_stock_critico':
+		header('Content-Type: application/json; charset=utf-8');
+		$rspta = $categoria->categoriasStockCritico();
+		if ($rspta && is_array($rspta)) {
+			echo json_encode(array(
+				'success' => true,
+				'total' => isset($rspta['total']) ? (int)$rspta['total'] : 0
+			));
+		} else {
+			echo json_encode(array(
+				'success' => false,
+				'total' => 0,
+				'error' => 'No se pudo obtener el resultado'
+			));
+		}
+	break;
+
+	case 'categorias_nuevas':
+		header('Content-Type: application/json; charset=utf-8');
+		$rspta = $categoria->categoriasNuevas();
+		if ($rspta && is_array($rspta)) {
+			echo json_encode(array(
+				'success' => true,
+				'total' => isset($rspta['total']) ? (int)$rspta['total'] : 0
+			));
+		} else {
+			echo json_encode(array(
+				'success' => false,
+				'total' => 0,
+				'error' => 'No se pudo obtener el resultado'
+			));
+		}
 	break;
 }
 //Fin de las validaciones de acceso

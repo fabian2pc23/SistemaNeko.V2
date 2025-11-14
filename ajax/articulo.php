@@ -162,6 +162,83 @@ try {
       }
       exit;
 
+    case 'articulos_stock_bajo':
+      header('Content-Type: application/json; charset=utf-8');
+      
+      $sql = "SELECT nombre, stock 
+              FROM articulo 
+              WHERE condicion = 1 AND stock > 0 AND stock < 5 
+              ORDER BY stock ASC, nombre ASC";
+      
+      $rspta = ejecutarConsulta($sql);
+      $articulos = array();
+      $total = 0;
+      
+      if ($rspta) {
+        while ($reg = $rspta->fetch_object()) {
+          $articulos[] = $reg->nombre . ' ('. $reg->stock .')';
+          $total++;
+        }
+      }
+      
+      echo json_encode(array(
+        'success' => true,
+        'total' => $total,
+        'articulos' => $articulos
+      ));
+      exit;
+
+    case 'articulos_sin_stock':
+      header('Content-Type: application/json; charset=utf-8');
+      
+      $sql = "SELECT nombre 
+              FROM articulo 
+              WHERE condicion = 1 AND stock <= 0 
+              ORDER BY nombre ASC";
+      
+      $rspta = ejecutarConsulta($sql);
+      $articulos = array();
+      $total = 0;
+      
+      if ($rspta) {
+        while ($reg = $rspta->fetch_object()) {
+          $articulos[] = $reg->nombre;
+          $total++;
+        }
+      }
+      
+      echo json_encode(array(
+        'success' => true,
+        'total' => $total,
+        'articulos' => $articulos
+      ));
+      exit;
+
+    case 'articulos_stock_bajo':
+      header('Content-Type: application/json; charset=utf-8');
+      
+      $sql = "SELECT nombre, stock 
+              FROM articulo 
+              WHERE condicion = 1 AND stock > 0 AND stock < 5 
+              ORDER BY stock ASC, nombre ASC";
+      
+      $rspta = ejecutarConsulta($sql);
+      $articulos = array();
+      $total = 0;
+      
+      if ($rspta) {
+        while ($reg = $rspta->fetch_object()) {
+          $articulos[] = $reg->nombre . ' ('. $reg->stock .')';
+          $total++;
+        }
+      }
+      
+      echo json_encode(array(
+        'success' => true,
+        'total' => $total,
+        'articulos' => $articulos
+      ));
+      exit;
     default:
       json_msg(false, "Operación no válida", 400);
   }

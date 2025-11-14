@@ -1,26 +1,51 @@
-// vistas/scripts/articulo.js
+// vistas/scripts/articulo.js - FILTRO CORREGIDO
 var tabla;
+var estadoFiltro = 'all';
 
-/* ======================= Helpers de validación ======================= */
+/* ======================= Toast ======================= */
+function mostrarNotificacion(mensaje, tipo) {
+	if ($('#toast-container').length === 0) {
+		$('body').append('<div id="toast-container" style="position: fixed;top: 20px;right: 20px;z-index: 9999;"></div>');
+	}
+	
+	var colores = {
+		'success': { bg: '#10b981', icon: 'fa-check-circle' },
+		'error': { bg: '#ef4444', icon: 'fa-times-circle' },
+		'warning': { bg: '#f59e0b', icon: 'fa-exclamation-triangle' },
+		'info': { bg: '#3b82f6', icon: 'fa-info-circle' }
+	};
+	
+	var color = colores[tipo] || colores['info'];
+	var toastId = 'toast-' + Date.now();
+	var toast = $('<div id="'+toastId+'" style="background:'+color.bg+';color:white;padding:16px 20px;border-radius:12px;margin-bottom:10px;box-shadow:0 10px 25px rgba(0,0,0,0.2);display:flex;align-items:center;gap:12px;min-width:300px;animation:slideIn 0.3s ease-out;font-size:14px;font-weight:500;"><i class="fa '+color.icon+'" style="font-size:20px;"></i><span style="flex:1;">'+mensaje+'</span><i class="fa fa-times" style="cursor:pointer;opacity:0.8;" onclick="$(\'#'+toastId+'\').fadeOut(200,function(){$(this).remove();});"></i></div>');
+	
+	if ($('#toast-animation').length === 0) {
+		$('head').append('<style id="toast-animation">@keyframes slideIn{from{transform:translateX(400px);opacity:0}to{transform:translateX(0);opacity:1}}@keyframes slideOut{from{transform:translateX(0);opacity:1}to{transform:translateX(400px);opacity:0}}</style>');
+	}
+	
+	$('#toast-container').append(toast);
+	
+	setTimeout(function() {
+		$('#' + toastId).css('animation', 'slideOut 0.3s ease-in');
+		setTimeout(function() { $('#' + toastId).fadeOut(200, function() { $(this).remove(); }); }, 300);
+	}, 3000);
+}
 
+function showAlert(tipo, mensaje) { mostrarNotificacion(mensaje, tipo); }
+
+/* ======================= Validación ======================= */
 function esNombreValido(nombre) {
   const txt = (nombre || "").trim();
   if (!/^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ\s]{3,50}$/.test(txt)) return false;
   if (/([A-Za-z])\1{2,}/.test(txt)) return false;
   if (!/[AEIOUaeiouÁÉÍÓÚáéíóúüÜ]/.test(txt)) return false;
-  const invalidos = ["xxx", "asdf", "test", "prueba", "rol", "role", "wewqeq", "qwe"];
+  const invalidos = ["xxx", "asdf", "test", "prueba", "rol", "role"];
   if (invalidos.some(p => txt.toLowerCase().includes(p))) return false;
   return true;
 }
 
-function esPrecioValido(v) {
-  return /^\d{1,7}(\.\d{1,2})?$/.test((v || "").trim());
-}
-
-function esCodigoValido(v) {
-  const txt = (v || "").trim();
-  return /^\d{8,13}$/.test(txt);
-}
+function esPrecioValido(v) { return /^\d{1,7}(\.\d{1,2})?$/.test((v || "").trim()); }
+function esCodigoValido(v) { return /^\d{8,13}$/.test((v || "").trim()); }
 
 function setValidity(el, ok, msg) {
   if (!el) return;
@@ -28,29 +53,25 @@ function setValidity(el, ok, msg) {
   if (!ok) el.reportValidity();
 }
 
-/* ======================= Generación EAN ======================= */
-
+/* ======================= EAN ======================= */
 function ean13Checksum(d12) {
   const s = String(d12).replace(/\D/g, "").padStart(12, "0").slice(0, 12);
   let sumOdd = 0, sumEven = 0;
   for (let i = 0; i < 12; i++) {
     const n = s.charCodeAt(i) - 48;
-    if ((i + 1) % 2 === 0) sumEven += n;
-    else sumOdd += n;
+    if ((i + 1) % 2 === 0) sumEven += n; else sumOdd += n;
   }
   const total = sumOdd + sumEven * 3;
   return (10 - (total % 10)) % 10;
 }
 
 function generarEAN13() {
-  let base = "";
-  base += "77";
+  let base = "77";
   for (let i = base.length; i < 12; i++) base += Math.floor(Math.random() * 10);
-  const check = ean13Checksum(base);
-  return base + String(check);
+  return base + String(ean13Checksum(base));
 }
 
-/* ======================= Sugerencia Precio Venta ======================= */
+/* ======================= Precio sugerido ======================= */
 const IGV = 0.18;
 const MARGEN_SUGERIDO = 0.30;
 let precioVentaEditadoManualmente = false;
@@ -68,13 +89,41 @@ function actualizarSugerido(){
   const pc = $("#precio_compra").val();
   const sug = calcularPV(pc);
   const hint = document.getElementById('pv_sugerido_hint');
-  if (hint) hint.textContent = sug ? `Sugerido: S/ ${sug} (IGV ${IGV*100}%, margen ${MARGEN_SUGERIDO*100}%)` : "Sugerido: —";
-  if (sug && !precioVentaEditadoManualmente) {
-    $("#precio_venta").val(sug);
-  }
+  if (hint) hint.textContent = sug ? `Sugerido: S/ ${sug}` : "Sugerido: —";
+  if (sug && !precioVentaEditadoManualmente) $("#precio_venta").val(sug);
 }
 
-/* =========================== Inicialización =========================== */
+/* ===================== FILTRO CORREGIDO ===================== */
+function registrarFiltroEstado(){
+  $.fn.dataTable.ext.search.push(function(settings, data, dataIndex){
+    if (settings.nTable.id !== 'tbllistado') return true;
+    
+    if (estadoFiltro === 'all') return true;
+    
+    // Columna 8 (Estado) - HTML del estado
+    var estadoHTML = (data[8] || '').toString().toLowerCase();
+    
+    console.log('🔍 Filtro aplicado:', estadoFiltro, '| Estado en fila:', estadoHTML);
+    
+    if (estadoFiltro === 'activos') {
+      // SOLO muestra si contiene "activado" y NO contiene "desactivado"
+      var esActivado = estadoHTML.indexOf('activado') !== -1;
+      var esDesactivado = estadoHTML.indexOf('desactivado') !== -1;
+      return esActivado && !esDesactivado;
+    }
+    
+    if (estadoFiltro === 'desactivos') {
+      // SOLO muestra si contiene "desactivado"
+      return estadoHTML.indexOf('desactivado') !== -1;
+    }
+    
+    return true;
+  });
+  
+  console.log('✅ Filtro permanente registrado');
+}
+
+/* =========================== Init =========================== */
 function init() {
   if ($.fn.dataTable) $.fn.dataTable.ext.errMode = 'none';
 
@@ -92,16 +141,19 @@ function init() {
   $("#mAlmacen").addClass("treeview active");
   $("#lArticulos").addClass("active");
 
+  cargarKPIStockBajo();
+  cargarKPISinStock();
+
   $("#precio_compra").on("input", function(){
     const ok = esPrecioValido(this.value);
-    setValidity(this, ok, "Precio inválido. Use solo números y hasta 2 decimales.");
+    setValidity(this, ok, "Precio inválido");
     actualizarSugerido();
   });
 
   $("#precio_venta").on("input", function(){
     precioVentaEditadoManualmente = true;
     const ok = esPrecioValido(this.value);
-    setValidity(this, ok, "Precio inválido. Use solo números y hasta 2 decimales.");
+    setValidity(this, ok, "Precio inválido");
   });
 
   $("#precio_venta, #precio_compra").on("blur", function(){
@@ -110,69 +162,121 @@ function init() {
 
   $("#stock").on("input", function () {
     this.value = this.value.replace(/[^\d]/g, "").slice(0, 5);
-    if (this.value === "" || parseInt(this.value) < 0) {
-      this.setCustomValidity("El stock debe ser un número mayor o igual a 0.");
-    } else {
-      this.setCustomValidity("");
-    }
+    this.setCustomValidity(this.value === "" || parseInt(this.value) < 0 ? "Stock >= 0" : "");
   });
 
   $("#codigo").on("input", function () {
     this.value = this.value.replace(/\D+/g, "").slice(0, 13);
     const ok = esCodigoValido(this.value);
-    setValidity(this, ok, ok ? "" : "Solo números (8 a 13 dígitos).");
+    setValidity(this, ok, "8-13 dígitos");
     if (ok) renderBarcode(this.value);
   });
 
-  // Delegación de eventos
   $(document).on('click', '#tbllistado .btn-edit', function () {
     const id = $(this).data('id');
-    if (!id) return;
-    mostrar(id);
+    if (id) mostrar(id);
   });
 
   $(document).on('click', '#tbllistado .btn-off', function () {
     const id = $(this).data('id');
-    bootbox.confirm("¿Está seguro de desactivar el artículo?", function (ok) {
+    bootbox.confirm("¿Desactivar artículo?", function (ok) {
       if (!ok) return;
       $.post("../ajax/articulo.php?op=desactivar", { idarticulo: id }, function (e) {
-        try { var j = JSON.parse(e); bootbox.alert(j.message || e); }
-        catch { bootbox.alert(e); }
-        tabla.ajax.reload(null, false);
+        try {
+          var j = JSON.parse(e);
+          mostrarNotificacion(j.message || '✅ Artículo desactivado', j.success === false ? 'error' : 'success');
+        } catch (_) {
+          mostrarNotificacion(e || '✅ Artículo desactivado', 'success');
+        }
+        if (tabla) tabla.ajax.reload(null, false);
+        cargarKPIStockBajo();
+        cargarKPISinStock();
       });
     });
   });
 
   $(document).on('click', '#tbllistado .btn-on', function () {
     const id = $(this).data('id');
-    bootbox.confirm("¿Está seguro de activar el artículo?", function (ok) {
+    bootbox.confirm("¿Activar artículo?", function (ok) {
       if (!ok) return;
       $.post("../ajax/articulo.php?op=activar", { idarticulo: id }, function (e) {
-        try { var j = JSON.parse(e); bootbox.alert(j.message || e); }
-        catch { bootbox.alert(e); }
-        tabla.ajax.reload(null, false);
+        try {
+          var j = JSON.parse(e);
+          mostrarNotificacion(j.message || '✅ Artículo activado', j.success === false ? 'error' : 'success');
+        } catch (_) {
+          mostrarNotificacion(e || '✅ Artículo activado', 'success');
+        }
+        if (tabla) tabla.ajax.reload(null, false);
+        cargarKPIStockBajo();
+        cargarKPISinStock();
       });
     });
   });
 }
 
+/* ======================= KPI tooltips ======================= */
+function cargarKPIStockBajo() {
+  $.ajax({
+    url: '../ajax/articulo.php?op=articulos_stock_bajo',
+    type: 'GET',
+    dataType: 'json',
+    success: function(data) {
+      if (data && data.success) {
+        var total = parseInt(data.total) || 0;
+        var articulos = data.articulos || [];
+        
+        $('#kpi-stock-bajo').text(total);
+        
+        if (articulos.length > 0) {
+          var tooltipText = 'Artículos: ' + articulos.join(', ');
+          $('#kpi-stock-bajo')
+            .attr('title', tooltipText)
+            .css({'cursor': 'help', 'text-decoration': 'underline dotted'});
+          if (typeof $.fn.tooltip !== 'undefined') $('#kpi-stock-bajo').tooltip();
+          console.log('✅ KPI stock bajo:', tooltipText);
+        }
+      }
+    },
+    error: function(xhr, status, error) {
+      console.error('❌ Error KPI stock bajo:', error);
+    }
+  });
+}
+
+function cargarKPISinStock() {
+  $.ajax({
+    url: '../ajax/articulo.php?op=articulos_sin_stock',
+    type: 'GET',
+    dataType: 'json',
+    success: function(data) {
+      if (data && data.success) {
+        var total = parseInt(data.total) || 0;
+        var articulos = data.articulos || [];
+        
+        $('#kpi-sin-stock').text(total);
+        
+        if (articulos.length > 0) {
+          var tooltipText = 'Artículos: ' + articulos.join(', ');
+          $('#kpi-sin-stock')
+            .attr('title', tooltipText)
+            .css({'cursor': 'help', 'text-decoration': 'underline dotted'});
+          if (typeof $.fn.tooltip !== 'undefined') $('#kpi-sin-stock').tooltip();
+          console.log('✅ KPI sin stock:', tooltipText);
+        }
+      }
+    }
+  });
+}
+
 /* ============================== Vistas =============================== */
 function limpiar() {
-  $("#codigo").val("");
-  $("#nombre").val("");
-  $("#descripcion").val("");
-  $("#stock").val("");
-  $("#precio_compra").val("");
-  $("#precio_venta").val("");
+  $("#codigo, #nombre, #descripcion, #stock, #precio_compra, #precio_venta").val("");
   $("#imagenmuestra").attr("src", "").hide();
-  $("#imagenactual").val("");
+  $("#imagenactual, #idarticulo").val("");
   $("#print").hide();
-  $("#idarticulo").val("");
-
   precioVentaEditadoManualmente = false;
   const hint = document.getElementById('pv_sugerido_hint');
   if (hint) hint.textContent = "Sugerido: —";
-
   ["#precio_compra", "#precio_venta", "#codigo"].forEach(sel => {
     const el = document.querySelector(sel);
     if (el) el.setCustomValidity("");
@@ -192,57 +296,48 @@ function mostrarform(flag) {
   }
 }
 
-function cancelarform() {
-  limpiar();
-  mostrarform(false);
-}
+function cancelarform() { limpiar(); mostrarform(false); }
 
-/* ======================= DataTable (listar) ======================= */
-
+/* ======================= DataTable ======================= */
 function setupToolbarFilters() {
   if (!tabla) return;
 
-  // Mover botones de exportación al contenedor
-  setTimeout(function(){
-    var $dtButtons = $('.dt-buttons');
-    if ($dtButtons.length) {
-      $dtButtons.appendTo('#export-buttons-container');
-    }
-  }, 100);
-
   function setEstadoActive(which){
-    $('.toolbar-btn').removeClass('active');
-    if (which === 'todos') $('#filter-todos').addClass('active');
-    if (which === 'activos') $('#filter-activos').addClass('active');
-    if (which === 'desactivos') $('#filter-desactivos').addClass('active');
+    $('.filter-btn').removeClass('active');
+    $('#filter-'+which).addClass('active');
   }
 
-  // ✅ FILTROS CORREGIDOS: usamos el texto simple "Activado"/"Desactivado"
-  //   sin regex estricta ni anchors, y con búsqueda de columna.
   $('#filter-todos').off('click').on('click', function(){
-    tabla.column(8).search('', false, false).draw();  // Muestra todos
+    console.log('🔽 Click TODOS');
+    estadoFiltro = 'all';
+    tabla.draw();
     setEstadoActive('todos');
   });
 
   $('#filter-activos').off('click').on('click', function(){
-    tabla.column(8).search('Activado', false, false).draw();
+    console.log('🔽 Click ACTIVOS - estableciendo filtro');
+    estadoFiltro = 'activos';
+    tabla.draw();
     setEstadoActive('activos');
   });
 
   $('#filter-desactivos').off('click').on('click', function(){
-    tabla.column(8).search('Desactivado', false, false).draw();
+    console.log('🔽 Click DESACTIVOS');
+    estadoFiltro = 'desactivos';
+    tabla.draw();
     setEstadoActive('desactivos');
   });
 
-  // Categoría
   $('#filter-categoria').off('change').on('change', function(){
-    var val = this.value || '';
-    tabla.column(2).search(val, false, false).draw();
+    tabla.column(2).search(this.value || '', false, false).draw();
   });
 
-  // Búsqueda personalizada global
   $('#search-input').off('keyup').on('keyup', function(){
     tabla.search(this.value).draw();
+  });
+
+  $('#page-length-selector').off('change').on('change', function(){
+    tabla.page.len(parseInt(this.value, 10) || 10).draw();
   });
 }
 
@@ -251,6 +346,8 @@ function construirTabla() {
     $('#tbllistado').DataTable().destroy();
     $('#tbllistado tbody').empty();
   }
+
+  registrarFiltroEstado();
 
   tabla = $('#tbllistado').DataTable({
     processing: true,
@@ -261,10 +358,10 @@ function construirTabla() {
     destroy: true,
     dom: 'Bfrtip',
     buttons: [
-      { extend:'copyHtml5',  text:'<i class="fa fa-copy"></i> Copiar' },
-      { extend:'excelHtml5', text:'<i class="fa fa-file-excel-o"></i> Excel' },
-      { extend:'csvHtml5',   text:'<i class="fa fa-file-text-o"></i> CSV' },
-      { extend:'pdf',        text:'<i class="fa fa-file-pdf-o"></i> PDF' }
+      { extend:'copyHtml5',  text:'Copiar',  className: 'buttons-copy'  },
+      { extend:'excelHtml5', text:'Excel',  className: 'buttons-excel' },
+      { extend:'csvHtml5',   text:'CSV',    className: 'buttons-csv'   },
+      { extend:'pdf',        text:'PDF',    className: 'buttons-pdf'   }
     ],
     ajax: {
       url: '../ajax/articulo.php?op=listar',
@@ -272,16 +369,15 @@ function construirTabla() {
       dataType: 'json',
       dataSrc: function (json) {
         if (json && json.success === false) {
-          bootbox.alert(json.message || 'Error al listar artículos.');
+          mostrarNotificacion(json.message || 'Error al listar', 'error');
           return [];
         }
-        if (json && Array.isArray(json.data))   return json.data;
+        if (json && Array.isArray(json.data)) return json.data;
         if (json && Array.isArray(json.aaData)) return json.aaData;
-
         try {
           if (typeof json === 'string') {
             var j = JSON.parse(json);
-            if (Array.isArray(j.data))   return j.data;
+            if (Array.isArray(j.data)) return j.data;
             if (Array.isArray(j.aaData)) return j.aaData;
           }
         } catch (_){}
@@ -289,7 +385,7 @@ function construirTabla() {
       },
       error: function(xhr){
         console.error('listar FAIL:', xhr.status, xhr.responseText);
-        bootbox.alert('No se pudo cargar el listado (revisa la consola).');
+        mostrarNotificacion('No se pudo cargar el listado', 'error');
       }
     },
     columns: [
@@ -301,56 +397,66 @@ function construirTabla() {
       { data: 5, className:'text-right' },
       { data: 6, className:'text-right' },
       { data: 7, orderable:false, searchable:false },
-      // 👇 AHORA esta columna SÍ es searchable para que funcionen los filtros
       { data: 8, orderable:false, searchable:true }
     ],
     pageLength: 10,
     order: [[1, "asc"]],
     language: {
-      "sProcessing":     "Procesando...",
-      "sLengthMenu":     "Mostrar _MENU_ registros",
-      "sZeroRecords":    "No se encontraron resultados",
-      "sEmptyTable":     "Ningún dato disponible en esta tabla",
-      "sInfo":           "Mostrando registros del _START_ al _END_ de un total de _TOTAL_",
-      "sInfoEmpty":      "Mostrando registros del 0 al 0 de un total de 0",
-      "sInfoFiltered":   "(filtrado de un total de _MAX_ registros)",
-      "sInfoPostFix":    "",
-      "sSearch":         "Buscar:",
-      "sUrl":            "",
-      "sInfoThousands":  ",",
+      "sProcessing": "Procesando...",
+      "sLengthMenu": "Mostrar _MENU_ registros",
+      "sZeroRecords": "No se encontraron resultados",
+      "sEmptyTable": "Ningún dato disponible",
+      "sInfo": "Mostrando _START_ al _END_ de _TOTAL_",
+      "sInfoEmpty": "Mostrando 0 al 0 de 0",
+      "sInfoFiltered": "(filtrado de _MAX_)",
       "sLoadingRecords": "Cargando...",
-      "oPaginate": {
-        "sFirst":    "Primero",
-        "sLast":     "Último",
-        "sNext":     "Siguiente",
-        "sPrevious": "Anterior"
-      },
-      "oAria": {
-        "sSortAscending":  ": Activar para ordenar la columna de manera ascendente",
-        "sSortDescending": ": Activar para ordenar la columna de manera descendente"
-      }
+      "oPaginate": { "sFirst": "Primero", "sLast": "Último", "sNext": "Siguiente", "sPrevious": "Anterior" }
     },
     initComplete: function(){
       setupToolbarFilters();
+      console.log('📊 DataTable inicializada. Estado filtro:', estadoFiltro);
     }
   });
 }
 
-/* ========================= Guardar / Editar ========================== */
+/* ========================= Exportar ========================== */
+function exportarTabla(tipo) {
+  if (!tabla) return;
+  try {
+    if (tipo === 'copy') {
+      tabla.button('.buttons-copy').trigger();
+      mostrarNotificacion('✅ Tabla copiada', 'success');
+    } else if (tipo === 'excel') {
+      tabla.button('.buttons-excel').trigger();
+      mostrarNotificacion('✅ Excel descargado', 'success');
+    } else if (tipo === 'csv') {
+      tabla.button('.buttons-csv').trigger();
+      mostrarNotificacion('✅ CSV descargado', 'success');
+    } else if (tipo === 'pdf') {
+      tabla.button('.buttons-pdf').trigger();
+      mostrarNotificacion('✅ Descargando PDF...', 'success');
+    }
+  } catch (e) {
+    console.error('exportar error', e);
+    mostrarNotificacion('❌ No se pudo exportar', 'error');
+  }
+}
+
+/* ========================= Guardar ========================== */
 function guardaryeditar(e) {
   e.preventDefault();
   $("#btnGuardar").prop("disabled", true);
 
   const nombre = $("#nombre").val();
   if (!esNombreValido(nombre)) {
-    bootbox.alert("⚠️ Ingrese un nombre válido (solo letras y sin repeticiones).");
+    mostrarNotificacion("⚠️ Nombre inválido", 'warning');
     $("#btnGuardar").prop("disabled", false);
     return;
   }
 
   const precioCompraEl = document.querySelector("#precio_compra");
   if (!esPrecioValido(precioCompraEl.value)) {
-    setValidity(precioCompraEl, false, "Precio inválido. Use solo números y hasta 2 decimales.");
+    setValidity(precioCompraEl, false, "Precio inválido");
     $("#btnGuardar").prop("disabled", false);
     return;
   } else {
@@ -359,7 +465,7 @@ function guardaryeditar(e) {
 
   const precioVentaEl = document.querySelector("#precio_venta");
   if (!esPrecioValido(precioVentaEl.value)) {
-    setValidity(precioVentaEl, false, "Precio inválido. Use solo números y hasta 2 decimales.");
+    setValidity(precioVentaEl, false, "Precio inválido");
     $("#btnGuardar").prop("disabled", false);
     return;
   } else {
@@ -369,7 +475,7 @@ function guardaryeditar(e) {
   const stockEl = document.querySelector("#stock");
   const stockVal = parseInt(stockEl.value);
   if (isNaN(stockVal) || stockVal < 0) {
-    stockEl.setCustomValidity("El stock debe ser 0 o mayor.");
+    stockEl.setCustomValidity("Stock >= 0");
     stockEl.reportValidity();
     $("#btnGuardar").prop("disabled", false);
     return;
@@ -389,18 +495,36 @@ function guardaryeditar(e) {
   .done(function (resp) {
     const msg = String(resp || '').replace(/\uFEFF/g, '').trim();
     if (/duplicado/i.test(msg)) {
-      bootbox.alert("⚠️ El nombre ya existe. No se permiten duplicados.");
+      mostrarNotificacion("⚠️ Nombre duplicado", 'warning');
     } else {
-      try { var j = JSON.parse(msg); bootbox.alert(j.message || msg); }
-      catch { bootbox.alert(msg); }
+      try {
+        var j = JSON.parse(msg);
+        if (j.message && j.message.indexOf('registrado') > -1) {
+          mostrarNotificacion('✅ Artículo registrado', 'success');
+        } else if (j.message && j.message.indexOf('actualizado') > -1) {
+          mostrarNotificacion('✅ Artículo actualizado', 'success');
+        } else {
+          mostrarNotificacion(j.message || msg, j.success === false ? 'error' : 'success');
+        }
+      } catch (_) {
+        if (msg.indexOf('registrado') > -1) {
+          mostrarNotificacion('✅ Artículo registrado', 'success');
+        } else if (msg.indexOf('actualizado') > -1) {
+          mostrarNotificacion('✅ Artículo actualizado', 'success');
+        } else {
+          mostrarNotificacion(msg, 'success');
+        }
+      }
     }
     mostrarform(false);
     limpiar();
     if (tabla) tabla.ajax.reload(null,false);
+    cargarKPIStockBajo();
+    cargarKPISinStock();
   })
   .fail(function(xhr){
-    console.error('guardaryeditar FAIL:', xhr.status, xhr.responseText);
-    bootbox.alert('Error al guardar');
+    console.error('guardar FAIL:', xhr.status, xhr.responseText);
+    mostrarNotificacion('❌ Error al guardar', 'error');
   })
   .always(function(){
     $("#btnGuardar").prop("disabled", false);
@@ -409,47 +533,43 @@ function guardaryeditar(e) {
 
 /* ============================= Mostrar =============================== */
 function mostrar(idarticulo) {
-  $.post("../ajax/articulo.php?op=mostrar",
-    { idarticulo: idarticulo },
-    function (data) {
-      var d = (typeof data === 'string') ? JSON.parse(data) : data;
-      mostrarform(true);
+  $.post("../ajax/articulo.php?op=mostrar", { idarticulo: idarticulo }, function (data) {
+    var d = (typeof data === 'string') ? JSON.parse(data) : data;
+    mostrarform(true);
 
-      $("#idcategoria").val(d.idcategoria);
-      try { $('#idcategoria').selectpicker('refresh'); } catch(_){}
+    $("#idcategoria").val(d.idcategoria);
+    try { $('#idcategoria').selectpicker('refresh'); } catch(_){}
 
-      $("#codigo").val(d.codigo || "");
-      $("#nombre").val(d.nombre || "");
-      $("#stock").val(d.stock || "");
-      $("#precio_compra").val(d.precio_compra || "");
-      $("#precio_venta").val(d.preccio_venta || d.precio_venta || "");
-      $("#descripcion").val(d.descripcion || "");
+    $("#codigo").val(d.codigo || "");
+    $("#nombre").val(d.nombre || "");
+    $("#stock").val(d.stock || "");
+    $("#precio_compra").val(d.precio_compra || "");
+    $("#precio_venta").val(d.preccio_venta || d.precio_venta || "");
+    $("#descripcion").val(d.descripcion || "");
 
-      if (d.imagen) {
-        $("#imagenmuestra").attr("src", "../files/articulos/" + d.imagen).show();
-      } else {
-        $("#imagenmuestra").attr("src", "").hide();
-      }
-      $("#imagenactual").val(d.imagen || "");
-      $("#idarticulo").val(d.idarticulo);
-
-      precioVentaEditadoManualmente = false;
-      actualizarSugerido();
-
-      if (d.codigo && /^\d{8,13}$/.test(String(d.codigo))) {
-        renderBarcode(String(d.codigo));
-      } else {
-        $("#print").hide();
-      }
+    if (d.imagen) {
+      $("#imagenmuestra").attr("src", "../files/articulos/" + d.imagen).show();
+    } else {
+      $("#imagenmuestra").attr("src", "").hide();
     }
-  ).fail(function(xhr){
+    $("#imagenactual").val(d.imagen || "");
+    $("#idarticulo").val(d.idarticulo);
+
+    precioVentaEditadoManualmente = false;
+    actualizarSugerido();
+
+    if (d.codigo && /^\d{8,13}$/.test(String(d.codigo))) {
+      renderBarcode(String(d.codigo));
+    } else {
+      $("#print").hide();
+    }
+  }).fail(function(xhr){
     console.error('mostrar FAIL:', xhr.status, xhr.responseText);
-    bootbox.alert('No se pudo cargar el artículo');
+    mostrarNotificacion('❌ No se pudo cargar', 'error');
   });
 }
 
-/* =================== Código de barras (Generar/Imprimir) =================== */
-
+/* =================== Barcode =================== */
 function renderBarcode(code) {
   const clean = String(code).replace(/\D/g, "");
   const fmt = clean.length === 8 ? "EAN8" : "EAN13";
@@ -467,7 +587,6 @@ function renderBarcode(code) {
 
 function generarbarcode() {
   let code = $("#codigo").val().replace(/\D/g, "");
-
   if (/^\d{12}$/.test(code)) {
     code = code + ean13Checksum(code);
   } else if (!/^\d{8}$/.test(code) && !/^\d{13}$/.test(code)) {
@@ -477,8 +596,6 @@ function generarbarcode() {
   renderBarcode(code);
 }
 
-function imprimir() {
-  $("#print").printArea();
-}
+function imprimir() { $("#print").printArea(); }
 
 init();

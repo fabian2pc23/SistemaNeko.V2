@@ -706,12 +706,180 @@ function guardaryeditar(e)
 {
 	e.preventDefault();
 
-	// 🔥 VALIDACIÓN: Debe tener un rol seleccionado
-	var rolSeleccionado = $("#cargo").val();
-	if (!rolSeleccionado || rolSeleccionado === '' || rolSeleccionado === '0') {
-		bootbox.alert("⚠️ Debes seleccionar un ROL antes de guardar el usuario.");
+	// ========== VALIDACIONES OBLIGATORIAS ==========
+	
+	// 1️⃣ Validar Tipo de Documento
+	var tipoDocumento = $("#tipo_documento").val();
+	if (!tipoDocumento || tipoDocumento === '') {
+		bootbox.alert({
+			message: "⚠️ Debes seleccionar un <strong>TIPO DE DOCUMENTO</strong> antes de guardar el usuario.",
+			className: 'bootbox-warning'
+		});
+		$("#tipo_documento").focus();
 		return;
 	}
+
+	// 2️⃣ Validar Número de Documento
+	var numDocumento = $("#num_documento").val().trim();
+	if (!numDocumento || numDocumento === '') {
+		bootbox.alert({
+			message: "⚠️ Debes ingresar el <strong>NÚMERO DE DOCUMENTO</strong> antes de guardar el usuario.",
+			className: 'bootbox-warning'
+		});
+		$("#num_documento").focus();
+		return;
+	}
+
+	// Validar formato según tipo de documento
+	if (tipoDocumento === 'DNI' && !/^\d{8}$/.test(numDocumento)) {
+		bootbox.alert({
+			message: "⚠️ El <strong>DNI</strong> debe tener exactamente <strong>8 dígitos</strong>.",
+			className: 'bootbox-warning'
+		});
+		$("#num_documento").focus();
+		return;
+	}
+	
+	if (tipoDocumento === 'RUC' && !/^\d{11}$/.test(numDocumento)) {
+		bootbox.alert({
+			message: "⚠️ El <strong>RUC</strong> debe tener exactamente <strong>11 dígitos</strong>.",
+			className: 'bootbox-warning'
+		});
+		$("#num_documento").focus();
+		return;
+	}
+
+	if (tipoDocumento === 'Carnet de Extranjería' && (numDocumento.length < 9 || numDocumento.length > 12)) {
+		bootbox.alert({
+			message: "⚠️ El <strong>Carnet de Extranjería</strong> debe tener entre <strong>9 y 12 caracteres</strong>.",
+			className: 'bootbox-warning'
+		});
+		$("#num_documento").focus();
+		return;
+	}
+
+	// 3️⃣ Validar Nombre (debe estar completado)
+	var nombre = $("#nombre").val().trim();
+	if (!nombre || nombre === '' || nombre === 'Consultando RENIEC...' || nombre === 'Consultando SUNAT...') {
+		bootbox.alert({
+			message: "⚠️ El <strong>NOMBRE</strong> debe estar completo.<br><br>Por favor espera a que se valide el documento o ingrésalo manualmente.",
+			className: 'bootbox-warning'
+		});
+		$("#nombre").focus();
+		return;
+	}
+
+	// 4️⃣ Validar Email (formato y verificación)
+	var email = $("#email").val().trim();
+	if (!email || email === '') {
+		bootbox.alert({
+			message: "⚠️ Debes ingresar un <strong>EMAIL</strong> antes de guardar el usuario.",
+			className: 'bootbox-warning'
+		});
+		$("#email").focus();
+		return;
+	}
+
+	// Validar formato de email
+	if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+		bootbox.alert({
+			message: "⚠️ El formato del <strong>EMAIL</strong> no es válido.<br><br><strong>Ejemplo:</strong> usuario@dominio.com",
+			className: 'bootbox-warning'
+		});
+		$("#email").focus();
+		return;
+	}
+
+	// Verificar que el email fue validado (no mostrar error, ni warning)
+	var emailStatus = $("#email-status").text().trim();
+	if (emailStatus === '❌') {
+		bootbox.alert({
+			message: "⚠️ El <strong>EMAIL</strong> ingresado no es válido o ya está registrado.<br><br>Por favor verifica e intenta nuevamente.",
+			className: 'bootbox-warning'
+		});
+		$("#email").focus();
+		return;
+	}
+
+	// 5️⃣ Validar Rol
+	var rolSeleccionado = $("#cargo").val();
+	if (!rolSeleccionado || rolSeleccionado === '' || rolSeleccionado === '0') {
+		bootbox.alert({
+			message: "⚠️ Debes seleccionar un <strong>ROL</strong> antes de guardar el usuario.",
+			className: 'bootbox-warning'
+		});
+		$("#cargo").focus();
+		return;
+	}
+
+	// 6️⃣ Validar Contraseña (solo si es un nuevo usuario O si se ingresó una contraseña)
+	var clave = $("#clave").val().trim();
+	var esNuevoUsuario = !$("#idusuario").val() || $("#idusuario").val() === '';
+	
+	if (esNuevoUsuario && (!clave || clave === '')) {
+		bootbox.alert({
+			message: "⚠️ Debes ingresar una <strong>CONTRASEÑA</strong> para el nuevo usuario.",
+			className: 'bootbox-warning'
+		});
+		$("#clave").focus();
+		return;
+	}
+
+	// Si se ingresó contraseña (nuevo o edición), validar requisitos
+	if (clave && clave !== '') {
+		// Longitud
+		if (clave.length < 10 || clave.length > 64) {
+			bootbox.alert({
+				message: "⚠️ La <strong>CONTRASEÑA</strong> debe tener entre <strong>10 y 64 caracteres</strong>.",
+				className: 'bootbox-warning'
+			});
+			$("#clave").focus();
+			return;
+		}
+
+		// Mayúscula
+		if (!/[A-Z]/.test(clave)) {
+			bootbox.alert({
+				message: "⚠️ La <strong>CONTRASEÑA</strong> debe contener al menos <strong>1 letra MAYÚSCULA</strong>.",
+				className: 'bootbox-warning'
+			});
+			$("#clave").focus();
+			return;
+		}
+
+		// Minúscula
+		if (!/[a-z]/.test(clave)) {
+			bootbox.alert({
+				message: "⚠️ La <strong>CONTRASEÑA</strong> debe contener al menos <strong>1 letra MINÚSCULA</strong>.",
+				className: 'bootbox-warning'
+			});
+			$("#clave").focus();
+			return;
+		}
+
+		// Número
+		if (!/[0-9]/.test(clave)) {
+			bootbox.alert({
+				message: "⚠️ La <strong>CONTRASEÑA</strong> debe contener al menos <strong>1 NÚMERO</strong>.",
+				className: 'bootbox-warning'
+			});
+			$("#clave").focus();
+			return;
+		}
+
+		// Carácter especial
+		if (!/[!@#$%^&*()_\+\=\-\[\]{};:,.?]/.test(clave)) {
+			bootbox.alert({
+				message: "⚠️ La <strong>CONTRASEÑA</strong> debe contener al menos <strong>1 carácter ESPECIAL</strong> (!@#$%^&*...).",
+				className: 'bootbox-warning'
+			});
+			$("#clave").focus();
+			return;
+		}
+	}
+
+	// ========== SI TODAS LAS VALIDACIONES PASAN, PROCEDER ==========
+	console.log("✅ Todas las validaciones pasaron correctamente");
 
 	$("#btnGuardar").prop("disabled",true);
 	var formData = new FormData($("#formulario")[0]);

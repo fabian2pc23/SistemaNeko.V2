@@ -191,7 +191,7 @@ class PDF_Premium extends PDF_MC_Table
         $cardWidth = 60;
         $cardHeight = 35;
         $spacing = 5;
-        $startX = 10; // Posición X inicial desde el margen izquierdo
+        $startX = 10;
         $y = $this->GetY();
         
         // Tarjeta 1: Total
@@ -232,15 +232,11 @@ class PDF_Premium extends PDF_MC_Table
         $this->SetFont('Arial', 'B', 20);
         $this->SetXY($posX3 + 5, $y + 15);
         $this->Cell($cardWidth - 10, 15, $inactivas, 0, 0, 'C');
-        $this->SetFont('Arial', 'B', 20);
-        $this->SetXY($posX3 + 5, $y + 15);
-        $this->Cell($cardWidth - 10, 15, $inactivas, 0, 0, 'C');
         
-        // Mover el cursor después de las tarjetas
         $this->SetY($y + $cardHeight + 10);
         $this->SetX(10);
         
-        // Gráfico de barras simple
+        // Gráfico de barras
         if($total > 0) {
             $this->SetFont('Arial', 'B', 10);
             $this->SetTextColor(80, 80, 80);
@@ -255,13 +251,12 @@ class PDF_Premium extends PDF_MC_Table
             $porcentajeActivas = ($activas / $total) * 100;
             $porcentajeInactivas = ($inactivas / $total) * 100;
             
-            // Barra de activas
             $widthActivas = ($activas / $total) * $maxWidth;
             if($widthActivas > 0) {
                 $this->SetFillColor($this->colorExito[0], $this->colorExito[1], $this->colorExito[2]);
                 $this->Rect($startBarX, $barY, $widthActivas, $barHeight, 'F');
                 
-                if($widthActivas > 30) { // Solo mostrar texto si hay espacio suficiente
+                if($widthActivas > 30) {
                     $this->SetTextColor(255, 255, 255);
                     $this->SetFont('Arial', 'B', 9);
                     $this->SetXY($startBarX + 2, $barY + 6);
@@ -269,13 +264,12 @@ class PDF_Premium extends PDF_MC_Table
                 }
             }
             
-            // Barra de inactivas
             $widthInactivas = ($inactivas / $total) * $maxWidth;
             if($widthInactivas > 0) {
                 $this->SetFillColor($this->colorAlerta[0], $this->colorAlerta[1], $this->colorAlerta[2]);
                 $this->Rect($startBarX + $widthActivas, $barY, $widthInactivas, $barHeight, 'F');
                 
-                if($widthInactivas > 30) { // Solo mostrar texto si hay espacio suficiente
+                if($widthInactivas > 30) {
                     $this->SetTextColor(255, 255, 255);
                     $this->SetFont('Arial', 'B', 9);
                     $this->SetXY($startBarX + $widthActivas + 2, $barY + 6);
@@ -296,7 +290,6 @@ class PDF_Premium extends PDF_MC_Table
         $this->SetTextColor($this->colorTextoClaro[0], $this->colorTextoClaro[1], $this->colorTextoClaro[2]);
         $this->SetFont('Arial', 'B', 13);
         
-        // Barra lateral decorativa
         $this->SetFillColor($this->colorAcento[0], $this->colorAcento[1], $this->colorAcento[2]);
         $this->Rect($this->GetX(), $this->GetY(), 3, 8, 'F');
         
@@ -309,7 +302,6 @@ class PDF_Premium extends PDF_MC_Table
     
     function TablaEncabezado($headers, $widths)
     {
-        // Encabezado con gradiente
         $this->SetFillColor($this->colorPrimario[0], $this->colorPrimario[1], $this->colorPrimario[2]);
         $this->SetTextColor(255, 255, 255);
         $this->SetDrawColor($this->colorSecundario[0], $this->colorSecundario[1], $this->colorSecundario[2]);
@@ -324,13 +316,6 @@ class PDF_Premium extends PDF_MC_Table
         $this->SetFillColor(248, 248, 248);
         $this->SetTextColor(0, 0, 0);
         $this->SetFont('Arial', '', 9);
-    }
-    
-    function setDatosEstadisticos($total, $activas, $inactivas)
-    {
-        $this->totalCategorias = $total;
-        $this->categoriasActivas = $activas;
-        $this->categoriasInactivas = $inactivas;
     }
 }
 
@@ -396,16 +381,14 @@ foreach($datos as $reg) {
     $nombre = utf8_decode($reg->nombre);
     $descripcion = utf8_decode($reg->descripcion);
     
-    // Estado con indicador visual
     if($reg->condicion) {
         $estado = 'Activo';
-        $pdf->SetTextColor(46, 204, 113); // Verde
+        $pdf->SetTextColor(46, 204, 113);
     } else {
         $estado = 'Inactivo';
-        $pdf->SetTextColor(231, 76, 60); // Rojo
+        $pdf->SetTextColor(231, 76, 60);
     }
     
-    // Crear la fila
     $pdf->Row(array($numero, $nombre, $descripcion, $estado), $fill);
     
     $pdf->SetTextColor(0, 0, 0);
@@ -427,7 +410,6 @@ $pdf->MultiCell(0, 6, utf8_decode(
 
 $pdf->Ln(10);
 
-// Recomendaciones
 $pdf->SetFont('Arial', 'B', 11);
 $pdf->SetTextColor(41, 128, 185);
 $pdf->Cell(0, 6, 'RECOMENDACIONES:', 0, 1, 'L');
@@ -441,8 +423,14 @@ $pdf->MultiCell(0, 5, utf8_decode(
     "- Realizar auditorias trimestrales del catalogo de categorias."
 ), 0, 'L');
 
-//Mostramos el documento
-$pdf->Output('I', 'Reporte_Categorias_' . date('Ymd_His') . '.pdf');
+// Mostramos el documento:
+// - 'I' = inline (ver en navegador)
+// - 'D' = download (descargar)
+// Usamos el parámetro GET "mode" para decidir
+$modo = (isset($_GET['mode']) && $_GET['mode'] === 'download') ? 'D' : 'I';
+
+$pdf->Output($modo, 'Reporte_Categorias_' . date('Ymd_His') . '.pdf');
+
 ?>
 <?php
 }
