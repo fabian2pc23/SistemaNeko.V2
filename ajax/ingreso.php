@@ -1,8 +1,20 @@
 <?php
 ob_start();
+
+// ⭐ ACTIVAR ERRORES COMPLETOS
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+ini_set('log_errors', 1);
+
 if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
+
+// ⭐ LOG: Ver sesión actual
+error_log("=== SESIÓN ACTUAL ===");
+error_log("idusuario: " . ($_SESSION["idusuario"] ?? 'NO DEFINIDO'));
+error_log("nombre: " . ($_SESSION["nombre"] ?? 'NO DEFINIDO'));
+error_log("compras: " . ($_SESSION["compras"] ?? 'NO DEFINIDO'));
 
 if (!isset($_SESSION["nombre"])) {
     header("Location: ../vistas/login.html");
@@ -27,8 +39,7 @@ $num_comprobante = isset($_POST["num_comprobante"]) ? limpiarCadena($_POST["num_
 $fecha_hora = isset($_POST["fecha_hora"]) ? limpiarCadena($_POST["fecha_hora"]) : "";
 $impuesto_porcentaje = isset($_POST["impuesto"]) ? limpiarCadena($_POST["impuesto"]) : "0";
 
-// ⭐ CORRECCIÓN: Para valores numéricos decimales, NO usar limpiarCadena
-// porque elimina el punto decimal. Usar str_replace para cambiar coma por punto
+// ⭐ CORRECCIÓN CRÍTICA: NO usar limpiarCadena en decimales
 $total_neto_guardar = isset($_POST["total_neto"]) ? (float)str_replace(',', '.', $_POST["total_neto"]) : 0.00;
 $impuesto_total = isset($_POST["monto_impuesto"]) ? (float)str_replace(',', '.', $_POST["monto_impuesto"]) : 0.00;
 $total_compra = isset($_POST["total_compra"]) ? (float)str_replace(',', '.', $_POST["total_compra"]) : 0.00;
@@ -38,25 +49,46 @@ $op = isset($_GET["op"]) ? $_GET["op"] : '';
 switch ($op) {
 
     case 'guardaryeditar':
-        // ⭐ DEBUG: Verificar valores recibidos
-        error_log("=== POST RECIBIDO ===");
+        // ⭐ LOG COMPLETO
+        error_log("=== GUARDARYEDITAR - INICIO ===");
+        error_log("POST recibido: " . print_r($_POST, true));
+        error_log("idproveedor: $idproveedor");
+        error_log("idusuario: $idusuario");
         error_log("total_neto RAW: " . ($_POST["total_neto"] ?? 'NO EXISTE'));
-        error_log("total_neto convertido: " . $total_neto_guardar);
+        error_log("total_neto convertido: $total_neto_guardar");
         error_log("monto_impuesto RAW: " . ($_POST["monto_impuesto"] ?? 'NO EXISTE'));
-        error_log("monto_impuesto convertido: " . $impuesto_total);
+        error_log("monto_impuesto convertido: $impuesto_total");
         error_log("total_compra RAW: " . ($_POST["total_compra"] ?? 'NO EXISTE'));
-        error_log("total_compra convertido: " . $total_compra);
-        error_log("=====================");
+        error_log("total_compra convertido: $total_compra");
+
+        // ⭐ VALIDACIONES
+        if (empty($idproveedor)) {
+            error_log("ERROR: idproveedor vacío");
+            echo "Error: Debe seleccionar un proveedor";
+            break;
+        }
+
+        if (empty($idusuario)) {
+            error_log("ERROR: idusuario no está en sesión");
+            echo "Error: Usuario no identificado. Inicie sesión nuevamente";
+            break;
+        }
 
         if (!empty($idingreso)) {
             echo "Este módulo solo inserta (no edita).";
             break;
         }
 
-        // Validar que los valores sean razonables
         if ($total_neto_guardar <= 0 || $total_compra <= 0) {
-            error_log("ERROR: Valores inválidos - Neto: $total_neto_guardar, Total: $total_compra");
-            echo "Error: Los totales no pueden ser cero o negativos.";
+            error_log("ERROR: Totales inválidos - Neto: $total_neto_guardar, Total: $total_compra");
+            echo "Error: Los totales no pueden ser cero o negativos";
+            break;
+        }
+
+        // Verificar que haya artículos
+        if (!isset($_POST["idarticulo"]) || empty($_POST["idarticulo"])) {
+            error_log("ERROR: No hay artículos en el detalle");
+            echo "Error: Debe agregar al menos un artículo";
             break;
         }
 
@@ -68,29 +100,46 @@ switch ($op) {
         }
         if (!$fh) {
             http_response_code(400);
-            echo "Fecha inválida.";
+            error_log("ERROR: Fecha inválida: $raw");
+            echo "Fecha inválida";
             break;
         }
         $now = new DateTime('now', $tz);
         $hora_actual = $now->format('H:i:s');
         $fecha_sql = $fh->format('Y-m-d') . ' ' . $hora_actual;
 
-        $rspta = $ingreso->insertar(
-            $idproveedor,
-            $idusuario,
-            $tipo_comprobante,
-            $serie_comprobante,
-            $num_comprobante,
-            $fecha_sql,
-            $total_neto_guardar,
-            $impuesto_total,
-            $total_compra,
-            isset($_POST["idarticulo"]) ? $_POST["idarticulo"] : [],
-            isset($_POST["cantidad"]) ? $_POST["cantidad"] : [],
-            isset($_POST["precio_compra"]) ? $_POST["precio_compra"] : []
-        );
+        error_log("Fecha SQL: $fecha_sql");
+        error_log("Llamando a insertar()...");
 
-        echo $rspta ? "Ingreso registrado" : "No se pudieron registrar todos los datos del ingreso";
+        try {
+            $rspta = $ingreso->insertar(
+                $idproveedor,
+                $idusuario,
+                $tipo_comprobante,
+                $serie_comprobante,
+                $num_comprobante,
+                $fecha_sql,
+                $total_neto_guardar,
+                $impuesto_total,
+                $total_compra,
+                isset($_POST["idarticulo"]) ? $_POST["idarticulo"] : [],
+                isset($_POST["cantidad"]) ? $_POST["cantidad"] : [],
+                isset($_POST["precio_compra"]) ? $_POST["precio_compra"] : []
+            );
+
+            if ($rspta) {
+                error_log("✅ Inserción exitosa");
+                echo "Ingreso registrado";
+            } else {
+                error_log("❌ insertar() retornó false");
+                echo "No se pudieron registrar todos los datos del ingreso";
+            }
+        } catch (Exception $e) {
+            error_log("❌ EXCEPCIÓN: " . $e->getMessage());
+            echo "Error: " . $e->getMessage();
+        }
+
+        error_log("=== GUARDARYEDITAR - FIN ===");
         break;
 
     case 'anular':
