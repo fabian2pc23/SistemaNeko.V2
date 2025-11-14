@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 13-11-2025 a las 20:28:00
+-- Tiempo de generación: 14-11-2025 a las 20:46:01
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.0.30
 
@@ -45,11 +45,11 @@ CREATE TABLE `articulo` (
 --
 
 INSERT INTO `articulo` (`idarticulo`, `idcategoria`, `codigo`, `nombre`, `stock`, `precio_compra`, `precio_venta`, `descripcion`, `imagen`, `condicion`) VALUES
-(5, 8, '21321355677', 'Tambores de freno', 17, 32.00, 55.00, 'Tambores de Freno Descripción', '1760920283.jpg', 1),
-(6, 8, '09227222', 'Pastillas de frenos', 38, 54.00, 90.00, 'Pastilla de frenos', '1760920293.jpg', 1),
-(10, 8, '21321355672', 'Discos de embrague', 11, 42.00, 99.00, 'pieza fundamental del sistema de transmisión de un vehículo', '1761714848.jpg', 1),
-(11, 8, '274584727348', 'Zapatas de freno', 2, 52.00, 79.77, 'componentes de metal con forma curva que se usan en los frenos de tambor', '', 1),
-(13, 12, '5758575758758', 'Escaleras dos metros', 19, 50.00, 76.70, 'tec', '', 1);
+(5, 8, '21321355677', 'Tambores de freno', 21, 32.00, 55.00, 'Tambores de Freno Descripción', '1760920283.jpg', 1),
+(6, 8, '09227222', 'Pastillas de frenos', 50, 54.00, 90.00, 'Pastilla de frenos', '1760920293.jpg', 1),
+(10, 8, '21321355672', 'Discos de embrague', 19, 42.00, 99.00, 'pieza fundamental del sistema de transmisión de un vehículo', '1761714848.jpg', 1),
+(11, 8, '274584727348', 'Zapatas de freno', 2, 52.00, 79.77, 'componentes de metal con forma curva que se usan en los frenos de tambor', 'art_20251114_002407_1121.jpg', 1),
+(13, 12, '5758575758758', 'Escaleras dos metros', 43, 50.00, 76.70, 'tec', 'art_20251113_214915_8435.png', 1);
 
 -- --------------------------------------------------------
 
@@ -71,9 +71,9 @@ CREATE TABLE `categoria` (
 INSERT INTO `categoria` (`idcategoria`, `nombre`, `descripcion`, `condicion`) VALUES
 (7, 'Cilindraje', 'Aceitado de la Marca Bosh', 1),
 (8, 'Sistema de Embrague', 'Reúne las piezas que permiten transmitir la potencia del motor a la caja de cambios.', 1),
-(11, 'Sistema de Frenos', 'ncluye todos los repuestos y componentes necesarios para garantizar la correcta detención del vehículo.', 1),
-(12, 'Escaleras técnicas', 'amarillas', 1),
-(13, 'ACEITES MOTO', '', 1),
+(11, 'Sistema de Frenos', 'Incluye todos los repuestos y componentes para garantizar la correcta detención del vehículo.', 1),
+(12, 'Escaleras técnicas', 'Escaleras telescopicas', 1),
+(13, 'ACEITES MOTO', 'Para motores de motos', 1),
 (14, 'Neumaticos de automovil', 'neumaticos carro', 1);
 
 -- --------------------------------------------------------
@@ -112,7 +112,21 @@ INSERT INTO `detalle_ingreso` (`iddetalle_ingreso`, `idingreso`, `idarticulo`, `
 (26, 16, 6, 2, 54.00),
 (27, 17, 10, 2, 42.00),
 (28, 17, 6, 2, 54.00),
-(29, 18, 6, 2, 54.00);
+(29, 18, 6, 2, 54.00),
+(30, 19, 13, 3, 50.00),
+(31, 20, 13, 3, 50.00),
+(32, 20, 10, 2, 42.00),
+(33, 21, 10, 1, 42.01),
+(34, 22, 6, 1, 54.01),
+(35, 23, 6, 2, 54.00),
+(36, 24, 5, 2, 32.00),
+(37, 25, 13, 2, 50.00),
+(38, 26, 13, 3, 50.00),
+(39, 27, 6, 1, 54.00),
+(40, 28, 6, 1, 54.00),
+(41, 29, 13, 1, 50.00),
+(42, 30, 6, 1, 54.00),
+(43, 31, 10, 1, 42.00);
 
 --
 -- Disparadores `detalle_ingreso`
@@ -238,7 +252,20 @@ INSERT INTO `ingreso` (`idingreso`, `idproveedor`, `idusuario`, `tipo_comprobant
 (15, 13, 20, 'Factura', '', '5', '2025-11-13 00:00:00', NULL, 18.00, 108.00, 'Aceptado'),
 (16, 21, 20, 'Factura', '', '15', '2025-11-13 00:00:00', NULL, 18.00, 208.00, 'Aceptado'),
 (17, 13, 20, 'Factura', '511', '17', '2025-11-13 00:00:00', NULL, 0.00, 226.56, 'Aceptado'),
-(18, 21, 20, 'Boleta', '60', '62', '2025-11-13 00:00:00', NULL, 18.00, 127.44, 'Aceptado');
+(18, 21, 20, 'Boleta', '60', '62', '2025-11-13 00:00:00', NULL, 18.00, 127.44, 'Aceptado'),
+(19, 20, 20, 'Factura', '58', '01', '2025-11-13 00:00:00', NULL, 18.00, 177.00, 'Aceptado'),
+(20, 21, 20, 'Factura', '14', '78', '2025-11-13 00:00:00', NULL, 18.00, 276.12, 'Aceptado'),
+(21, 21, 20, 'Factura', '5', '65', '2025-11-14 00:47:43', 42.01, 18.00, 49.57, 'Aceptado'),
+(22, 21, 20, 'Boleta', '1', '74', '2025-11-14 11:26:50', 54.01, 0.00, 63.73, 'Aceptado'),
+(23, 21, 20, 'Factura', '12', '15', '2025-11-14 11:42:55', 108.00, 0.00, 127.44, 'Aceptado'),
+(24, 23, 20, 'Factura', '12', '47', '2025-11-14 11:53:26', 64.00, 0.00, 75.52, 'Aceptado'),
+(25, 21, 20, 'Boleta', '24', '41', '2025-11-14 11:58:05', 100.00, 0.00, 118.00, 'Aceptado'),
+(26, 21, 20, 'Boleta', '74', '41', '2025-11-14 12:59:38', 150.00, 0.00, 177.00, 'Aceptado'),
+(27, 21, 20, 'Boleta', '74', '58', '2025-11-14 13:00:39', 54.00, 0.00, 63.72, 'Aceptado'),
+(28, 22, 20, 'Factura', '14', '85', '2025-11-14 13:03:59', 54.00, 0.00, 63.72, 'Aceptado'),
+(29, 21, 20, 'Boleta', '57', '75', '2025-11-14 13:04:57', 50.00, 0.00, 59.00, 'Aceptado'),
+(30, 23, 20, 'Boleta', '', '7', '2025-11-14 13:08:41', 54.00, 0.00, 63.72, 'Aceptado'),
+(31, 13, 20, 'Boleta', '', '14', '2025-11-14 13:11:21', 42.00, 7.56, 49.56, 'Aceptado');
 
 --
 -- Disparadores `ingreso`
@@ -322,7 +349,8 @@ INSERT INTO `persona` (`idpersona`, `tipo_persona`, `nombre`, `tipo_documento`, 
 (18, 'Cliente', 'JHON LENNYN MIJAHUANCA QUINTOS', 'DNI', '74702048', 'LIBERTAD C-10', '', '', 1),
 (20, 'Proveedor', 'TIENDAS DEL MEJORAMIENTO DEL HOGAR S.A.', 'RUC', '20112273922', 'AV. ANGAMOS ESTE NRO. 1805 INT. 2', '932049468', 'sodimacperu@gmail.com', 1),
 (21, 'Proveedor', 'FERRETERIA ESPINOZA E.I.R.L', 'RUC', '20613509870', 'JR. RAMON CASTILLA NRO. 301 URB. LAS PALMERAS', '959284023', 'ferreespinoza@gmail.com', 1),
-(22, 'Proveedor', 'EMPRESA DEMO S.A.C.', 'RUC', '20479801275', 'Av. Siempre Viva 123, SAN BORJA - LIMA - LIMA', '999999999', '', 1);
+(22, 'Proveedor', 'EMPRESA DEMO S.A.C.', 'RUC', '20479801275', 'Av. Siempre Viva 123, SAN BORJA - LIMA - LIMA', '999999999', '', 1),
+(23, 'Proveedor', 'RAFAEL NORIEGA A E I R L', 'RUC', '20191712561', 'AV. LA LIBERTAD NRO. 389 URB. SANTA VICTORIA', '929359014', 'rafanoriega_184@gmail.com', 1);
 
 -- --------------------------------------------------------
 
@@ -446,7 +474,7 @@ INSERT INTO `usuario` (`idusuario`, `id_tipodoc`, `id_rol`, `nombre`, `tipo_docu
 (5, 1, 1, 'CRISTIAN MANFREDY DAVILA VALLE', 'DNI', '74134653', 'Barcelona 210 Urb San Juan', '932 375 500', 'cristiandavilavalle@gmail.com', 'Admin', '$2y$10$xKfdjvsK.3KRR11nFG3At.lv5IXkXMAaA0G9SQU6Lzr5F/Gj4LwoS', '1760918574.jpg', 1),
 (16, 1, 1, 'BRISALINA VASQUEZ DE LA CRUZ', 'DNI', '75474940', '', '940367492', 'cristianmanfredy277@gmail.com', 'Admin', '$2y$10$hNcy5sDWFd8fiprsKSsdHOqNXIjC0rstbBb6nJCh45iMOX/zcfKky', '', 1),
 (19, 1, 1, 'CARLOS JHEREMY SERPA CORTEZ', 'DNI', '74417406', 'Eleodoro Coral 270', '966853147', 'serg.dangr@hotmail.com', 'Admin', '$2y$10$USlXBqaNo8bOODAIE6MvYexSeVTywkuqBJ2MqnmN8.9pBsv9wMnJ6', 'vendedor.png', 1),
-(20, 1, 1, 'FABIAN ALEXIS PAICO CARRILLO', 'DNI', '76960068', '', '', 'fabianpcfb@gmail.com', 'Admin', '$2y$10$s67ZH.X/xBvuQ4127TFMwOoGcLwNcQCbz/9I6eKvvH2sbWabzvshK', 'default.png', 1),
+(20, 1, 1, 'FABIAN ALEXIS PAICO CARRILLO', 'DNI', '76960068', '', '', 'fabianpcfb@gmail.com', 'Admin', '$2y$10$s67ZH.X/xBvuQ4127TFMwOoGcLwNcQCbz/9I6eKvvH2sbWabzvshK', '1763067022.jpg', 1),
 (21, 1, 2, 'ROBERTO MARTIN CELIS OSORES', 'DNI', '40029519', 'chiclayo', '+51979813011', 'c23919@utp.edu.pe', 'Vendedor', '$2y$10$QDh.yEsAlqCfdrhIhdGsnOewVTypBtEnOHLqgyV4aRAaZH4eMTxpm', 'vendedor.png', 1),
 (22, 2, 1, 'CORTEZ FLORES ANDREA DEL CARMEN', 'RUC', '10406980788', 'Lambayeque- lambayeque', '921263349', 'carjher_neko2010@hotmail.com', 'Admin', '$2y$10$53uHDzv/cNYfRE1uQpQmBOFxzP0cQBs0ZtAEcBJSv7bM/b/Fo4o7y', 'vendedor.png', 1),
 (24, NULL, 11, 'ROBERTO ADRIAN CELIS LECCA', 'DNI', '71667268', 'calle abc', '979813012', 'roceos@hotmail.com', 'Tecnico', '$2y$10$thUaWy8JczhZnnh/HdBYeeW7PBHwnRSSePwg0KjvYE74eNpGquNHq', '', 1),
@@ -535,13 +563,6 @@ INSERT INTO `usuario_permiso` (`idusuario_permiso`, `idusuario`, `idpermiso`) VA
 (285, 19, 5),
 (286, 19, 6),
 (287, 19, 7),
-(288, 20, 1),
-(289, 20, 2),
-(290, 20, 3),
-(291, 20, 4),
-(292, 20, 5),
-(293, 20, 6),
-(294, 20, 7),
 (295, 16, 1),
 (296, 16, 2),
 (297, 16, 3),
@@ -576,7 +597,14 @@ INSERT INTO `usuario_permiso` (`idusuario_permiso`, `idusuario`, `idpermiso`) VA
 (354, 27, 4),
 (355, 27, 5),
 (356, 27, 6),
-(357, 27, 7);
+(357, 27, 7),
+(358, 20, 1),
+(359, 20, 2),
+(360, 20, 3),
+(361, 20, 4),
+(362, 20, 5),
+(363, 20, 6),
+(364, 20, 7);
 
 -- --------------------------------------------------------
 
@@ -778,7 +806,7 @@ ALTER TABLE `categoria`
 -- AUTO_INCREMENT de la tabla `detalle_ingreso`
 --
 ALTER TABLE `detalle_ingreso`
-  MODIFY `iddetalle_ingreso` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=30;
+  MODIFY `iddetalle_ingreso` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=44;
 
 --
 -- AUTO_INCREMENT de la tabla `detalle_venta`
@@ -796,7 +824,7 @@ ALTER TABLE `historial_precios`
 -- AUTO_INCREMENT de la tabla `ingreso`
 --
 ALTER TABLE `ingreso`
-  MODIFY `idingreso` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
+  MODIFY `idingreso` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
 
 --
 -- AUTO_INCREMENT de la tabla `password_reset`
@@ -814,7 +842,7 @@ ALTER TABLE `permiso`
 -- AUTO_INCREMENT de la tabla `persona`
 --
 ALTER TABLE `persona`
-  MODIFY `idpersona` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
+  MODIFY `idpersona` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
 
 --
 -- AUTO_INCREMENT de la tabla `rol_permiso`
@@ -832,7 +860,7 @@ ALTER TABLE `rol_usuarios`
 -- AUTO_INCREMENT de la tabla `user_otp`
 --
 ALTER TABLE `user_otp`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=84;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=87;
 
 --
 -- AUTO_INCREMENT de la tabla `usuario`
@@ -844,7 +872,7 @@ ALTER TABLE `usuario`
 -- AUTO_INCREMENT de la tabla `usuario_permiso`
 --
 ALTER TABLE `usuario_permiso`
-  MODIFY `idusuario_permiso` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=358;
+  MODIFY `idusuario_permiso` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=365;
 
 --
 -- AUTO_INCREMENT de la tabla `venta`
