@@ -1,4 +1,5 @@
 var tabla; 
+
 // Permitir solo letras (con acentos) y espacios; compacta espacios
 function soloLetras(el){
   el.value = el.value
@@ -23,13 +24,6 @@ function init(){
   mostrarform(false);
   listar();
 
-
-// Cargar lista de permisos para el formulario de rol
-$.post("../ajax/usuario.php?op=permisos&id=" + idrol + "&t=" + new Date().getTime(), function(r){
-  $("#permisos").html(r);
-});
-
-
   $("#formulario").on("submit", function(e){
     guardaryeditar(e);
   });
@@ -47,6 +41,15 @@ function limpiar(){
   $("#permisos_rol input[type='checkbox']").prop("checked", false);
 }
 
+// ========== CARGAR PERMISOS (nuevo rol o editar) ==========
+function cargarPermisos(idrol = 0){
+  $.post("../ajax/rol.php?op=permisos&id=" + idrol + "&t=" + new Date().getTime(), function(r){
+    $("#permisos_rol").html(r);
+  }).fail(function(){
+    bootbox.alert("❌ Error al cargar los permisos.");
+  });
+}
+
 //Función mostrar formulario
 function mostrarform(flag){
   limpiar();
@@ -55,6 +58,9 @@ function mostrarform(flag){
     $("#formularioregistros").show();
     $("#btnGuardar").prop("disabled", false);
     $("#btnagregar").hide();
+    
+    // ✅ CARGAR PERMISOS AL ABRIR FORMULARIO (nuevo rol → id=0)
+    cargarPermisos(0);
   } else {
     $("#listadoregistros").show();
     $("#formularioregistros").hide();
@@ -94,7 +100,7 @@ function listar(){
     ],
     "bDestroy": true,
     "iDisplayLength": 10,
-    "order": [[3, "asc"]]   // Ordenar por Nombre (la 2da visible)
+    "order": [[1, "asc"]]   // Ordenar por Nombre (la 2da columna visible)
   }).DataTable();
 }
 // =========================================
@@ -105,13 +111,13 @@ function guardaryeditar(e){
 
   const nom = $("#nombre").val().trim();
   if (!esNombreValido(nom)){
-    bootbox.alert("⚠️ Elija un nombre válido. Evite letras repetidas");
+    bootbox.alert("⚠️ Elija un nombre válido. Evite letras repetidas o nombres muy cortos.");
     $("#nombre").focus();
     $("#btnGuardar").prop("disabled", false);
     return;
   }
 
-  // === VALIDACIÓN NUEVA: al menos un permiso marcado ===
+  // === VALIDACIÓN: al menos un permiso marcado ===
   if ($("#permisos_rol input[type='checkbox']:checked").length === 0){
     bootbox.alert("⚠️ Debe seleccionar al menos un permiso para el rol.");
     $("#btnGuardar").prop("disabled", false);
@@ -137,20 +143,17 @@ function guardaryeditar(e){
   limpiar();
 }
 
-//Función para mostrar los datos de un registro
+//Función para mostrar los datos de un registro (EDITAR)
 function mostrar(idrol){
   $.post("../ajax/rol.php?op=mostrar", {idrol: idrol}, function(data, status){
     data = JSON.parse(data);
     mostrarform(true);
-    $("#idrol").val(data.id_rol); // oculto, interno
+    $("#idrol").val(data.id_rol);
     $("#nombre").val(data.nombre);
+    
+    // ✅ CARGAR PERMISOS DEL ROL EXISTENTE
+    cargarPermisos(idrol);
   }); 
-    // Cargar permisos del rol (checkboxes marcados)
-  $.post("../ajax/rol.php?op=permisos&id=" + idrol, function(r){
-    $("#permisos_rol").html(r);
-  });
-
-  mostrarform(true);
 }
 
 //Función para desactivar registros

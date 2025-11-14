@@ -11,6 +11,8 @@ if (!isset($_SESSION["nombre"])) {
   if ($_SESSION['acceso']==1){
 
     require_once "../modelos/Rol.php";
+    require_once "../config/Conexion.php"; // ✅ AGREGADO: necesario para ejecutarConsulta()
+    
     $rol = new Rol();
 
     $idrol  = isset($_POST["idrol"])  ? limpiarCadena($_POST["idrol"])  : "";
@@ -18,82 +20,80 @@ if (!isset($_SESSION["nombre"])) {
 
     switch ($_GET["op"]) {
 
+      case 'guardaryeditar':
+        // Capturar permisos marcados
+        $permisos = isset($_POST["permiso"]) ? $_POST["permiso"] : array();
 
-case 'guardaryeditar':
-  // Capturar permisos marcados
-  $permisos = isset($_POST["permiso"]) ? $_POST["permiso"] : array();
+        if (empty($idrol)) {
 
-  if (empty($idrol)) {
+          // 1) Insertar el rol
+          $rspta = $rol->insertar($nombre); // <-- debe devolver el ID del rol
 
-    // 1) Insertar el rol
-    $rspta = $rol->insertar($nombre); // <-- debe devolver el ID del rol
+          if ($rspta > 0) {
+            // 2) Insertar permisos del nuevo rol
+            $rol->insertarPermisos($rspta, $permisos);
+            echo "✅ Rol registrado con permisos exitosamente";
+          } else {
+            echo "❌ No se pudo registrar el rol (¿nombre duplicado?)";
+          }
 
-    if ($rspta > 0) {
-      // 2) Insertar permisos del nuevo rol
-      $rol->insertarPermisos($rspta, $permisos);
-      echo "Rol registrado con permisos";
-    } else {
-      echo "No se pudo registrar (¿nombre duplicado?)";
-    }
+        } else {
 
-  } else {
+          // 1) Editar rol
+          $rspta = $rol->editar($idrol,$nombre);
 
-    // 1) Editar rol
-    $rspta = $rol->editar($idrol,$nombre);
+          if ($rspta) {
+            // 2) Borrar permisos actuales
+            $rol->borrarPermisos($idrol);
 
-    if ($rspta) {
-      // 2) Borrar permisos actuales
-      $rol->borrarPermisos($idrol);
+            // 3) Insertar permisos nuevos seleccionados
+            $rol->insertarPermisos($idrol, $permisos);
 
-      // 3) Insertar permisos nuevos seleccionados
-      $rol->insertarPermisos($idrol, $permisos);
+            echo "✅ Rol actualizado con permisos exitosamente";
+          } else {
+            echo "❌ No se pudo actualizar el rol (¿nombre duplicado?)";
+          }
+        }
+      break;
 
-      echo "Rol actualizado con permisos";
-    } else {
-      echo "No se pudo actualizar (¿nombre duplicado?)";
-    }
-  }
-break;
+      case 'permisos':
+        $idrol = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
-case 'permisos':
+        require_once "../modelos/Permiso.php";
+        $permiso = new Permiso();
 
-  $idrol = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+        // Todos los permisos disponibles
+        $rspta = $permiso->listar();
 
-  require_once "../modelos/Permiso.php";
-  $permiso = new Permiso();
+        // Permisos ya asociados al rol (si es edición)
+        $marcados = array();
+        if ($idrol > 0) {
+          $rs2 = ejecutarConsulta("SELECT idpermiso FROM rol_permiso WHERE id_rol = '$idrol'");
+          while ($reg = $rs2->fetch_object()) {
+            $marcados[] = (int)$reg->idpermiso;
+          }
+        }
 
-  // Todos los permisos
-  $rspta = $permiso->listar();
-
-  // Permisos ya asociados al rol
-  $marcados = array();
-  if ($idrol > 0) {
-    $rs2 = ejecutarConsulta("SELECT idpermiso FROM rol_permiso WHERE id_rol = '$idrol'");
-    while ($reg = $rs2->fetch_object()) {
-      $marcados[] = (int)$reg->idpermiso;
-    }
-  }
-
-  while ($reg = $rspta->fetch_object()) {
-    $checked = in_array((int)$reg->idpermiso, $marcados) ? 'checked' : '';
-    echo '<li>
-            <label>
-              <input type="checkbox" name="permiso[]" value="'.$reg->idpermiso.'" '.$checked.'>
-              '.$reg->nombre.'
-            </label>
-          </li>';
-  }
-
-break;
+        // Generar checkboxes
+        while ($reg = $rspta->fetch_object()) {
+          $checked = in_array((int)$reg->idpermiso, $marcados) ? 'checked' : '';
+          echo '<li>
+                  <label>
+                    <input type="checkbox" name="permiso[]" value="'.$reg->idpermiso.'" '.$checked.'>
+                    '.$reg->nombre.'
+                  </label>
+                </li>';
+        }
+      break;
 
       case 'desactivar':
         $rspta = $rol->desactivar($idrol);
-        echo $rspta ? "Rol desactivado" : "No se pudo desactivar";
+        echo $rspta ? "✅ Rol desactivado exitosamente" : "❌ No se pudo desactivar el rol";
       break;
 
       case 'activar':
         $rspta = $rol->activar($idrol);
-        echo $rspta ? "Rol activado" : "No se pudo activar";
+        echo $rspta ? "✅ Rol activado exitosamente" : "❌ No se pudo activar el rol";
       break;
 
       case 'mostrar':
@@ -108,29 +108,37 @@ break;
         while ($reg = $rspta->fetch_object()){
 
           $btns = ($reg->estado)
-            ? '<button class="btn btn-warning btn-sm" onclick="mostrar('.$reg->id_rol.')"><i class="fa fa-pencil"></i></button>
-               <button class="btn btn-danger btn-sm" onclick="desactivar('.$reg->id_rol.')"><i class="fa fa-close"></i></button>'
-            : '<button class="btn btn-warning btn-sm" onclick="mostrar('.$reg->id_rol.')"><i class="fa fa-pencil"></i></button>
-               <button class="btn btn-success btn-sm" onclick="activar('.$reg->id_rol.')"><i class="fa fa-check"></i></button>';
+            ? '<button class="btn btn-warning btn-sm" onclick="mostrar('.$reg->id_rol.')" title="Editar">
+                 <i class="fa fa-pencil"></i>
+               </button>
+               <button class="btn btn-danger btn-sm" onclick="desactivar('.$reg->id_rol.')" title="Desactivar">
+                 <i class="fa fa-close"></i>
+               </button>'
+            : '<button class="btn btn-warning btn-sm" onclick="mostrar('.$reg->id_rol.')" title="Editar">
+                 <i class="fa fa-pencil"></i>
+               </button>
+               <button class="btn btn-success btn-sm" onclick="activar('.$reg->id_rol.')" title="Activar">
+                 <i class="fa fa-check"></i>
+               </button>';
 
           $estado = $reg->estado
             ? '<span class="label bg-green">Activo</span>'
             : '<span class="label bg-red">Inactivo</span>';
 
           $data[] = array(
-            "0"=>$btns,
-            "1"=>$reg->id_rol,
-            "2"=>$reg->nombre,
-            "3"=>$estado,
-            "4"=>$reg->creado_en
+            "0" => $btns,
+            "1" => $reg->id_rol,
+            "2" => $reg->nombre,
+            "3" => $estado,
+            "4" => $reg->creado_en
           );
         }
 
         $results = array(
-          "sEcho"=>1,
-          "iTotalRecords"=>count($data),
-          "iTotalDisplayRecords"=>count($data),
-          "aaData"=>$data
+          "sEcho" => 1,
+          "iTotalRecords" => count($data),
+          "iTotalDisplayRecords" => count($data),
+          "aaData" => $data
         );
         echo json_encode($results);
       break;
@@ -141,6 +149,10 @@ break;
         while ($reg = $rspta->fetch_object()){
           echo '<option value="'.$reg->id_rol.'">'.$reg->nombre.'</option>';
         }
+      break;
+
+      default:
+        echo json_encode(array("error" => "Operación no válida"));
       break;
     }
 
