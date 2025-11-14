@@ -63,6 +63,21 @@ class Rol
             WHERE estado='1'
             ORDER BY nombre";
     return ejecutarConsulta($sql);
-  }
+  } 
+
+  public function insertarPermisos($idrol, $permisos)
+{
+    foreach($permisos as $permiso){
+        $sql = "INSERT INTO rol_permiso (id_rol, idpermiso) VALUES ('$idrol', '$permiso')";
+        ejecutarConsulta($sql);
+    }
+} 
+
+public function borrarPermisos($idrol)
+{
+    $sql = "DELETE FROM rol_permiso WHERE id_rol = '$idrol'";
+    return ejecutarConsulta($sql);
+}
+
 }
 ?>
