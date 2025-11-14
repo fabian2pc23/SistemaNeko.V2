@@ -26,9 +26,10 @@ $serie_comprobante = isset($_POST["serie_comprobante"]) ? limpiarCadena($_POST["
 $num_comprobante = isset($_POST["num_comprobante"]) ? limpiarCadena($_POST["num_comprobante"]) : "";
 $fecha_hora = isset($_POST["fecha_hora"]) ? limpiarCadena($_POST["fecha_hora"]) : "";
 $impuesto_porcentaje = isset($_POST["impuesto"]) ? limpiarCadena($_POST["impuesto"]) : "0";
-$total_neto_guardar = isset($_POST["total_neto"]) ? (float)limpiarCadena($_POST["total_neto"]) : 0.00;
-$impuesto_total = isset($_POST["monto_impuesto"]) ? (float)limpiarCadena($_POST["monto_impuesto"]) : 0.00;
-$total_compra = isset($_POST["total_compra"]) ? (float)limpiarCadena($_POST["total_compra"]) : 0.00;
+// ⭐ Para valores numéricos, NO usar limpiarCadena porque elimina el punto decimal
+$total_neto_guardar = isset($_POST["total_neto"]) ? (float)str_replace(',', '.', $_POST["total_neto"]) : 0.00;
+$impuesto_total = isset($_POST["monto_impuesto"]) ? (float)str_replace(',', '.', $_POST["monto_impuesto"]) : 0.00;
+$total_compra = isset($_POST["total_compra"]) ? (float)str_replace(',', '.', $_POST["total_compra"]) : 0.00;
 
 $op = isset($_GET["op"]) ? $_GET["op"] : '';
 
