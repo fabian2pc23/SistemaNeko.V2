@@ -23,6 +23,13 @@ function init(){
   mostrarform(false);
   listar();
 
+
+// Cargar lista de permisos para el formulario de rol
+$.post("../ajax/usuario.php?op=permisos&id=" + idrol + "&t=" + new Date().getTime(), function(r){
+  $("#permisos").html(r);
+});
+
+
   $("#formulario").on("submit", function(e){
     guardaryeditar(e);
   });
@@ -34,7 +41,10 @@ function init(){
 //Función limpiar
 function limpiar(){
   $("#idrol").val("");
-  $("#nombre").val("");
+  $("#nombre").val(""); 
+
+  // Desmarcar todos los permisos
+  $("#permisos_rol input[type='checkbox']").prop("checked", false);
 }
 
 //Función mostrar formulario
@@ -101,6 +111,14 @@ function guardaryeditar(e){
     return;
   }
 
+  // === VALIDACIÓN NUEVA: al menos un permiso marcado ===
+  if ($("#permisos_rol input[type='checkbox']:checked").length === 0){
+    bootbox.alert("⚠️ Debe seleccionar al menos un permiso para el rol.");
+    $("#btnGuardar").prop("disabled", false);
+    return;
+  }
+
+  // Enviar datos
   var formData = new FormData($("#formulario")[0]);
 
   $.ajax({
@@ -126,7 +144,13 @@ function mostrar(idrol){
     mostrarform(true);
     $("#idrol").val(data.id_rol); // oculto, interno
     $("#nombre").val(data.nombre);
+  }); 
+    // Cargar permisos del rol (checkboxes marcados)
+  $.post("../ajax/rol.php?op=permisos&id=" + idrol, function(r){
+    $("#permisos_rol").html(r);
   });
+
+  mostrarform(true);
 }
 
 //Función para desactivar registros

@@ -18,15 +18,73 @@ if (!isset($_SESSION["nombre"])) {
 
     switch ($_GET["op"]) {
 
-      case 'guardaryeditar':
-        if (empty($idrol)) {
-          $rspta = $rol->insertar($nombre);
-          echo $rspta ? "Rol registrado" : "No se pudo registrar (¿nombre duplicado?)";
-        } else {
-          $rspta = $rol->editar($idrol,$nombre);
-          echo $rspta ? "Rol actualizado" : "No se pudo actualizar (¿nombre duplicado?)";
-        }
-      break;
+
+case 'guardaryeditar':
+  // Capturar permisos marcados
+  $permisos = isset($_POST["permiso"]) ? $_POST["permiso"] : array();
+
+  if (empty($idrol)) {
+
+    // 1) Insertar el rol
+    $rspta = $rol->insertar($nombre); // <-- debe devolver el ID del rol
+
+    if ($rspta > 0) {
+      // 2) Insertar permisos del nuevo rol
+      $rol->insertarPermisos($rspta, $permisos);
+      echo "Rol registrado con permisos";
+    } else {
+      echo "No se pudo registrar (¿nombre duplicado?)";
+    }
+
+  } else {
+
+    // 1) Editar rol
+    $rspta = $rol->editar($idrol,$nombre);
+
+    if ($rspta) {
+      // 2) Borrar permisos actuales
+      $rol->borrarPermisos($idrol);
+
+      // 3) Insertar permisos nuevos seleccionados
+      $rol->insertarPermisos($idrol, $permisos);
+
+      echo "Rol actualizado con permisos";
+    } else {
+      echo "No se pudo actualizar (¿nombre duplicado?)";
+    }
+  }
+break;
+
+case 'permisos':
+
+  $idrol = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+
+  require_once "../modelos/Permiso.php";
+  $permiso = new Permiso();
+
+  // Todos los permisos
+  $rspta = $permiso->listar();
+
+  // Permisos ya asociados al rol
+  $marcados = array();
+  if ($idrol > 0) {
+    $rs2 = ejecutarConsulta("SELECT idpermiso FROM rol_permiso WHERE id_rol = '$idrol'");
+    while ($reg = $rs2->fetch_object()) {
+      $marcados[] = (int)$reg->idpermiso;
+    }
+  }
+
+  while ($reg = $rspta->fetch_object()) {
+    $checked = in_array((int)$reg->idpermiso, $marcados) ? 'checked' : '';
+    echo '<li>
+            <label>
+              <input type="checkbox" name="permiso[]" value="'.$reg->idpermiso.'" '.$checked.'>
+              '.$reg->nombre.'
+            </label>
+          </li>';
+  }
+
+break;
 
       case 'desactivar':
         $rspta = $rol->desactivar($idrol);
@@ -92,4 +150,3 @@ if (!isset($_SESSION["nombre"])) {
 }
 ob_end_flush();
 ?>
-

@@ -73,14 +73,27 @@ switch ($_GET["op"]) {
    GUARDAR / EDITAR
    ============================================================ */
 case 'guardaryeditar':
-  if (!isset($_SESSION["nombre"])) { header("Location: ../vistas/login.html"); }
-  else if ($_SESSION['acceso'] != 1) { require 'noacceso.php'; }
+  if (!isset($_SESSION["nombre"])) { 
+    header("Location: ../vistas/login.html"); 
+  }
+  else if ($_SESSION['acceso'] != 1) { 
+    require 'noacceso.php'; 
+  }
   else {
 
     // Validaciones de unicidad y formato
-    if ($usuario->verificarEmailExiste($email, (int)$idusuario)) { echo "Error: Este correo electrónico ya está registrado por otro usuario."; break; }
-    if ($usuario->verificarDocumentoExiste($tipo_documento, $num_documento, (int)$idusuario)) { echo "Error: Este documento ya está registrado por otro usuario."; break; }
-    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) { echo "Error: El formato del correo electrónico no es válido."; break; }
+    if ($usuario->verificarEmailExiste($email, (int)$idusuario)) { 
+      echo "Error: Este correo electrónico ya está registrado por otro usuario."; 
+      break; 
+    }
+    if ($usuario->verificarDocumentoExiste($tipo_documento, $num_documento, (int)$idusuario)) { 
+      echo "Error: Este documento ya está registrado por otro usuario."; 
+      break; 
+    }
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) { 
+      echo "Error: El formato del correo electrónico no es válido."; 
+      break; 
+    }
 
     // ✅ Validación fuerte de existencia de correo (server-side)
     list($okMail, $mailInfo) = validar_email_externo($email);
@@ -90,13 +103,11 @@ case 'guardaryeditar':
       break;
     }
 
-    // Permisos requeridos si NO es modo='rol'
-    if ($modo_permisos !== 'rol') {
-      if (!isset($_POST['permiso']) || !is_array($_POST['permiso']) || count($_POST['permiso']) == 0) {
-        echo "Error: Debes seleccionar al menos un permiso para el usuario.";
-        break;
-      }
-    }
+    // ❌ YA NO SE VALIDAN PERMISOS POR USUARIO
+    // Todos los permisos se asignan por ROL.
+    // Forzamos el modo a 'rol' y dejamos sin permisos individuales.
+    $modo_permisos = 'rol';
+    $permisos      = array(); // ya no usamos permiso[] desde el formulario
 
     // Imagen subida
     if (!file_exists($_FILES['imagen']['tmp_name']) || !is_uploaded_file($_FILES['imagen']['tmp_name'])) {
@@ -113,7 +124,10 @@ case 'guardaryeditar':
     // Password
     $clavehash = null;
     if (empty($idusuario)) {
-      if ($clave === "" || strlen($clave) < 10 || strlen($clave) > 64) { echo "Error: La contraseña debe tener entre 10 y 64 caracteres."; break; }
+      if ($clave === "" || strlen($clave) < 10 || strlen($clave) > 64) { 
+        echo "Error: La contraseña debe tener entre 10 y 64 caracteres."; 
+        break; 
+      }
       $clavehash = hash("SHA256", $clave);
     } else {
       if ($mantener_clave === "1" || $clave === "") {
@@ -123,16 +137,19 @@ case 'guardaryeditar':
         elseif (is_object($fila) && isset($fila->clave)) $hashActual = $fila->clave;
         $clavehash = $hashActual;
       } else {
-        if (strlen($clave) < 10 || strlen($clave) > 64) { echo "Error: La contraseña debe tener entre 10 y 64 caracteres."; break; }
+        if (strlen($clave) < 10 || strlen($clave) > 64) { 
+          echo "Error: La contraseña debe tener entre 10 y 64 caracteres."; 
+          break; 
+        }
         $clavehash = hash("SHA256", $clave);
       }
     }
 
-    $permisos = (isset($_POST['permiso']) && is_array($_POST['permiso'])) ? $_POST['permiso'] : array();
-
     /* Avatar automático por rol si no hay imagen */
     if (empty($idusuario)) {
-      if ($imagen === null || $imagen === '') { $imagen = avatar_por_rol($cargo); }
+      if ($imagen === null || $imagen === '') { 
+        $imagen = avatar_por_rol($cargo); 
+      }
     } else {
       $defaults  = ['administrador.png','almacenero.png','vendedor.png','usuario.png'];
       $imgActual = $_POST["imagenactual"] ?? '';
@@ -148,15 +165,18 @@ case 'guardaryeditar':
         $cargo,$clavehash,$imagen,$permisos,
         $id_rol,$modo_permisos
       );
-      echo $rspta ? "Usuario registrado exitosamente. Puede iniciar sesión con su correo: $email"
-                  : "No se pudieron registrar todos los datos del usuario";
+      echo $rspta 
+        ? "Usuario registrado exitosamente. Puede iniciar sesión con su correo: $email"
+        : "No se pudieron registrar todos los datos del usuario";
     } else {
       $rspta = $usuario->editar(
         $idusuario,$nombre,$tipo_documento,$num_documento,$direccion,$telefono,$email,
         $cargo,$clavehash,$imagen,$permisos,
         $id_rol,$modo_permisos, ($mantener_clave === "1")
       );
-      echo $rspta ? "Usuario actualizado correctamente" : "Usuario no se pudo actualizar";
+      echo $rspta 
+        ? "Usuario actualizado correctamente" 
+        : "Usuario no se pudo actualizar";
     }
   }
 break;

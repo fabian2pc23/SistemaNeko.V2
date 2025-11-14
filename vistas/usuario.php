@@ -50,13 +50,35 @@ if ($canAcceso) {
   .section-title{
     font-weight:600; color:#0b2752; margin:16px 0 10px; display:flex; align-items:center; gap:8px;
   }
-  .section-title .dot{ width:8px; height:8px; border-radius:999px; background:var(--neko-primary); display:inline-block; }
+  .section-title .dot{
+    width:8px; height:8px; border-radius:999px;
+    background:var(--neko-primary); display:inline-block;
+  }
 
   .form-group{ margin-bottom:16px; }
 
   /* Panel permisos */
   .nk-permisos { max-height:220px; overflow:auto; margin-bottom:0; }
   .nk-ul-permisos { list-style:none; padding-left:0; margin:0; }
+
+  /* ===== PERMISOS SOLO VISUALES (POR ROL) ===== */
+  .read-only-permisos input[type="checkbox"] {
+    pointer-events:none !important;
+    cursor:not-allowed !important;
+    opacity:0.6;
+    accent-color:#5353ec; /* azul del sistema */
+  }
+
+  .read-only-permisos label {
+    cursor:not-allowed !important;
+    color:#555;
+  }
+
+  /* Texto azul cuando el permiso está marcado */
+  .read-only-permisos input[type="checkbox"]:checked ~ label {
+    color:#1565c0 !important;   /* azul del sistema */
+    font-weight:600 !important; /* negrita */
+  }
 
   /* Campo imagen */
   .nk-avatar { border:2px solid #e5e7eb; border-radius:10px; object-fit:cover; }
@@ -70,6 +92,7 @@ if ($canAcceso) {
   }
   .input-eye:hover { opacity:1; }
 </style>
+
 
 <!--Contenido-->
 <div class="content-wrapper">
@@ -201,12 +224,16 @@ if ($canAcceso) {
                     <div class="pwd-req" id="r-spe"><i class="fa fa-times text-danger"></i> 1 especial</div>
                   </div>
                 </div>
+
+                <!-- PERMISOS SOLO VISUALES (POR ROL) -->
                 <div class="form-group col-lg-6 col-md-6 col-sm-12 col-xs-12">
-                  <label>Permisos (*):</label>
+                  <label>Permisos del Rol:</label>
                   <div class="well well-sm nk-permisos">
-                    <ul id="permisos" class="nk-ul-permisos"><!-- Se llenan dinámicamente --></ul>
+                    <ul id="permisos" class="nk-ul-permisos read-only-permisos">
+                      <!-- Se llenan dinámicamente -->
+                    </ul>
                   </div>
-                  <small class="text-muted">Selecciona los módulos a los que tendrá acceso</small>
+                  <small class="text-info">Los permisos se asignan según el Rol. Aquí solo se visualizan.</small>
                 </div>
               </div>
 

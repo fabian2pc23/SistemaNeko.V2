@@ -37,15 +37,16 @@ function init(){
 		$('<input>', {type:'hidden', id:'modo_permisos', name:'modo_permisos', value:''}).appendTo('#formulario');
 	}
 
-	//Mostramos los permisos
-	$.post("../ajax/usuario.php?op=permisos&id=",function(r){
-	    $("#permisos").html(r);
-		// Si toca manualmente un permiso => modo personalizado
-		$("#permisos").off('change.modo').on('change.modo', "input[name='permiso[]']", function(){
-			$("#modo_permisos").val('personalizado');
-		});
-	});
-	
+	//Mostramos los permisos (solo lectura)
+	$.post("../ajax/usuario.php?op=permisos&id=0", function(r){
+    $("#permisos").html(r);
+
+    // Dejar todos los permisos como SOLO LECTURA
+		$("#permisos input[type='checkbox']")
+ 			.prop("disabled", true)
+  			.css("cursor", "not-allowed");
+});
+
 	// ✅ Cargar roles dinámicamente (sin selección inicial)
 	cargarRoles();
 
@@ -116,27 +117,34 @@ function cargarRoles(selectedId, selectedLabel) {
    Respuesta esperada: [1,2,3,...] (IDs de permisos)
    ============================================================ */
 function cargarPermisosDeRol(idRol){
-	// Si la lista de permisos aún no está pintada, reintenta
-	if ($("#permisos input[name='permiso[]']").length === 0) {
-		setTimeout(function(){ cargarPermisosDeRol(idRol); }, 150);
-		return;
-	}
-	$.getJSON("../ajax/usuario.php?op=permisos_por_rol&id_rol="+encodeURIComponent(idRol))
-	 .done(function(ids){
-		if (!Array.isArray(ids)) {
-			console.warn("⚠️ permisos_por_rol no devolvió un array. Respuesta:", ids);
-			return;
-		}
-		// Desmarcar todo y marcar solo los del rol
-		$("#permisos input[name='permiso[]']").prop("checked", false);
-		ids.forEach(function(pid){
-			$("#permisos input[name='permiso[]'][value='"+pid+"']").prop("checked", true);
-		});
-		console.log("✓ Permisos del rol aplicados:", ids);
-	 })
-	 .fail(function(xhr, status, error){
-		console.error("❌ No se pudieron cargar permisos del rol:", error);
-	});
+    if ($("#permisos input[name='permiso[]']").length === 0) {
+        setTimeout(function(){ cargarPermisosDeRol(idRol); }, 150);
+        return;
+    }
+
+    $.getJSON("../ajax/usuario.php?op=permisos_por_rol&id_rol=" + encodeURIComponent(idRol))
+      .done(function(ids){
+          if (!Array.isArray(ids)) {
+              console.warn("⚠ permisos_por_rol no devolvió un array. Respuesta:", ids);
+              return;
+          }
+
+          // Desmarcar todo y marcar solo los del rol
+          $("#permisos input[name='permiso[]']").prop("checked", false);
+          ids.forEach(function(pid){
+              $("#permisos input[name='permiso[]'][value='" + pid + "']").prop("checked", true);
+          });
+
+          // Dejarlos en SOLO LECTURA
+          $("#permisos input[type='checkbox']")
+              .prop("disabled", true)
+              .css("cursor", "not-allowed");
+
+          console.log("✔ Permisos del rol aplicados:", ids);
+      })
+      .fail(function(xhr, status, error){
+          console.error("❌ No se pudieron cargar permisos del rol:", error);
+      });
 }
 
 // ========== VALIDACIÓN DE TELÉFONO ==========
@@ -178,7 +186,6 @@ function setupDocumentValidation() {
 	let timer;
 	let inflight;
 	let lastQueried = '';
-	let lastValidationCheck = '';
 
 	console.log('✓ Validación de documentos iniciada');
 
@@ -193,7 +200,6 @@ function setupDocumentValidation() {
 		}
 		
 		debounceConsulta();
-		debounceValidacionDocumento();
 	});
 
 	$(num_documento).on('keypress', function(e) {
@@ -214,7 +220,6 @@ function setupDocumentValidation() {
 		$('#direccion').val('');
 		$(nombre).attr('readonly', 'readonly');
 		lastQueried = '';
-		lastValidationCheck = '';
 		
 		const tipoSeleccionado = $(this).val();
 		
@@ -247,77 +252,6 @@ function setupDocumentValidation() {
 			$(hint_tipo).text("Selecciona el tipo de documento");
 		}
 	});
-
-	// ========== NUEVA FUNCIÓN: VALIDAR SI EL DOCUMENTO YA EXISTE ==========
-	function validarDocumentoExistente() {
-		const tipoDoc = $(tipo_documento).val();
-		const numDoc = $(num_documento).val().trim();
-		const idusuario = $("#idusuario").val() || 0;
-		
-		// Solo validar si hay tipo y número de documento
-		if (!tipoDoc || !numDoc) {
-			return;
-		}
-		
-		// Validar formato primero
-		if (tipoDoc === 'DNI' && numDoc.length !== 8) return;
-		if (tipoDoc === 'RUC' && numDoc.length !== 11) return;
-		if (tipoDoc === 'Carnet de Extranjería' && numDoc.length < 9) return;
-		
-		// No validar si es el mismo documento que se consultó antes
-		const checkKey = tipoDoc + '|' + numDoc;
-		if (checkKey === lastValidationCheck) {
-			return;
-		}
-		
-		console.log('🔍 Verificando si el documento ya existe:', tipoDoc, numDoc);
-		
-		$.ajax({
-			url: '../ajax/validate_documento.php',
-			type: 'GET',
-			data: { 
-				tipo_documento: tipoDoc,
-				num_documento: numDoc,
-				idusuario: idusuario
-			},
-			dataType: 'json',
-			timeout: 8000,
-			success: function(data) {
-				console.log('✓ Respuesta validación documento:', data);
-				
-				if (data.success && data.exists) {
-					// El documento ya está registrado
-					$(hint_numero).html(
-						'<i class="fa fa-times text-danger"></i> ' + 
-						(data.message || 'Este documento ya está registrado')
-					).removeClass().addClass('text-danger');
-					
-					// Marcar el input como inválido
-					num_documento.setCustomValidity(data.message || 'Documento ya registrado');
-					
-					// Opcional: Mostrar alerta
-					bootbox.alert({
-						message: '⚠️ ' + data.message + 
-								 (data.usuario_existente && data.usuario_existente.email 
-								  ? '<br><small>Email: ' + data.usuario_existente.email + '</small>' 
-								  : ''),
-						backdrop: true
-					});
-					
-					lastValidationCheck = checkKey;
-				} else if (data.success && data.valid) {
-					// El documento está disponible
-					console.log('✅ Documento disponible');
-					num_documento.setCustomValidity('');
-					lastValidationCheck = checkKey;
-				}
-			},
-			error: function(xhr, status, error) {
-				console.warn('⚠️ Error validación documento:', error);
-				num_documento.setCustomValidity('');
-			}
-		});
-	}
 
 	function consultarRENIEC() {
 		const tipoDoc = $(tipo_documento).val();
@@ -482,13 +416,6 @@ function setupDocumentValidation() {
 		}, 1000);
 	}
 
-	// ========== NUEVA FUNCIÓN: DEBOUNCE PARA VALIDACIÓN DE DOCUMENTO ==========
-	let validationTimer;
-	function debounceValidacionDocumento() {
-		clearTimeout(validationTimer);
-		validationTimer = setTimeout(validarDocumentoExistente, 1500);
-	}
-
 	$(num_documento).on('blur', function() {
 		const tipoDoc = $(tipo_documento).val();
 		if (tipoDoc === 'DNI') {
@@ -496,8 +423,6 @@ function setupDocumentValidation() {
 		} else if (tipoDoc === 'RUC') {
 			consultarSUNAT();
 		}
-		// También validar si existe al perder foco
-		validarDocumentoExistente();
 	});
 }
 
@@ -783,123 +708,179 @@ function guardaryeditar(e)
 
 	// ========== VALIDACIONES OBLIGATORIAS ==========
 	
-	// 1️⃣ Tipo de Documento
+	// 1️⃣ Validar Tipo de Documento
 	var tipoDocumento = $("#tipo_documento").val();
 	if (!tipoDocumento || tipoDocumento === '') {
-		bootbox.alert("⚠️ Debes seleccionar un TIPO DE DOCUMENTO.");
+		bootbox.alert({
+			message: "⚠️ Debes seleccionar un <strong>TIPO DE DOCUMENTO</strong> antes de guardar el usuario.",
+			className: 'bootbox-warning'
+		});
 		$("#tipo_documento").focus();
 		return;
 	}
 
-	// 2️⃣ Número de Documento
+	// 2️⃣ Validar Número de Documento
 	var numDocumento = $("#num_documento").val().trim();
 	if (!numDocumento || numDocumento === '') {
-		bootbox.alert("⚠️ Debes ingresar el NÚMERO DE DOCUMENTO.");
+		bootbox.alert({
+			message: "⚠️ Debes ingresar el <strong>NÚMERO DE DOCUMENTO</strong> antes de guardar el usuario.",
+			className: 'bootbox-warning'
+		});
 		$("#num_documento").focus();
 		return;
 	}
 
 	// Validar formato según tipo de documento
 	if (tipoDocumento === 'DNI' && !/^\d{8}$/.test(numDocumento)) {
-		bootbox.alert("⚠️ El DNI debe tener exactamente 8 dígitos numéricos.");
+		bootbox.alert({
+			message: "⚠️ El <strong>DNI</strong> debe tener exactamente <strong>8 dígitos</strong>.",
+			className: 'bootbox-warning'
+		});
 		$("#num_documento").focus();
 		return;
 	}
-
+	
 	if (tipoDocumento === 'RUC' && !/^\d{11}$/.test(numDocumento)) {
-		bootbox.alert("⚠️ El RUC debe tener exactamente 11 dígitos numéricos.");
+		bootbox.alert({
+			message: "⚠️ El <strong>RUC</strong> debe tener exactamente <strong>11 dígitos</strong>.",
+			className: 'bootbox-warning'
+		});
 		$("#num_documento").focus();
 		return;
 	}
 
-	// 3️⃣ Nombre (debe haberse obtenido de RENIEC/SUNAT)
+	if (tipoDocumento === 'Carnet de Extranjería' && (numDocumento.length < 9 || numDocumento.length > 12)) {
+		bootbox.alert({
+			message: "⚠️ El <strong>Carnet de Extranjería</strong> debe tener entre <strong>9 y 12 caracteres</strong>.",
+			className: 'bootbox-warning'
+		});
+		$("#num_documento").focus();
+		return;
+	}
+
+	// 3️⃣ Validar Nombre (debe estar completado)
 	var nombre = $("#nombre").val().trim();
-	if (!nombre || nombre === '') {
-		bootbox.alert("⚠️ El NOMBRE es obligatorio. Debe autocompletarse al validar el documento.");
+	if (!nombre || nombre === '' || nombre === 'Consultando RENIEC...' || nombre === 'Consultando SUNAT...') {
+		bootbox.alert({
+			message: "⚠️ El <strong>NOMBRE</strong> debe estar completo.<br><br>Por favor espera a que se valide el documento o ingrésalo manualmente.",
+			className: 'bootbox-warning'
+		});
 		$("#nombre").focus();
 		return;
 	}
 
-	// 4️⃣ Email
+	// 4️⃣ Validar Email (formato y verificación)
 	var email = $("#email").val().trim();
 	if (!email || email === '') {
-		bootbox.alert("⚠️ Debes ingresar un EMAIL válido.");
+		bootbox.alert({
+			message: "⚠️ Debes ingresar un <strong>EMAIL</strong> antes de guardar el usuario.",
+			className: 'bootbox-warning'
+		});
 		$("#email").focus();
 		return;
 	}
 
 	// Validar formato de email
 	if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-		bootbox.alert("⚠️ El formato del EMAIL no es válido.");
+		bootbox.alert({
+			message: "⚠️ El formato del <strong>EMAIL</strong> no es válido.<br><br><strong>Ejemplo:</strong> usuario@dominio.com",
+			className: 'bootbox-warning'
+		});
 		$("#email").focus();
 		return;
 	}
 
-	// 5️⃣ Teléfono (OPCIONAL - no validar)
-	// No se valida porque es opcional según tu requerimiento
+	// Verificar que el email fue validado (no mostrar error, ni warning)
+	var emailStatus = $("#email-status").text().trim();
+	if (emailStatus === '❌') {
+		bootbox.alert({
+			message: "⚠️ El <strong>EMAIL</strong> ingresado no es válido o ya está registrado.<br><br>Por favor verifica e intenta nuevamente.",
+			className: 'bootbox-warning'
+		});
+		$("#email").focus();
+		return;
+	}
 
-	// 6️⃣ Rol
+	// 5️⃣ Validar Rol
 	var rolSeleccionado = $("#cargo").val();
 	if (!rolSeleccionado || rolSeleccionado === '' || rolSeleccionado === '0') {
-		bootbox.alert("⚠️ Debes seleccionar un ROL antes de guardar el usuario.");
+		bootbox.alert({
+			message: "⚠️ Debes seleccionar un <strong>ROL</strong> antes de guardar el usuario.",
+			className: 'bootbox-warning'
+		});
 		$("#cargo").focus();
 		return;
 	}
 
-	// 7️⃣ Contraseña (solo obligatoria al crear nuevo usuario)
-	var idusuario = $("#idusuario").val();
+	// 6️⃣ Validar Contraseña (solo si es un nuevo usuario O si se ingresó una contraseña)
 	var clave = $("#clave").val().trim();
+	var esNuevoUsuario = !$("#idusuario").val() || $("#idusuario").val() === '';
 	
-	if (!idusuario || idusuario === '') { // Es nuevo usuario
-		if (!clave || clave === '') {
-			bootbox.alert("⚠️ Debes ingresar una CONTRASEÑA para el nuevo usuario.");
-			$("#clave").focus();
-			return;
-		}
-
-		// Validar requisitos de contraseña
-		if (clave.length < 10 || clave.length > 64) {
-			bootbox.alert("⚠️ La contraseña debe tener entre 10 y 64 caracteres.");
-			$("#clave").focus();
-			return;
-		}
-
-		if (!/[A-Z]/.test(clave)) {
-			bootbox.alert("⚠️ La contraseña debe contener al menos una letra MAYÚSCULA.");
-			$("#clave").focus();
-			return;
-		}
-
-		if (!/[a-z]/.test(clave)) {
-			bootbox.alert("⚠️ La contraseña debe contener al menos una letra minúscula.");
-			$("#clave").focus();
-			return;
-		}
-
-		if (!/[0-9]/.test(clave)) {
-			bootbox.alert("⚠️ La contraseña debe contener al menos un NÚMERO.");
-			$("#clave").focus();
-			return;
-		}
-
-		if (!/[!@#$%^&*()_\+\=\-\[\]{};:,.?]/.test(clave)) {
-			bootbox.alert("⚠️ La contraseña debe contener al menos un carácter ESPECIAL (!@#$%^&*...).");
-			$("#clave").focus();
-			return;
-		}
-	}
-
-	// 8️⃣ Permisos
-	var modo = ($("#modo_permisos").val() || "").trim();
-	var permisosChecked = $("input[name='permiso[]']:checked").length;
-
-	if (modo !== 'rol' && permisosChecked === 0) {
-		bootbox.alert("⚠️ Debes seleccionar al menos un PERMISO para el usuario.");
+	if (esNuevoUsuario && (!clave || clave === '')) {
+		bootbox.alert({
+			message: "⚠️ Debes ingresar una <strong>CONTRASEÑA</strong> para el nuevo usuario.",
+			className: 'bootbox-warning'
+		});
+		$("#clave").focus();
 		return;
 	}
 
+	// Si se ingresó contraseña (nuevo o edición), validar requisitos
+	if (clave && clave !== '') {
+		// Longitud
+		if (clave.length < 10 || clave.length > 64) {
+			bootbox.alert({
+				message: "⚠️ La <strong>CONTRASEÑA</strong> debe tener entre <strong>10 y 64 caracteres</strong>.",
+				className: 'bootbox-warning'
+			});
+			$("#clave").focus();
+			return;
+		}
+
+		// Mayúscula
+		if (!/[A-Z]/.test(clave)) {
+			bootbox.alert({
+				message: "⚠️ La <strong>CONTRASEÑA</strong> debe contener al menos <strong>1 letra MAYÚSCULA</strong>.",
+				className: 'bootbox-warning'
+			});
+			$("#clave").focus();
+			return;
+		}
+
+		// Minúscula
+		if (!/[a-z]/.test(clave)) {
+			bootbox.alert({
+				message: "⚠️ La <strong>CONTRASEÑA</strong> debe contener al menos <strong>1 letra MINÚSCULA</strong>.",
+				className: 'bootbox-warning'
+			});
+			$("#clave").focus();
+			return;
+		}
+
+		// Número
+		if (!/[0-9]/.test(clave)) {
+			bootbox.alert({
+				message: "⚠️ La <strong>CONTRASEÑA</strong> debe contener al menos <strong>1 NÚMERO</strong>.",
+				className: 'bootbox-warning'
+			});
+			$("#clave").focus();
+			return;
+		}
+
+		// Carácter especial
+		if (!/[!@#$%^&*()_\+\=\-\[\]{};:,.?]/.test(clave)) {
+			bootbox.alert({
+				message: "⚠️ La <strong>CONTRASEÑA</strong> debe contener al menos <strong>1 carácter ESPECIAL</strong> (!@#$%^&*...).",
+				className: 'bootbox-warning'
+			});
+			$("#clave").focus();
+			return;
+		}
+	}
+
 	// ========== SI TODAS LAS VALIDACIONES PASAN, PROCEDER ==========
-	
+	console.log("✅ Todas las validaciones pasaron correctamente");
+
 	$("#btnGuardar").prop("disabled",true);
 	var formData = new FormData($("#formulario")[0]);
 
