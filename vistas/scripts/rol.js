@@ -23,6 +23,13 @@ function init(){
   mostrarform(false);
   listar();
 
+
+// Cargar lista de permisos para el formulario de rol
+$.post("../ajax/usuario.php?op=permisos&id=" + idrol + "&t=" + new Date().getTime(), function(r){
+  $("#permisos").html(r);
+});
+
+
   $("#formulario").on("submit", function(e){
     guardaryeditar(e);
   });
@@ -34,7 +41,10 @@ function init(){
 //Función limpiar
 function limpiar(){
   $("#idrol").val("");
-  $("#nombre").val("");
+  $("#nombre").val(""); 
+
+  // Desmarcar todos los permisos
+  $("#permisos_rol input[type='checkbox']").prop("checked", false);
 }
 
 //Función mostrar formulario
@@ -89,7 +99,7 @@ function listar(){
 }
 // =========================================
 
-function guardaryeditar(e){
+function guardaryeditar(e){ 
   e.preventDefault();
   $("#btnGuardar").prop("disabled", true);
 
@@ -113,6 +123,14 @@ function guardaryeditar(e){
       bootbox.alert(datos);
       mostrarform(false);
       tabla.ajax.reload();
+    },
+    error: function(xhr, status, error){
+      console.error(error);
+      bootbox.alert("Ocurrió un error al guardar el rol.");
+    },
+    complete: function(){
+      // Siempre re-habilitamos el botón (éxito o fallo)
+      $("#btnGuardar").prop("disabled", false);
     }
   });
 
@@ -126,7 +144,13 @@ function mostrar(idrol){
     mostrarform(true);
     $("#idrol").val(data.id_rol); // oculto, interno
     $("#nombre").val(data.nombre);
+  }); 
+    // Cargar permisos del rol (checkboxes marcados)
+  $.post("../ajax/rol.php?op=permisos&id=" + idrol, function(r){
+    $("#permisos_rol").html(r);
   });
+
+  mostrarform(true);
 }
 
 //Función para desactivar registros
