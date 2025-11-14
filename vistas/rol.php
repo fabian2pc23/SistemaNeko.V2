@@ -114,7 +114,21 @@ if ($canAcceso) {
                     required
                   >
                 </div>
-              </div>
+              </div> 
+
+              <div class="row">
+            <div class="form-group col-lg-6 col-md-6 col-sm-12 col-xs-12">
+            <label>Permisos del rol:</label>
+            <div class="well well-sm nk-permisos">
+              <ul id="permisos_rol" class="nk-ul-permisos">
+                <!-- Aquí se cargarán los checkboxes dinámicamente -->
+              </ul>
+            </div>
+            <small class="text-info">
+              Selecciona los módulos a los que tendrá acceso este rol.
+            </small>
+          </div>
+        </div>
 
               <div class="form-group col-lg-12 col-md-12 col-sm-12 col-xs-12" style="margin-top:6px;">
                 <button class="btn btn-primary" type="submit" id="btnGuardar">
