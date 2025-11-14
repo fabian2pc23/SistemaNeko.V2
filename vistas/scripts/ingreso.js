@@ -1,6 +1,4 @@
-/* vistas/scripts/ingreso.js
- * Ingresos sin precio_venta — actualizado 2025
- */
+/* vistas/scripts/ingreso.js - VERSIÓN CORREGIDA */
 
 var tabla;
 var tablaArticulos;
@@ -11,26 +9,21 @@ var detalles = 0;
 // ===============================
 // Init
 // ===============================
-// ===============================
-// Init
-// ===============================
 function init () {
-  mostrarform(false);
-  construirTabla();
+  mostrarform(false);
+  construirTabla();
 
-  $("#formulario").on("submit", function (e) { guardaryeditar(e); });
+  $("#formulario").on("submit", function (e) { guardaryeditar(e); });
 
-  $.post("../ajax/ingreso.php?op=selectProveedor", function (r) {
-    $("#idproveedor").html(r);
-    $('#idproveedor').selectpicker('refresh');
-  });
+  $.post("../ajax/ingreso.php?op=selectProveedor", function (r) {
+    $("#idproveedor").html(r);
+    $('#idproveedor').selectpicker('refresh');
+  });
 
-  $('#mCompras').addClass("treeview active");
-  $('#lIngresos').addClass("active");
+  $('#mCompras').addClass("treeview active");
+  $('#lIngresos').addClass("active");
 
-  // ELIMINAR LA LÍNEA: $("#tipo_comprobante").change(marcarImpuesto);
-
-  autoprepararFecha();
+  autoprepararFecha();
 }
 
 // ===============================
@@ -117,27 +110,25 @@ function construirTabla () {
 // Formularios
 // ===============================
 function limpiar () {
-  $("#idingreso").val("");
-  $("#idproveedor").val("").selectpicker('refresh');
-  $("#tipo_comprobante").val("Boleta").selectpicker('refresh');
-  $("#serie_comprobante").val("");
-  $("#num_comprobante").val("");
-  $("#impuesto").val(tasa_igv); // Establece el 18% por defecto (Válido para Factura y Boleta)
-  $("#total_compra").val("");
-  $(".filas").remove();
-  
-  // --- NUEVO: Limpiar los nuevos totales desglosados (asumiendo cambios en ingreso.php) ---
-  $("#total").html("S/. 0.00");
-  $("#total_neto_h4").html("S/. 0.00");
-  $("#total_impuesto_h4").html("S/. 0.00");
-  $("#total_neto").val("0.00");
-  // ---------------------------------------------------------------------------------------
+  $("#idingreso").val("");
+  $("#idproveedor").val("").selectpicker('refresh');
+  $("#tipo_comprobante").val("Boleta").selectpicker('refresh');
+  $("#serie_comprobante").val("");
+  $("#num_comprobante").val("");
+  $("#impuesto").val(tasa_igv);
+  $("#total_compra").val("");
+  $(".filas").remove();
+  
+  $("#total").html("S/. 0.00");
+  $("#total_neto_h4").html("S/. 0.00");
+  $("#total_impuesto_h4").html("S/. 0.00");
+  $("#total_neto").val("0.00");
+  $("#monto_impuesto").val("0.00");
+  $("#total_compra").val("0.00");
 
-  detalles = 0;
-  autoprepararFecha();
-  // Se ELIMINA la llamada a marcarImpuesto() para que el valor de IGV (tasa_igv) se mantenga, 
-  // ya que la Boleta ahora también debe llevar el desglose del 18%.
-  // La lógica de cálculo total se basará solo en el valor numérico del campo #impuesto.
+  detalles = 0;
+  cont = 0;
+  autoprepararFecha();
 }
 
 function mostrarform (flag) {
@@ -188,8 +179,28 @@ function listarArticulos () {
 // ===============================
 function guardaryeditar (e) {
   e.preventDefault();
+  
+  // ⭐ PASO 1: Recalcular totales antes de enviar
+  calcularTotales();
+  
+  // ⭐ PASO 2: Verificar que hay detalles
+  if (detalles === 0) {
+    bootbox.alert("Debe agregar al menos un artículo");
+    return false;
+  }
+  
+  // ⭐ PASO 3: Capturar datos del formulario
   var formData = new FormData($("#formulario")[0]);
+  
+  // ⭐ PASO 4: DEBUG - Ver qué se va a enviar
+  console.log("=== DATOS A ENVIAR ===");
+  console.log("Subtotal (Neto):", formData.get("total_neto"));
+  console.log("IGV (Monto):", formData.get("monto_impuesto"));
+  console.log("Total:", formData.get("total_compra"));
+  console.log("Impuesto %:", formData.get("impuesto"));
+  console.log("=====================");
 
+  // ⭐ PASO 5: Enviar al servidor
   $.ajax({
     url: "../ajax/ingreso.php?op=guardaryeditar",
     type: "POST",
@@ -197,53 +208,53 @@ function guardaryeditar (e) {
     contentType: false,
     processData: false,
     success: function (datos) {
+      console.log("Respuesta del servidor:", datos);
       bootbox.alert(datos);
-      if (/registrado|actualizado/i.test(datos)) {
+      
+      if (/registrado/i.test(datos)) {
+        // ⭐ SOLO limpiar DESPUÉS de guardar exitosamente
+        limpiar();
         mostrarform(false);
         tabla.ajax.reload(null, false);
       }
+    },
+    error: function(xhr, status, error) {
+      console.error("Error AJAX:", error);
+      console.error("Respuesta completa:", xhr.responseText);
+      bootbox.alert("Error al guardar: " + error);
     }
   });
-
-  limpiar();
+  
+  // ❌ NO llamar limpiar() aquí
 }
 
 // ===============================
 // Mostrar / Anular
 // ===============================
+function mostrar (idingreso) {
+  mostrarform(true);
 
-  function mostrar (idingreso) {
-  mostrarform(true);
+  $.post("../ajax/ingreso.php?op=mostrar", { idingreso: idingreso }, function (data) {
+    data = JSON.parse(data);
 
-  $.post("../ajax/ingreso.php?op=mostrar", { idingreso: idingreso }, function (data) {
-    data = JSON.parse(data);
+    $("#idproveedor").val(data.idproveedor).selectpicker('refresh');
+    $("#tipo_comprobante").val(data.tipo_comprobante).selectpicker('refresh');
+    $("#serie_comprobante").val(data.serie_comprobante);
+    $("#num_comprobante").val(data.num_comprobante);
+    $("#fecha_hora").val(data.fecha);
+    $("#impuesto").val(data.impuesto_porcentaje || 18);
+    $("#idingreso").val(data.idingreso);
 
-    $("#idproveedor").val(data.idproveedor).selectpicker('refresh');
-    $("#tipo_comprobante").val(data.tipo_comprobante).selectpicker('refresh');
-    $("#serie_comprobante").val(data.serie_comprobante);
-    $("#num_comprobante").val(data.num_comprobante);
-    $("#fecha_hora").val(data.fecha_hora);
-    
-    // 1. Cargamos el impuesto en el campo con el ID corregido
-    $("#impuesto").val(data.impuesto); 
-    
-    $("#idingreso").val(data.idingreso);
+    $("#btnGuardar").hide();
+    $("#btnCancelar").show();
+    $("#btnAgregarArt").hide();
+  });
 
-    $("#btnGuardar").hide();
-    $("#btnCancelar").show();
-    $("#btnAgregarArt").hide();
-  });
-
-  // 2. Lógica para el detalle: Se mantiene la carga del detalle
-  $.get("../ajax/ingreso.php?op=listarDetalle&id=" + idingreso, function (r) {
-    // CORRECCIÓN CLAVE: Solo actualizamos el cuerpo (tbody) de la tabla #detalles.
-    // Usamos el selector "#detalles tbody" para no borrar el nuevo tfoot.
-    $("#detalles tbody").html(r);
-    
-    // 3. LLAMADA CLAVE: Calculamos los totales inmediatamente después de cargar las filas.
-    calcularTotales();
-  });
-}  
+  $.get("../ajax/ingreso.php?op=listarDetalle&id=" + idingreso, function (r) {
+    $("#detalles tbody").html(r);
+    calcularTotales();
+  });
+}
 
 function anular (idingreso) {
   bootbox.confirm("¿Está Seguro de anular el ingreso?", function (result) {
@@ -261,8 +272,6 @@ function anular (idingreso) {
 // ===============================
 $("#btnGuardar").hide();
 
-
-
 function agregarDetalle (idarticulo, articulo, pcompra) {
   var cantidad = 1;
   if (idarticulo !== "") {
@@ -272,7 +281,7 @@ function agregarDetalle (idarticulo, articulo, pcompra) {
         fila +=   '<td><button type="button" class="btn btn-danger" onclick="eliminarDetalle(' + cont + ')">X</button></td>';
         fila +=   '<td><input type="hidden" name="idarticulo[]" value="' + idarticulo + '">' + articulo + '</td>';
         fila +=   '<td><input type="number" name="cantidad[]" value="' + cantidad + '" min="1" oninput="modificarSubototales()"></td>';
-        fila +=   '<td><input type="number" name="precio_compra[]" value="' + Number(pcompra).toFixed(2) + '" step="0.01" min="0" oninput="modificarSubototales()"></td>';
+        fila +=   '<td><input type="number" name="precio_compra[]" value="' + Number(pcompra).toFixed(2) + '" step="0.01" min="0" oninput="modificarSubototales()"></td>';
         fila +=   '<td><span name="subtotal" id="subtotal' + cont + '">' + subtotal.toFixed(2) + '</span></td>';
         fila += '</tr>';
 
@@ -298,42 +307,45 @@ function modificarSubototales () {
 }
 
 function calcularTotales () {
-  var sub = document.getElementsByName("subtotal");
-  var totalSinIGV = 0.0;
-  
-  // Obtener el porcentaje de impuesto del campo. 
-  // Si el usuario pone "0" (por ejemplo, para un Ticket o una operación exonerada), el IGV será 0.
-  var impuesto_porcentaje = parseFloat($("#impuesto").val() || 0); 
+  var sub = document.getElementsByName("subtotal");
+  var totalSinIGV = 0.0;
+  
+  // Obtener el porcentaje de impuesto
+  var impuesto_porcentaje = parseFloat($("#impuesto").val() || 0);
 
-  // 1. Sumar todos los Subtotales (Base Imponible/Neto)
-  for (var i = 0; i < sub.length; i++) {
-    totalSinIGV += parseFloat(sub[i].innerHTML || "0");
-  }
+  // 1. Sumar todos los Subtotales
+  for (var i = 0; i < sub.length; i++) {
+    totalSinIGV += parseFloat(sub[i].innerHTML || "0");
+  }
 
-  var igv_total = 0.0;
-  var totalConIGV = totalSinIGV;
-  
-  // --- LÓGICA MODIFICADA: Si hay un porcentaje de impuesto > 0, se aplica a cualquier comprobante. ---
-  if (impuesto_porcentaje > 0) {
-    igv_total = totalSinIGV * (impuesto_porcentaje / 100);
-    totalConIGV = totalSinIGV + igv_total;
-  }
-  
-  // --- 2. Actualizar la interfaz con el desglose (ESTE DESGLOSE APLICA A TODOS) ---
+  var igv_total = 0.0;
+  var totalConIGV = totalSinIGV;
+  
+  // 2. Calcular IGV si el porcentaje es mayor a 0
+  if (impuesto_porcentaje > 0) {
+    igv_total = totalSinIGV * (impuesto_porcentaje / 100);
+    totalConIGV = totalSinIGV + igv_total;
+  }
+  
+  // 3. Actualizar interfaz
+  $("#total_neto_h4").text("S/. " + totalSinIGV.toFixed(2));
+  $("#total_neto").val(totalSinIGV.toFixed(2));
+  
+  $("#total_impuesto_h4").text("S/. " + igv_total.toFixed(2));
+  $("#monto_impuesto").val(igv_total.toFixed(2)); // ⭐ CRÍTICO
+  $("#mostrar_impuesto").text('IGV (' + impuesto_porcentaje.toFixed(0) + '%)');
+  
+  $("#total").text("S/. " + totalConIGV.toFixed(2));
+  $("#total_compra").val(totalConIGV.toFixed(2));
+  
+  // 4. DEBUG
+  console.log("Cálculo de totales:");
+  console.log("- Subtotal:", totalSinIGV.toFixed(2));
+  console.log("- IGV (" + impuesto_porcentaje + "%):", igv_total.toFixed(2));
+  console.log("- Total:", totalConIGV.toFixed(2));
+  console.log("- Campo #monto_impuesto:", $("#monto_impuesto").val());
 
-  // a) Actualizar el Subtotal Neto (Base Imponible)
-  $("#total_neto_h4").text("S/. " + totalSinIGV.toFixed(2));
-  $("#total_neto").val(totalSinIGV.toFixed(2));
-
-  // b) Actualizar el IGV Total y el texto de la etiqueta
-  $("#total_impuesto_h4").text("S/. " + igv_total.toFixed(2));
-  $("#mostrar_impuesto").text('IGV (' + impuesto_porcentaje.toFixed(0) + '%)'); // Muestra el %
-
-  // c) Actualizar el TOTAL FINAL (Total Compra Bruto)
-  $("#total").text("S/. " + totalConIGV.toFixed(2));
-  $("#total_compra").val(totalConIGV.toFixed(2)); // Este es el valor que se guardará en la BD
-
-  evaluar();
+  evaluar();
 }
 
 function evaluar () {
@@ -348,8 +360,10 @@ function eliminarDetalle (indice) {
   evaluar();
 }
 
+// Exportar funciones al scope global
 window.agregarDetalle = agregarDetalle;
 window.mostrar = mostrar;
 window.anular = anular;
 
+// Inicializar
 init();

@@ -266,12 +266,15 @@ if ($canCompras) {
                         <input type="hidden" name="total_neto" id="total_neto">
                       </th>
                     </tr>
-                    <tr>
-                      <th colspan="4" style="text-align:right"><span id="mostrar_impuesto">IGV (18%)</span></th>
-                      <th>
-                        <h4 id="total_impuesto_h4">S/. 0.00</h4>
-                      </th>
-                    </tr>
+<tr>
+    <th colspan="4" style="text-align:right">
+        <span id="mostrar_impuesto">IGV (18%)</span>
+    </th>
+    <th>
+        <h4 id="total_impuesto_h4">S/. 0.00</h4>
+        <input type="hidden" name="monto_impuesto" id="monto_impuesto" value="0.00">
+    </th>
+</tr>
                     <tr>
                       <th colspan="4" style="text-align:right">TOTAL A PAGAR (Bruto)</th>
                       <th>

@@ -6,12 +6,9 @@ class Ingreso
 {
   public function __construct(){}
 
-  // ============================================================
-  // Insertar con transacción
-  // ============================================================
   public function insertar(
       $idproveedor, $idusuario, $tipo_comprobante, $serie_comprobante, $num_comprobante,
-      $fecha_hora, $impuesto_total, $total_compra,
+      $fecha_hora, $subtotal_neto, $impuesto_total, $total_compra,
       $idarticulo, $cantidad, $precio_compra
   ){
     if (empty($idproveedor) || empty($idusuario)) return false;
@@ -21,9 +18,10 @@ class Ingreso
     ejecutarConsulta("START TRANSACTION");
 
     $sql = "INSERT INTO ingreso
-            (idproveedor,idusuario,tipo_comprobante,serie_comprobante,num_comprobante,fecha_hora,impuesto_total,total_compra,estado)
+            (idproveedor,idusuario,tipo_comprobante,serie_comprobante,num_comprobante,fecha_hora,subtotal,impuesto_total,total_compra,estado)
             VALUES
-            ('$idproveedor','$idusuario','$tipo_comprobante','$serie_comprobante','$num_comprobante','$fecha_hora','$impuesto_total','$total_compra','Aceptado')";
+            ('$idproveedor','$idusuario','$tipo_comprobante','$serie_comprobante','$num_comprobante','$fecha_hora','$subtotal_neto','$impuesto_total','$total_compra','Aceptado')";
+    
     $idingresonew = ejecutarConsulta_retornarID($sql);
     if (!$idingresonew) {
       ejecutarConsulta("ROLLBACK");
@@ -34,7 +32,7 @@ class Ingreso
     for ($i=0; $i<count($idarticulo); $i++) {
       $ida = (int)$idarticulo[$i];
       $cant = (float)$cantidad[$i];
-      $pc   = (float)$precio_compra[$i];
+      $pc = (float)$precio_compra[$i];
 
       if ($ida <= 0 || $cant <= 0 || $pc < 0) { $sw = false; break; }
 
@@ -44,7 +42,6 @@ class Ingreso
                       ('$idingresonew', '$ida', '$cant', '$pc', '".($cant*$pc)."')";
       if (!ejecutarConsulta($sql_detalle)) { $sw = false; break; }
 
-      // Actualizar stock
       ejecutarConsulta("UPDATE articulo SET stock = stock + $cant WHERE idarticulo = $ida");
     }
 
@@ -57,17 +54,11 @@ class Ingreso
     }
   }
 
-  // ============================================================
-  // Anular ingreso
-  // ============================================================
   public function anular($idingreso){
     $sql="UPDATE ingreso SET estado='Anulado' WHERE idingreso='$idingreso'";
     return ejecutarConsulta($sql);
   }
 
-  // ============================================================
-  // Mostrar cabecera
-  // ============================================================
   public function mostrar($idingreso){
     $sql="SELECT i.idingreso,
                  DATE(i.fecha_hora) as fecha,
@@ -82,9 +73,6 @@ class Ingreso
     return ejecutarConsultaSimpleFila($sql);
   }
 
-  // ============================================================
-  // Detalle ingreso
-  // ============================================================
   public function listarDetalle($idingreso){
     $sql="SELECT di.idingreso,di.idarticulo,a.nombre,
                  di.cantidad,di.precio_compra,(di.cantidad*di.precio_compra) as subtotal
@@ -94,9 +82,6 @@ class Ingreso
     return ejecutarConsulta($sql);
   }
 
-  // ============================================================
-  // Listado general
-  // ============================================================
   public function listar($desde = '', $hasta = ''){
     $where = "1=1";
     if ($desde !== '') $where .= " AND DATE(i.fecha_hora) >= '$desde'";
@@ -110,15 +95,12 @@ class Ingreso
                    i.total_compra,i.estado
             FROM ingreso i
             INNER JOIN persona p ON i.idproveedor = p.idpersona
-            INNER JOIN usuario u ON i.idusuario  = u.idusuario
+            INNER JOIN usuario u ON i.idusuario = u.idusuario
             WHERE $where
             ORDER BY i.idingreso DESC";
     return ejecutarConsulta($sql);
   }
 
-  // ============================================================
-  // Reportes
-  // ============================================================
   public function ingresocabecera($idingreso){
     $sql="SELECT i.idingreso,i.idproveedor,p.nombre as proveedor,p.direccion,p.tipo_documento,
                  p.num_documento,p.email,p.telefono,i.idusuario,u.nombre as usuario,
@@ -126,7 +108,7 @@ class Ingreso
                  i.impuesto_total,i.total_compra
           FROM ingreso i
           INNER JOIN persona p ON i.idproveedor=p.idpersona
-          INNER JOIN usuario u ON i.idusuario=u.idusuario
+          INNER JOIN usuario u ON i.iduario=u.idusuario
           WHERE i.idingreso='$idingreso'";
     return ejecutarConsulta($sql);
   }
@@ -141,4 +123,3 @@ class Ingreso
   }
 }
 ?>
-
