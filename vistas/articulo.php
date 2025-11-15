@@ -600,12 +600,7 @@ $nekoPrimaryDark = '#0d47a1';
 
               <!-- Fila 2: Stock + Precio compra + Precio venta -->
               <div class="row">
-                <div class="form-group col-lg-4">
-                  <label>Stock(*):</label>
-                  <input type="number" class="form-control" name="stock" id="stock"
-                         min="0" step="1" placeholder="0" required>
-                </div>
-
+                
                 <div class="form-group col-lg-4">
                   <label>Precio compra(*):</label>
                   <input type="text" class="form-control" name="precio_compra" id="precio_compra"

@@ -149,4 +149,5 @@ private function existeNombre($nombre, $idarticulo = null){
   }
 }
 // (sin etiqueta de cierre PHP para evitar BOM)
- 
+
+

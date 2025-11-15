@@ -1,4 +1,4 @@
-// vistas/scripts/articulo.js - FILTRO CORREGIDO
+// vistas/scripts/articulo.js - Stock visible en tabla, no editable en formulario
 var tabla;
 var estadoFiltro = 'all';
 
@@ -100,27 +100,21 @@ function registrarFiltroEstado(){
     
     if (estadoFiltro === 'all') return true;
     
-    // Columna 8 (Estado) - HTML del estado
+    // Columna 8 (Estado) - Stock se mantiene visible en columna 4
     var estadoHTML = (data[8] || '').toString().toLowerCase();
     
-    console.log('🔍 Filtro aplicado:', estadoFiltro, '| Estado en fila:', estadoHTML);
-    
     if (estadoFiltro === 'activos') {
-      // SOLO muestra si contiene "activado" y NO contiene "desactivado"
       var esActivado = estadoHTML.indexOf('activado') !== -1;
       var esDesactivado = estadoHTML.indexOf('desactivado') !== -1;
       return esActivado && !esDesactivado;
     }
     
     if (estadoFiltro === 'desactivos') {
-      // SOLO muestra si contiene "desactivado"
       return estadoHTML.indexOf('desactivado') !== -1;
     }
     
     return true;
   });
-  
-  console.log('✅ Filtro permanente registrado');
 }
 
 /* =========================== Init =========================== */
@@ -158,11 +152,6 @@ function init() {
 
   $("#precio_venta, #precio_compra").on("blur", function(){
     if (esPrecioValido(this.value)) this.value = f2(this.value);
-  });
-
-  $("#stock").on("input", function () {
-    this.value = this.value.replace(/[^\d]/g, "").slice(0, 5);
-    this.setCustomValidity(this.value === "" || parseInt(this.value) < 0 ? "Stock >= 0" : "");
   });
 
   $("#codigo").on("input", function () {
@@ -233,12 +222,8 @@ function cargarKPIStockBajo() {
             .attr('title', tooltipText)
             .css({'cursor': 'help', 'text-decoration': 'underline dotted'});
           if (typeof $.fn.tooltip !== 'undefined') $('#kpi-stock-bajo').tooltip();
-          console.log('✅ KPI stock bajo:', tooltipText);
         }
       }
-    },
-    error: function(xhr, status, error) {
-      console.error('❌ Error KPI stock bajo:', error);
     }
   });
 }
@@ -261,7 +246,6 @@ function cargarKPISinStock() {
             .attr('title', tooltipText)
             .css({'cursor': 'help', 'text-decoration': 'underline dotted'});
           if (typeof $.fn.tooltip !== 'undefined') $('#kpi-sin-stock').tooltip();
-          console.log('✅ KPI sin stock:', tooltipText);
         }
       }
     }
@@ -270,7 +254,7 @@ function cargarKPISinStock() {
 
 /* ============================== Vistas =============================== */
 function limpiar() {
-  $("#codigo, #nombre, #descripcion, #stock, #precio_compra, #precio_venta").val("");
+  $("#codigo, #nombre, #descripcion, #precio_compra, #precio_venta").val("");
   $("#imagenmuestra").attr("src", "").hide();
   $("#imagenactual, #idarticulo").val("");
   $("#print").hide();
@@ -308,21 +292,18 @@ function setupToolbarFilters() {
   }
 
   $('#filter-todos').off('click').on('click', function(){
-    console.log('🔽 Click TODOS');
     estadoFiltro = 'all';
     tabla.draw();
     setEstadoActive('todos');
   });
 
   $('#filter-activos').off('click').on('click', function(){
-    console.log('🔽 Click ACTIVOS - estableciendo filtro');
     estadoFiltro = 'activos';
     tabla.draw();
     setEstadoActive('activos');
   });
 
   $('#filter-desactivos').off('click').on('click', function(){
-    console.log('🔽 Click DESACTIVOS');
     estadoFiltro = 'desactivos';
     tabla.draw();
     setEstadoActive('desactivos');
@@ -389,15 +370,15 @@ function construirTabla() {
       }
     },
     columns: [
-      { data: 0, orderable:false, searchable:false },
-      { data: 1 },
-      { data: 2 },
-      { data: 3 },
-      { data: 4, className:'text-right' },
-      { data: 5, className:'text-right' },
-      { data: 6, className:'text-right' },
-      { data: 7, orderable:false, searchable:false },
-      { data: 8, orderable:false, searchable:true }
+      { data: 0, orderable:false, searchable:false },  // Opciones
+      { data: 1 },                                      // Nombre
+      { data: 2 },                                      // Categoría
+      { data: 3 },                                      // Código
+      { data: 4, className:'text-right' },              // Stock ✅
+      { data: 5, className:'text-right' },              // Precio Compra
+      { data: 6, className:'text-right' },              // Precio Venta
+      { data: 7, orderable:false, searchable:false },   // Imagen
+      { data: 8, orderable:false, searchable:true }     // Estado
     ],
     pageLength: 10,
     order: [[1, "asc"]],
@@ -414,7 +395,6 @@ function construirTabla() {
     },
     initComplete: function(){
       setupToolbarFilters();
-      console.log('📊 DataTable inicializada. Estado filtro:', estadoFiltro);
     }
   });
 }
@@ -472,18 +452,10 @@ function guardaryeditar(e) {
     setValidity(precioVentaEl, true, "");
   }
 
-  const stockEl = document.querySelector("#stock");
-  const stockVal = parseInt(stockEl.value);
-  if (isNaN(stockVal) || stockVal < 0) {
-    stockEl.setCustomValidity("Stock >= 0");
-    stockEl.reportValidity();
-    $("#btnGuardar").prop("disabled", false);
-    return;
-  } else {
-    stockEl.setCustomValidity("");
-  }
-
   var formData = new FormData($("#formulario")[0]);
+  
+  // ⚠️ IMPORTANTE: Añadir stock=0 por defecto
+  formData.append('stock', '0');
 
   $.ajax({
     url: "../ajax/articulo.php?op=guardaryeditar",
@@ -542,7 +514,6 @@ function mostrar(idarticulo) {
 
     $("#codigo").val(d.codigo || "");
     $("#nombre").val(d.nombre || "");
-    $("#stock").val(d.stock || "");
     $("#precio_compra").val(d.precio_compra || "");
     $("#precio_venta").val(d.preccio_venta || d.precio_venta || "");
     $("#descripcion").val(d.descripcion || "");

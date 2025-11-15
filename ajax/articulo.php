@@ -120,7 +120,7 @@ try {
           htmlspecialchars($reg->nombre ?? '', ENT_QUOTES, 'UTF-8'),
           htmlspecialchars($reg->categoria ?? '', ENT_QUOTES, 'UTF-8'),
           htmlspecialchars($reg->codigo ?? '', ENT_QUOTES, 'UTF-8'),
-          (string)(int)($reg->stock ?? 0),
+          (string)(int)($reg->stock ?? 0), 
           number_format((float)($reg->precio_compra ?? 0), 2, '.', ''),
           number_format((float)($reg->precio_venta ?? 0), 2, '.', ''),
           '<img src="'.$img.'" style="'.$thumbStyle.'">',

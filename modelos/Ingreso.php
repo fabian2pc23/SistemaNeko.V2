@@ -36,13 +36,16 @@ class Ingreso
 
       if ($ida <= 0 || $cant <= 0 || $pc < 0) { $sw = false; break; }
 
+      // ✅ SOLO insertamos en detalle_ingreso
+      // El trigger tr_updStockIngreso se encarga automáticamente de actualizar el stock
       $sql_detalle = "INSERT INTO detalle_ingreso
                       (idingreso, idarticulo, cantidad, precio_compra, subtotal)
                       VALUES
                       ('$idingresonew', '$ida', '$cant', '$pc', '".($cant*$pc)."')";
       if (!ejecutarConsulta($sql_detalle)) { $sw = false; break; }
 
-      ejecutarConsulta("UPDATE articulo SET stock = stock + $cant WHERE idarticulo = $ida");
+      // ❌ ELIMINADA: ejecutarConsulta("UPDATE articulo SET stock = stock + $cant WHERE idarticulo = $ida");
+      // ✅ El trigger hace esto automáticamente cuando insertamos en detalle_ingreso
     }
 
     if ($sw) {
@@ -108,7 +111,7 @@ class Ingreso
                  i.impuesto_total,i.total_compra
           FROM ingreso i
           INNER JOIN persona p ON i.idproveedor=p.idpersona
-          INNER JOIN usuario u ON i.iduario=u.idusuario
+          INNER JOIN usuario u ON i.idusuario=u.idusuario
           WHERE i.idingreso='$idingreso'";
     return ejecutarConsulta($sql);
   }
