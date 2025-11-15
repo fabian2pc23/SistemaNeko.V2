@@ -112,31 +112,24 @@ private function existeNombre($nombre, $idarticulo = null){
   }
 
   public function listarActivosVenta()
-  {
-    $sql="SELECT 
-            a.idarticulo,
-            a.idcategoria,
-            c.nombre AS categoria,
-            a.codigo,
-            a.nombre,
-            a.stock,
-            a.precio_compra,
-            COALESCE(
-              a.precio_venta,
-              (SELECT di.precio_venta 
-                 FROM detalle_ingreso di 
-                WHERE di.idarticulo = a.idarticulo
-                ORDER BY di.iddetalle_ingreso DESC
-                LIMIT 1)
-            ) AS precio_venta,
-            a.descripcion,
-            a.imagen,
-            a.condicion
-          FROM articulo a
-          INNER JOIN categoria c ON a.idcategoria=c.idcategoria
-          WHERE a.condicion='1'";
-    return ejecutarConsulta($sql);		
-  }
+{
+  $sql="SELECT 
+          a.idarticulo,
+          a.idcategoria,
+          c.nombre AS categoria,
+          a.codigo,
+          a.nombre,
+          a.stock,
+          a.precio_compra,
+          a.precio_venta,
+          a.descripcion,
+          a.imagen,
+          a.condicion
+        FROM articulo a
+        INNER JOIN categoria c ON a.idcategoria=c.idcategoria
+        WHERE a.condicion='1'";
+  return ejecutarConsulta($sql);		
+}
 
   // ✅ AHORA SÍ dentro de la clase
   public function selectActivosParaHistorial()
