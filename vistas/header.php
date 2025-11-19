@@ -202,6 +202,7 @@ function flag($k){ return !empty($_SESSION[$k]) && (int)$_SESSION[$k] === 1; }
           <ul class="treeview-menu">
             <li id="lArticulos"><a href="articulo.php"><i class="fa fa-circle-o"></i> Artículos</a></li>
             <li id="lCategorias"><a href="categoria.php"><i class="fa fa-circle-o"></i> Categorías</a></li>
+            <li id="lMarcas"><a href="marca.php"><i class="fa fa-circle-o"></i> Marcas</a></li>
             <li id="lHistorial"><a href="historial_precios.php"><i class="fa fa-tags"></i> Historial Precios</a></li>
           </ul>
         </li>

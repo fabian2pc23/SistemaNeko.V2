@@ -963,3 +963,27 @@ COMMIT;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 
+CREATE TABLE `marca` (
+  `idmarca` int(11) NOT NULL AUTO_INCREMENT,
+  `nombre` varchar(100) NOT NULL,
+  `descripcion` varchar(256) DEFAULT NULL,
+  `condicion` tinyint(1) NOT NULL DEFAULT 1,
+  PRIMARY KEY (`idmarca`),
+  UNIQUE KEY `nombre_UNIQUE` (`nombre`)
+) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+
+-- Primero agregar la columna idmarca (puede ser NULL inicialmente)
+ALTER TABLE `articulo` 
+ADD COLUMN `idmarca` int(11) NULL AFTER `idcategoria`;
+
+-- Agregar la clave foránea
+ALTER TABLE `articulo`
+ADD CONSTRAINT `fk_articulo_marca`
+  FOREIGN KEY (`idmarca`)
+  REFERENCES `marca` (`idmarca`)
+  ON DELETE NO ACTION
+  ON UPDATE NO ACTION;
+
+-- Crear índice para mejor performance
+ALTER TABLE `articulo`
+ADD INDEX `fk_articulo_marca_idx` (`idmarca`);
