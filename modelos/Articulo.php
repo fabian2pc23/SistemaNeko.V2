@@ -1,6 +1,6 @@
 <?php 
 // modelos/Articulo.php
-require "../config/Conexion.php";
+require_once "../config/Conexion.php";
 
 class Articulo
 {
@@ -26,23 +26,29 @@ private function existeNombre($nombre, $idarticulo = null){
 
 
 
-  public function insertar($idcategoria,$codigo,$nombre,$stock,$precio_compra,$precio_venta,$descripcion,$imagen)
+  public function insertar($idcategoria,$idmarca,$codigo,$nombre,$stock,$precio_compra,$precio_venta,$descripcion,$imagen)
   {
     if ($this->existeNombre($nombre)) { return "duplicado"; }
 
+    // Si idmarca viene vacío, lo guardamos como NULL
+    $idmarca = empty($idmarca) ? "NULL" : "'$idmarca'";
+
     $sql = "INSERT INTO articulo
-            (idcategoria,codigo,nombre,stock,precio_compra,precio_venta,descripcion,imagen,condicion)
+            (idcategoria,idmarca,codigo,nombre,stock,precio_compra,precio_venta,descripcion,imagen,condicion)
             VALUES
-            ('$idcategoria','$codigo','$nombre','$stock','$precio_compra','$precio_venta','$descripcion','$imagen','1')";
-    return ejecutarConsulta($sql);
+            ('$idcategoria',$idmarca,'$codigo','$nombre','$stock','$precio_compra','$precio_venta','$descripcion','$imagen','1')";
+    return ejecutarConsulta_retornarID($sql);
   }
 
-  public function editar($idarticulo,$idcategoria,$codigo,$nombre,$stock,$precio_compra,$precio_venta,$descripcion,$imagen)
+  public function editar($idarticulo,$idcategoria,$idmarca,$codigo,$nombre,$stock,$precio_compra,$precio_venta,$descripcion,$imagen)
   {
     if ($this->existeNombre($nombre, $idarticulo)) { return "duplicado"; }
 
+    $idmarca = empty($idmarca) ? "NULL" : "'$idmarca'";
+
     $sql = "UPDATE articulo SET
               idcategoria='$idcategoria',
+              idmarca=$idmarca,
               codigo='$codigo',
               nombre='$nombre',
               stock='$stock',
@@ -78,25 +84,8 @@ private function existeNombre($nombre, $idarticulo = null){
             a.idarticulo,
             a.idcategoria,
             c.nombre AS categoria,
-            a.codigo,
-            a.nombre,
-            a.stock,
-            a.precio_compra,
-            a.precio_venta,
-            a.descripcion,
-            a.imagen,
-            a.condicion
-          FROM articulo a
-          INNER JOIN categoria c ON a.idcategoria=c.idcategoria";
-    return ejecutarConsulta($sql);		
-  }
-
-  public function listarActivos()
-  {
-    $sql="SELECT 
-            a.idarticulo,
-            a.idcategoria,
-            c.nombre AS categoria,
+            a.idmarca,
+            m.nombre AS marca,
             a.codigo,
             a.nombre,
             a.stock,
@@ -107,6 +96,29 @@ private function existeNombre($nombre, $idarticulo = null){
             a.condicion
           FROM articulo a
           INNER JOIN categoria c ON a.idcategoria=c.idcategoria
+          LEFT JOIN marca m ON a.idmarca=m.idmarca";
+    return ejecutarConsulta($sql);		
+  }
+
+  public function listarActivos()
+  {
+    $sql="SELECT 
+            a.idarticulo,
+            a.idcategoria,
+            c.nombre AS categoria,
+            a.idmarca,
+            m.nombre AS marca,
+            a.codigo,
+            a.nombre,
+            a.stock,
+            a.precio_compra,
+            a.precio_venta,
+            a.descripcion,
+            a.imagen,
+            a.condicion
+          FROM articulo a
+          INNER JOIN categoria c ON a.idcategoria=c.idcategoria
+          LEFT JOIN marca m ON a.idmarca=m.idmarca
           WHERE a.condicion='1'";
     return ejecutarConsulta($sql);		
   }
@@ -117,6 +129,8 @@ private function existeNombre($nombre, $idarticulo = null){
           a.idarticulo,
           a.idcategoria,
           c.nombre AS categoria,
+          a.idmarca,
+          m.nombre AS marca,
           a.codigo,
           a.nombre,
           a.stock,
@@ -127,6 +141,7 @@ private function existeNombre($nombre, $idarticulo = null){
           a.condicion
         FROM articulo a
         INNER JOIN categoria c ON a.idcategoria=c.idcategoria
+        LEFT JOIN marca m ON a.idmarca=m.idmarca
         WHERE a.condicion='1'";
   return ejecutarConsulta($sql);		
 }

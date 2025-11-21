@@ -16,50 +16,50 @@ function debounce(fn, wait) {
 }
 
 /* ========== Helpers Chip de estado (azul/verde/rojo/ámbar) ========== */
-function chipInfo(msg)  { const el = document.getElementById('docStatus'); if (!el) return; el.className = 'chip info'; el.innerHTML = '<i class="fa fa-info-circle"></i> ' + msg; }
-function chipBusy(msg)  { const el = document.getElementById('docStatus'); if (!el) return; el.className = 'chip info'; el.innerHTML = '<i class="fa fa-hourglass-half"></i> ' + msg; }
-function chipOK(msg)    { const el = document.getElementById('docStatus'); if (!el) return; el.className = 'chip ok';  el.innerHTML = '<i class="fa fa-check"></i> ' + msg; }
-function chipErr(msg)   { const el = document.getElementById('docStatus'); if (!el) return; el.className = 'chip err'; el.innerHTML = '<i class="fa fa-times-circle"></i> ' + msg; }
-function chipWarn(msg)  { const el = document.getElementById('docStatus'); if (!el) return; el.className = 'chip warn'; el.innerHTML = '<i class="fa fa-exclamation-triangle"></i> ' + msg; }
+function chipInfo(msg) { const el = document.getElementById('docStatus'); if (!el) return; el.className = 'chip info'; el.innerHTML = '<i class="fa fa-info-circle"></i> ' + msg; }
+function chipBusy(msg) { const el = document.getElementById('docStatus'); if (!el) return; el.className = 'chip info'; el.innerHTML = '<i class="fa fa-hourglass-half"></i> ' + msg; }
+function chipOK(msg) { const el = document.getElementById('docStatus'); if (!el) return; el.className = 'chip ok'; el.innerHTML = '<i class="fa fa-check"></i> ' + msg; }
+function chipErr(msg) { const el = document.getElementById('docStatus'); if (!el) return; el.className = 'chip err'; el.innerHTML = '<i class="fa fa-times-circle"></i> ' + msg; }
+function chipWarn(msg) { const el = document.getElementById('docStatus'); if (!el) return; el.className = 'chip warn'; el.innerHTML = '<i class="fa fa-exclamation-triangle"></i> ' + msg; }
 
 /* ========== Máscaras + placeholders según tipo documento ========== */
 function setupDocMask() {
-  const tipo   = document.getElementById('tipo_documento').value;
-  const ndoc   = document.getElementById('num_documento');
-  const ayuda  = document.getElementById('ayuda_doc');
+  const tipo = document.getElementById('tipo_documento').value;
+  const ndoc = document.getElementById('num_documento');
+  const ayuda = document.getElementById('ayuda_doc');
   const nombre = document.getElementById('nombre');
-  const dir    = document.getElementById('direccion');
+  const dir = document.getElementById('direccion');
 
   if (tipo === 'DNI') {
     ndoc.maxLength = 8;
     ndoc.setAttribute('pattern', '\\d{8}');
     ndoc.placeholder = 'DNI (8 dígitos)';
     if (ayuda) ayuda.textContent = 'DNI: 8 dígitos';
-    nombre.readOnly = true;  nombre.classList.add('readonly');
-    dir.readOnly = true;     dir.classList.add('readonly');
+    nombre.readOnly = true; nombre.classList.add('readonly');
+    dir.readOnly = true; dir.classList.add('readonly');
   } else if (tipo === 'RUC') {
     ndoc.maxLength = 11;
     ndoc.setAttribute('pattern', '\\d{11}');
     ndoc.placeholder = 'RUC (11 dígitos)';
     if (ayuda) ayuda.textContent = 'RUC: 11 dígitos';
-    nombre.readOnly = true;  nombre.classList.add('readonly');
-    dir.readOnly = true;     dir.classList.add('readonly');
+    nombre.readOnly = true; nombre.classList.add('readonly');
+    dir.readOnly = true; dir.classList.add('readonly');
   } else {
     ndoc.removeAttribute('pattern');
     ndoc.maxLength = 20;
     ndoc.placeholder = 'Documento';
     if (ayuda) ayuda.textContent = 'Documento';
     nombre.readOnly = false; nombre.classList.remove('readonly');
-    dir.readOnly = false;    dir.classList.remove('readonly');
+    dir.readOnly = false; dir.classList.remove('readonly');
   }
 }
 
 /* ========== Consulta RENIEC / SUNAT con feedback visual ========== */
 const consultaDoc = debounce(async function () {
-  const tipo   = document.getElementById('tipo_documento').value;
+  const tipo = document.getElementById('tipo_documento').value;
   const ndocEl = document.getElementById('num_documento');
   const nombre = document.getElementById('nombre');
-  const dir    = document.getElementById('direccion');
+  const dir = document.getElementById('direccion');
 
   ndocEl.value = (ndocEl.value || '').replace(/\D+/g, '');
 
@@ -103,7 +103,7 @@ const consultaDoc = debounce(async function () {
       const razon = (data.razon_social || data.nombre_o_razon_social || '').toString().trim();
       const direccion = (data.direccion || data.domicilio_fiscal || '').toString().trim();
 
-      if (razon)  nombre.value = razon; else nombre.value = '(sin razón social)';
+      if (razon) nombre.value = razon; else nombre.value = '(sin razón social)';
       if (direccion) dir.value = direccion; else dir.value = '';
 
       chipOK('SUNAT verificado');
@@ -151,18 +151,18 @@ function init() {
   setupTelefonoRules();
 
   const tipoEl = document.getElementById('tipo_documento');
-  const numEl  = document.getElementById('num_documento');
+  const numEl = document.getElementById('num_documento');
 
   if (tipoEl) {
     tipoEl.addEventListener('change', function () {
       setupDocMask();
       chipInfo('Esperando número…');
       consultaDoc();
-      try { $('#tipo_documento').selectpicker('refresh'); } catch (_) {}
+      try { $('#tipo_documento').selectpicker('refresh'); } catch (_) { }
     });
   }
   if (numEl) {
-    ['input','keyup','change','blur'].forEach(ev => numEl.addEventListener(ev, consultaDoc));
+    ['input', 'keyup', 'change', 'blur'].forEach(ev => numEl.addEventListener(ev, consultaDoc));
   }
 }
 
@@ -215,7 +215,7 @@ function listar() {
       }
     },
     "bDestroy": true,
-    "iDisplayLength": 5,
+    "iDisplayLength": 10, // Default 10
     "order": [[0, "desc"]]
   }).DataTable();
 }
@@ -247,8 +247,6 @@ function guardaryeditar() {
   });
 }
 
-
-
 /* --- Mostrar para editar --- */
 function mostrar(idpersona) {
   $.post("../ajax/persona.php?op=mostrar", { idpersona: idpersona }, function (data, status) {
@@ -257,7 +255,7 @@ function mostrar(idpersona) {
 
     $("#nombre").val(data.nombre);
     $("#tipo_documento").val(data.tipo_documento);
-    try { $("#tipo_documento").selectpicker('refresh'); } catch (_) {}
+    try { $("#tipo_documento").selectpicker('refresh'); } catch (_) { }
     $("#num_documento").val(data.num_documento);
     $("#direccion").val(data.direccion);
     $("#telefono").val(data.telefono);
@@ -304,5 +302,51 @@ function activar(idpersona) {
   });
 }
 
+/* ========== Filtros modernos ========== */
+function filtrarEstado(estado) {
+  // Actualizar botones activos
+  document.querySelectorAll('.status-btn').forEach(btn => btn.classList.remove('active'));
+  document.getElementById('filter-' + estado).classList.add('active');
+
+  // Aplicar filtro en DataTable
+  // Usamos Regex para coincidencia exacta (^...$) para evitar que "Activado" coincida con "Desactivado"
+  if (estado === 'todos') {
+    tabla.column(6).search('').draw();
+  } else if (estado === 'activos') {
+    tabla.column(6).search('^Activado$', true, false).draw();
+  } else if (estado === 'inactivos') {
+    tabla.column(6).search('^Desactivado$', true, false).draw();
+  }
+}
+
+/* ========== Cambiar longitud de página ========== */
+function cambiarLongitud(len) {
+  tabla.page.len(len).draw();
+}
+
+/* ========== Exportar Tabla ========== */
+function exportarTabla(type) {
+  // Trigger hidden DT buttons
+  if (type === 'copy') $('.buttons-copy').click();
+  if (type === 'excel') $('.buttons-excel').click();
+  if (type === 'csv') $('.buttons-csv').click();
+  if (type === 'pdf') $('.buttons-pdf').click();
+}
+
+/* ========== Búsqueda global ========== */
+function setupSearchInput() {
+  const searchInput = document.getElementById('search-input');
+  if (!searchInput) return;
+
+  searchInput.addEventListener('keyup', function () {
+    tabla.search(this.value).draw();
+  });
+}
+
 /* ========== Arranque ========== */
 init();
+
+// Inicializar búsqueda después de que la tabla esté lista
+$(document).ready(function () {
+  setTimeout(setupSearchInput, 500);
+});

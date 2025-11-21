@@ -1,6 +1,6 @@
 <?php 
 //Incluímos inicialmente la conexión a la base de datos
-require "../config/Conexion.php";
+require_once "../config/Conexion.php";
 
 Class Categoria
 {
@@ -110,4 +110,3 @@ Class Categoria
 	}
 }
 
-?>

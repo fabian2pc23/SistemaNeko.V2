@@ -25,10 +25,13 @@ if (!isset($_SESSION["idusuario"])) {
 $hasAlmacen = !empty($_SESSION['almacen']) && (int)$_SESSION['almacen'] === 1;
 
 require_once "../modelos/Articulo.php";
+require_once "../modelos/HistorialPrecio.php";
+
 $articulo = new Articulo();
 
 $idarticulo     = isset($_POST["idarticulo"])     ? limpiarCadena($_POST["idarticulo"])     : "";
 $idcategoria    = isset($_POST["idcategoria"])    ? limpiarCadena($_POST["idcategoria"])    : "";
+$idmarca        = isset($_POST["idmarca"])        ? limpiarCadena($_POST["idmarca"])        : "";
 $codigo         = isset($_POST["codigo"])         ? limpiarCadena($_POST["codigo"])         : "";
 $nombre         = isset($_POST["nombre"])         ? limpiarCadena($_POST["nombre"])         : "";
 $stock          = isset($_POST["stock"])          ? limpiarCadena($_POST["stock"])          : "0";
@@ -40,7 +43,6 @@ $imagen         = isset($_POST["imagen"])         ? limpiarCadena($_POST["imagen
 $op = $_GET["op"] ?? '';
 
 try {
-
   switch ($op) {
 
     case 'guardaryeditar':
@@ -61,11 +63,32 @@ try {
       }
 
       if (empty($idarticulo)) {
-        $rspta = $articulo->insertar($idcategoria, $codigo, $nombre, $stock, $precio_compra, $precio_venta, $descripcion, $imagen);
+        $rspta = $articulo->insertar($idcategoria, $idmarca, $codigo, $nombre, $stock, $precio_compra, $precio_venta, $descripcion, $imagen);
         if ($rspta === "duplicado") json_msg(false, "duplicado", 409);
-        json_msg((bool)$rspta, $rspta ? "Artículo registrado" : "Artículo no se pudo registrar");
+        
+        if ($rspta) {
+            echo json_encode(["success" => true, "message" => "Artículo registrado", "idarticulo" => $rspta]);
+            exit;
+        } else {
+            json_msg(false, "Artículo no se pudo registrar");
+        }
       } else {
-        $rspta = $articulo->editar($idarticulo, $idcategoria, $codigo, $nombre, $stock, $precio_compra, $precio_venta, $descripcion, $imagen);
+        // Obtener precio anterior para historial
+        $oldData = $articulo->mostrar($idarticulo);
+        $oldPrice = $oldData ? (float)$oldData['precio_venta'] : 0.0;
+
+        $rspta = $articulo->editar($idarticulo, $idcategoria, $idmarca, $codigo, $nombre, $stock, $precio_compra, $precio_venta, $descripcion, $imagen);
+        
+        if ($rspta) {
+            $newPrice = (float)$precio_venta;
+            // Registrar en historial si hubo cambio de precio
+            if (abs($oldPrice - $newPrice) > 0.001) {
+                 $hist = new HistorialPrecios();
+                 $iduser = $_SESSION['idusuario'] ?? null;
+                 $hist->insertar($idarticulo, $oldPrice, $newPrice, 'Actualización en módulo Artículos', 'manual', null, $iduser);
+            }
+        }
+
         if ($rspta === "duplicado") json_msg(false, "duplicado", 409);
         json_msg((bool)$rspta, $rspta ? "Artículo actualizado" : "Artículo no se pudo actualizar");
       }
@@ -115,19 +138,28 @@ try {
                 '</button>'
           );
 
+        // Formato solicitado: Nombre Capitalizado, Stock Rojo si <= 0
+        $nombreFmt = ucfirst(strtolower($reg->nombre ?? ''));
+        $stockVal  = (int)($reg->stock ?? 0);
+        $stockFmt  = $stockVal <= 0 
+          ? '<span style="color:red;font-weight:bold;">'.$stockVal.'</span>' 
+          : (string)$stockVal;
+
         $rows[] = [
           $btns,
-          htmlspecialchars($reg->nombre ?? '', ENT_QUOTES, 'UTF-8'),
+          htmlspecialchars($nombreFmt, ENT_QUOTES, 'UTF-8'),
           htmlspecialchars($reg->categoria ?? '', ENT_QUOTES, 'UTF-8'),
+          htmlspecialchars($reg->marca ?? '', ENT_QUOTES, 'UTF-8'),
           htmlspecialchars($reg->codigo ?? '', ENT_QUOTES, 'UTF-8'),
-          (string)(int)($reg->stock ?? 0), 
+          $stockFmt, 
           number_format((float)($reg->precio_compra ?? 0), 2, '.', ''),
           number_format((float)($reg->precio_venta ?? 0), 2, '.', ''),
           '<img src="'.$img.'" style="'.$thumbStyle.'">',
           ($reg->condicion
             ? '<span class="label label-status bg-green">Activado</span>'
             : '<span class="label label-status bg-red">Desactivado</span>'
-          )
+          ),
+          $reg->idarticulo // Columna 10: ID oculto para ordenamiento
         ];
       }
 
@@ -141,6 +173,15 @@ try {
         "data"            => $rows
       ]);
     break;
+
+    case 'selectMarca':
+        require_once "../modelos/Marca.php";
+        $marca = new Marca();
+        $rspta = $marca->select();
+        while ($reg = $rspta->fetch_object()) {
+            echo '<option value="' . htmlspecialchars($reg->nombre, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($reg->nombre, ENT_QUOTES, 'UTF-8') . '</option>';
+        }
+        break;
 
     case "selectCategoria":
       require_once "../modelos/Categoria.php";
@@ -214,31 +255,6 @@ try {
       ));
       exit;
 
-    case 'articulos_stock_bajo':
-      header('Content-Type: application/json; charset=utf-8');
-      
-      $sql = "SELECT nombre, stock 
-              FROM articulo 
-              WHERE condicion = 1 AND stock > 0 AND stock < 5 
-              ORDER BY stock ASC, nombre ASC";
-      
-      $rspta = ejecutarConsulta($sql);
-      $articulos = array();
-      $total = 0;
-      
-      if ($rspta) {
-        while ($reg = $rspta->fetch_object()) {
-          $articulos[] = $reg->nombre . ' ('. $reg->stock .')';
-          $total++;
-        }
-      }
-      
-      echo json_encode(array(
-        'success' => true,
-        'total' => $total,
-        'articulos' => $articulos
-      ));
-      exit;
     default:
       json_msg(false, "Operación no válida", 400);
   }

@@ -2,40 +2,48 @@ var tabla;
 var filtroActual = 'all'; // Variable global para mantener el filtro activo
 
 //Función que se ejecuta al inicio
-function init(){
+function init() {
 	mostrarform(false);
 	listar();
 
-	$("#formulario").on("submit",function(e)
-	{
-		guardaryeditar(e);	
+	$("#formulario").on("submit", function (e) {
+		guardaryeditar(e);
 	});
 
 	$('#mAlmacen').addClass("treeview active");
-    $('#lMarcas').addClass("active");
+	$('#lMarcas').addClass("active");
+
+	// Eventos KPI interactivos
+	$('#card-sin-articulos').on('click', function () {
+		mostrarDetalleKPI('sin_articulos', 'Marcas sin artículos');
+	});
+
+	$('#card-stock-critico').on('click', function () {
+		mostrarDetalleKPI('stock_critico', 'Marcas con stock crítico');
+	});
+
+	$('#card-nuevas').on('click', function () {
+		mostrarDetalleKPI('nuevas', 'Marcas nuevas (últimos registros)');
+	});
 }
 
 //Función limpiar
-function limpiar()
-{
+function limpiar() {
 	$("#idmarca").val("");
 	$("#nombre").val("");
 	$("#descripcion").val("");
 }
 
 //Función mostrar formulario
-function mostrarform(flag)
-{
+function mostrarform(flag) {
 	limpiar();
-	if (flag)
-	{
+	if (flag) {
 		$("#listadoregistros").hide();
 		$("#formularioregistros").show();
-		$("#btnGuardar").prop("disabled",false);
+		$("#btnGuardar").prop("disabled", false);
 		$("#btnagregar").hide();
 	}
-	else
-	{
+	else {
 		$("#listadoregistros").show();
 		$("#formularioregistros").hide();
 		$("#btnagregar").show();
@@ -43,48 +51,46 @@ function mostrarform(flag)
 }
 
 //Función cancelarform
-function cancelarform()
-{
+function cancelarform() {
 	limpiar();
 	mostrarform(false);
 }
 
 //Función Listar optimizada
-function listar()
-{
+function listar() {
 	// Registrar el filtro permanente de DataTables
 	$.fn.dataTable.ext.search.push(
-		function(settings, data, dataIndex) {
+		function (settings, data, dataIndex) {
 			// Si no hay filtro o es "all", mostrar todo
 			if (filtroActual === 'all') {
 				return true;
 			}
-			
+
 			var estadoHTML = data[3] || ''; // Columna 3 es Estado
-			
+
 			if (filtroActual === 'activos') {
 				// Verificar que contiene "Activado" pero NO "Desactivado"
-				return estadoHTML.indexOf('Activado') !== -1 && 
-				       estadoHTML.indexOf('Desactivado') === -1;
+				return estadoHTML.indexOf('Activado') !== -1 &&
+					estadoHTML.indexOf('Desactivado') === -1;
 			} else if (filtroActual === 'inactivos') {
 				// Verificar que contiene "Desactivado"
 				return estadoHTML.indexOf('Desactivado') !== -1;
 			}
-			
+
 			return true;
 		}
 	);
 
 	tabla = $('#tbllistado').DataTable({
-		"lengthMenu": [ 5, 10, 25, 75, 100],
+		"lengthMenu": [5, 10, 25, 75, 100],
 		"processing": false,
-	    "serverSide": false,
-	    "dom": 'rtip', // r=processing, t=table, i=info, p=pagination (sin l=length ni f=filter)
-	    "ajax": {
+		"serverSide": false,
+		"dom": 'rtip', // r=processing, t=table, i=info, p=pagination (sin l=length ni f=filter)
+		"ajax": {
 			"url": '../ajax/marca.php?op=listar',
 			"type": "GET",
 			"dataType": "json",
-			"dataSrc": function(json) {
+			"dataSrc": function (json) {
 				if (json && json.aaData) {
 					return json.aaData;
 				}
@@ -93,49 +99,60 @@ function listar()
 		},
 		"columns": [
 			{ "data": "0" },
-			{ "data": "1" },
+			{
+				"data": "1",
+				"render": function (data, type, row) {
+					// Title Case: Primera letra mayúscula de cada palabra
+					if (data) {
+						return data.toLowerCase().split(' ').map(function (word) {
+							return word.charAt(0).toUpperCase() + word.slice(1);
+						}).join(' ');
+					}
+					return data;
+				}
+			},
 			{ "data": "2" },
 			{ "data": "3" }
 		],
 		"language": {
-            "lengthMenu": "Mostrar _MENU_ registros",
-            "sProcessing": "Procesando...",
-            "sZeroRecords": "No se encontraron resultados",
-            "sEmptyTable": "Ningún dato disponible en la tabla",
-            "sInfo": "Mostrando del _START_ al _END_ de _TOTAL_ registros",
-            "sInfoEmpty": "Mostrando del 0 al 0 de 0 registros",
-            "sInfoFiltered": "(filtrado de _MAX_ registros totales)",
-            "sSearch": "Buscar:",
-            "oPaginate": {
-                "sFirst": "Primero",
-                "sLast": "Último",
-                "sNext": "Siguiente",
-                "sPrevious": "Anterior"
-            }
-        },
+			"lengthMenu": "Mostrar _MENU_ registros",
+			"sProcessing": "Procesando...",
+			"sZeroRecords": "No se encontraron resultados",
+			"sEmptyTable": "Ningún dato disponible en la tabla",
+			"sInfo": "Mostrando del _START_ al _END_ de _TOTAL_ registros",
+			"sInfoEmpty": "Mostrando del 0 al 0 de 0 registros",
+			"sInfoFiltered": "(filtrado de _MAX_ registros totales)",
+			"sSearch": "Buscar:",
+			"oPaginate": {
+				"sFirst": "Primero",
+				"sLast": "Último",
+				"sNext": "Siguiente",
+				"sPrevious": "Anterior"
+			}
+		},
 		"destroy": true,
 		"pageLength": 10,
-	    "order": [[ 1, "asc" ]],
-	    "drawCallback": function() {
-	    	actualizarKPIs();
-	    }
+		"order": [[1, "asc"]],
+		"drawCallback": function () {
+			actualizarKPIs();
+		}
 	});
 
 	// Selector de cantidad de registros personalizado
-	$('#page-length-selector').off('change').on('change', function() {
+	$('#page-length-selector').off('change').on('change', function () {
 		var length = parseInt($(this).val());
 		tabla.page.len(length).draw();
 	});
 
 	// Búsqueda personalizada
-	$('#searchInput').off('keyup').on('keyup', function() {
+	$('#searchInput').off('keyup').on('keyup', function () {
 		var searchValue = this.value;
 		console.log('🔍 Buscando:', searchValue);
 		tabla.search(searchValue).draw();
 	});
 
 	// Cargar KPIs iniciales
-	setTimeout(function() {
+	setTimeout(function () {
 		actualizarKPIs();
 		cargarKPIsAdicionales();
 	}, 500);
@@ -145,7 +162,7 @@ function listar()
 function actualizarKPIs() {
 	if (!tabla) return;
 
-	var data = tabla.rows({search: 'applied'}).data();
+	var data = tabla.rows({ search: 'applied' }).data();
 	var total = data.length;
 	var activas = 0;
 	var inactivas = 0;
@@ -153,7 +170,7 @@ function actualizarKPIs() {
 	for (var i = 0; i < data.length; i++) {
 		var row = data[i];
 		var estadoHTML = row["3"] || row[3];
-		
+
 		if (estadoHTML && estadoHTML.indexOf('Activado') > -1) {
 			activas++;
 		} else if (estadoHTML && estadoHTML.indexOf('Desactivado') > -1) {
@@ -168,47 +185,17 @@ function actualizarKPIs() {
 
 // ==================== CARGAR KPIs ADICIONALES ====================
 function cargarKPIsAdicionales() {
-	// KPI: Marcas sin artículos (con nombres)
+	// KPI: Marcas sin artículos
 	$.ajax({
 		url: '../ajax/marca.php?op=marcas_sin_articulos',
 		type: 'GET',
 		dataType: 'json',
-		success: function(data) {
+		success: function (data) {
 			if (data && data.success) {
-				var sinArticulos = parseInt(data.total) || 0;
-				var marcas = data.marcas || [];
-				
-				$('#kpi-sin-articulos').text(sinArticulos);
-				
-				// Si hay marcas sin artículos, agregar tooltip
-				if (marcas.length > 0) {
-					var tooltipText = 'Marcas: ' + marcas.join(', ');
-					$('#kpi-sin-articulos')
-						.attr('title', tooltipText)
-						.attr('data-toggle', 'tooltip')
-						.attr('data-placement', 'top')
-						.css({
-							'cursor': 'help',
-							'text-decoration': 'underline',
-							'text-decoration-style': 'dotted'
-						});
-					
-					// Inicializar tooltip de Bootstrap si existe
-					if (typeof $.fn.tooltip !== 'undefined') {
-						$('#kpi-sin-articulos').tooltip();
-					}
-					
-					console.log('✅ KPI sin artículos con tooltip:', tooltipText);
-				} else {
-					$('#kpi-sin-articulos').attr('title', 'Todas las marcas tienen artículos');
-				}
+				$('#kpi-sin-articulos').text(data.total || 0);
 			} else {
 				$('#kpi-sin-articulos').text('0');
 			}
-		},
-		error: function(xhr, status, error) {
-			console.error('❌ Error al cargar marcas sin artículos:', error);
-			$('#kpi-sin-articulos').text('0');
 		}
 	});
 
@@ -217,16 +204,12 @@ function cargarKPIsAdicionales() {
 		url: '../ajax/marca.php?op=marcas_stock_critico',
 		type: 'GET',
 		dataType: 'json',
-		success: function(data) {
+		success: function (data) {
 			if (data && data.success) {
-				var stockCritico = parseInt(data.total) || 0;
-				$('#kpi-stock-critico').text(stockCritico);
+				$('#kpi-stock-critico').text(data.total || 0);
 			} else {
 				$('#kpi-stock-critico').text('0');
 			}
-		},
-		error: function() {
-			$('#kpi-stock-critico').text('0');
 		}
 	});
 
@@ -235,142 +218,123 @@ function cargarKPIsAdicionales() {
 		url: '../ajax/marca.php?op=marcas_nuevas',
 		type: 'GET',
 		dataType: 'json',
-		success: function(data) {
+		success: function (data) {
 			if (data && data.success) {
-				var nuevas = parseInt(data.total) || 0;
-				$('#kpi-nuevas').text(nuevas);
+				$('#kpi-nuevas').text(data.total || 0);
 			} else {
 				$('#kpi-nuevas').text('0');
 			}
-		},
-		error: function() {
-			$('#kpi-nuevas').text('0');
 		}
 	});
 }
 
-// ==================== FILTROS DE TABLA (VERSIÓN FINAL CORREGIDA) ====================
+// ==================== MOSTRAR DETALLE KPI (INTERACTIVO) ====================
+function mostrarDetalleKPI(tipo, titulo) {
+	Swal.fire({
+		title: 'Cargando...',
+		didOpen: () => { Swal.showLoading() }
+	});
+
+	$.ajax({
+		url: '../ajax/marca.php?op=marcas_' + tipo,
+		type: 'GET',
+		dataType: 'json',
+		success: function (data) {
+			Swal.close();
+			if (data && data.success && data.marcas && data.marcas.length > 0) {
+				let lista = '<ul style="text-align:left; max-height:300px; overflow-y:auto; padding-left:20px;">';
+				data.marcas.forEach(item => {
+					lista += `<li>${item}</li>`;
+				});
+				lista += '</ul>';
+
+				Swal.fire({
+					title: titulo,
+					html: lista,
+					icon: 'info',
+					confirmButtonText: 'Cerrar'
+				});
+			} else {
+				Swal.fire('Información', 'No hay registros para mostrar en esta categoría.', 'info');
+			}
+		},
+		error: function () {
+			Swal.close();
+			mostrarNotificacion('Error al cargar detalles', 'error');
+		}
+	});
+}
+
+// ==================== NOTIFICACIONES MODERNAS (TOAST) ====================
+function mostrarNotificacion(mensaje, tipo) {
+	const Toast = Swal.mixin({
+		toast: true,
+		position: 'top-end',
+		showConfirmButton: false,
+		timer: 3000,
+		timerProgressBar: true,
+		didOpen: (toast) => {
+			toast.addEventListener('mouseenter', Swal.stopTimer)
+			toast.addEventListener('mouseleave', Swal.resumeTimer)
+		}
+	})
+
+	Toast.fire({
+		icon: tipo,
+		title: mensaje
+	})
+}
+
+// ==================== FILTROS DE TABLA ====================
 function filtrarTabla(filtro) {
-	console.log('🔽 Filtrar tabla:', filtro);
-	
-	// Actualizar variable global
 	filtroActual = filtro;
-	
-	// Actualizar botones activos
 	$('.filter-btn').removeClass('active');
 	$('.filter-btn[data-filter="' + filtro + '"]').addClass('active');
-
-	// Simplemente redibujar - el filtro permanente se encargará del resto
 	tabla.draw();
-
-	// Actualizar KPIs después del filtro
-	setTimeout(function() {
+	setTimeout(function () {
 		actualizarKPIs();
-		
-		// Debug: mostrar cuántas filas quedaron después del filtro
-		var rowsVisible = tabla.rows({search: 'applied'}).count();
-		console.log('📊 Filas visibles después del filtro:', rowsVisible);
 	}, 200);
 }
 
-// ==================== EXPORTAR TABLA PROFESIONAL ====================
+// ==================== EXPORTAR TABLA ====================
 function exportarTabla(tipo) {
-	switch(tipo) {
-		case 'copy':
-			copiarTablaAlPortapapeles();
-			break;
-		case 'excel':
-			exportarAExcel();
-			break;
-		case 'csv':
-			exportarACSV();
-			break;
-		case 'pdf':
-			exportarAPDF();
-			break;
+	switch (tipo) {
+		case 'copy': copiarTablaAlPortapapeles(); break;
+		case 'excel': exportarAExcel(); break;
+		case 'csv': exportarACSV(); break;
+		case 'pdf': exportarAPDF(); break;
 	}
 }
 
-// Copiar tabla al portapapeles
 function copiarTablaAlPortapapeles() {
-	var data = tabla.rows({search: 'applied'}).data();
+	var data = tabla.rows({ search: 'applied' }).data();
 	var texto = "NOMBRE\tDESCRIPCIÓN\tESTADO\n";
-	
 	for (var i = 0; i < data.length; i++) {
 		var row = data[i];
-		// Extraer texto sin HTML
 		var nombre = $('<div>').html(row[1]).text();
 		var descripcion = $('<div>').html(row[2]).text();
 		var estado = $('<div>').html(row[3]).text();
-		
 		texto += nombre + "\t" + descripcion + "\t" + estado + "\n";
 	}
-	
-	// Copiar al portapapeles
 	if (navigator.clipboard && window.isSecureContext) {
-		navigator.clipboard.writeText(texto).then(function() {
-			mostrarNotificacion('✅ Tabla copiada al portapapeles', 'success');
-		}, function() {
-			copiarAlPortapapelesLegacy(texto);
+		navigator.clipboard.writeText(texto).then(function () {
+			mostrarNotificacion('Tabla copiada al portapapeles', 'success');
 		});
 	} else {
-		copiarAlPortapapelesLegacy(texto);
+		mostrarNotificacion('No se pudo copiar automáticamente', 'error');
 	}
 }
 
-// Método legacy para copiar (navegadores antiguos)
-function copiarAlPortapapelesLegacy(texto) {
-	var textarea = document.createElement('textarea');
-	textarea.value = texto;
-	textarea.style.position = 'fixed';
-	textarea.style.opacity = '0';
-	document.body.appendChild(textarea);
-	textarea.select();
-	
-	try {
-		document.execCommand('copy');
-		mostrarNotificacion('✅ Tabla copiada al portapapeles', 'success');
-	} catch (err) {
-		mostrarNotificacion('❌ No se pudo copiar. Usa Ctrl+C manualmente', 'error');
-	}
-	
-	document.body.removeChild(textarea);
-}
-
-// Exportar a Excel (formato profesional)
 function exportarAExcel() {
-	var data = tabla.rows({search: 'applied'}).data();
-	
-	// Crear contenido HTML para Excel
-	var html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">';
-	html += '<head><meta charset="UTF-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>';
-	html += '<x:Name>Marcas</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet>';
-	html += '</x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body>';
-	
-	html += '<table border="1">';
-	html += '<thead><tr style="background-color:#1565c0;color:white;font-weight:bold;">';
-	html += '<th>NOMBRE</th><th>DESCRIPCIÓN</th><th>ESTADO</th></tr></thead><tbody>';
-	
+	var data = tabla.rows({ search: 'applied' }).data();
+	var html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"></head><body>';
+	html += '<table border="1"><thead><tr style="background-color:#1565c0;color:white;"><th>NOMBRE</th><th>DESCRIPCIÓN</th><th>ESTADO</th></tr></thead><tbody>';
 	for (var i = 0; i < data.length; i++) {
 		var row = data[i];
-		var nombre = $('<div>').html(row[1]).text();
-		var descripcion = $('<div>').html(row[2]).text();
-		var estado = $('<div>').html(row[3]).text();
-		
-		html += '<tr>';
-		html += '<td>' + nombre + '</td>';
-		html += '<td>' + descripcion + '</td>';
-		html += '<td>' + estado + '</td>';
-		html += '</tr>';
+		html += '<tr><td>' + $('<div>').html(row[1]).text() + '</td><td>' + $('<div>').html(row[2]).text() + '</td><td>' + $('<div>').html(row[3]).text() + '</td></tr>';
 	}
-	
 	html += '</tbody></table></body></html>';
-	
-	// Crear blob y descargar
-	var blob = new Blob(['\ufeff', html], {
-		type: 'application/vnd.ms-excel'
-	});
-	
+	var blob = new Blob(['\ufeff', html], { type: 'application/vnd.ms-excel' });
 	var url = window.URL.createObjectURL(blob);
 	var a = document.createElement('a');
 	a.href = url;
@@ -378,33 +342,17 @@ function exportarAExcel() {
 	document.body.appendChild(a);
 	a.click();
 	document.body.removeChild(a);
-	window.URL.revokeObjectURL(url);
-	
-	mostrarNotificacion('✅ Archivo Excel descargado exitosamente', 'success');
+	mostrarNotificacion('Archivo Excel descargado', 'success');
 }
 
-// Exportar a CSV (formato profesional)
 function exportarACSV() {
-	var data = tabla.rows({search: 'applied'}).data();
-	
-	// BOM UTF-8 para que Excel reconozca los caracteres especiales
-	var csv = '\ufeff';
-	csv += 'NOMBRE,DESCRIPCIÓN,ESTADO\n';
-	
+	var data = tabla.rows({ search: 'applied' }).data();
+	var csv = '\ufeffNOMBRE,DESCRIPCIÓN,ESTADO\n';
 	for (var i = 0; i < data.length; i++) {
 		var row = data[i];
-		var nombre = $('<div>').html(row[1]).text().replace(/"/g, '""');
-		var descripcion = $('<div>').html(row[2]).text().replace(/"/g, '""');
-		var estado = $('<div>').html(row[3]).text().replace(/"/g, '""');
-		
-		csv += '"' + nombre + '","' + descripcion + '","' + estado + '"\n';
+		csv += '"' + $('<div>').html(row[1]).text().replace(/"/g, '""') + '","' + $('<div>').html(row[2]).text().replace(/"/g, '""') + '","' + $('<div>').html(row[3]).text().replace(/"/g, '""') + '"\n';
 	}
-	
-	// Crear blob y descargar
-	var blob = new Blob([csv], {
-		type: 'text/csv;charset=utf-8;'
-	});
-	
+	var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
 	var url = window.URL.createObjectURL(blob);
 	var a = document.createElement('a');
 	a.href = url;
@@ -412,218 +360,121 @@ function exportarACSV() {
 	document.body.appendChild(a);
 	a.click();
 	document.body.removeChild(a);
-	window.URL.revokeObjectURL(url);
-	
-	mostrarNotificacion('✅ Archivo CSV descargado exitosamente', 'success');
+	mostrarNotificacion('Archivo CSV descargado', 'success');
 }
 
-// Exportar a PDF (descarga directa)
 function exportarAPDF() {
-    // Usamos el modo "download" para forzar descarga
-    var link = document.createElement('a');
-    link.href = '../reportes/rptmarcas.php?mode=download';
-    link.target = '_blank'; // opcional, pero no molesta
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    mostrarNotificacion('✅ Descargando reporte PDF...', 'success');
+	var link = document.createElement('a');
+	link.href = '../reportes/rptmarcas.php?mode=download';
+	link.target = '_blank';
+	document.body.appendChild(link);
+	link.click();
+	document.body.removeChild(link);
+	mostrarNotificacion('Descargando reporte PDF...', 'success');
 }
 
-// Obtener fecha y hora para nombre de archivo
 function obtenerFechaHora() {
 	var ahora = new Date();
-	var anio = ahora.getFullYear();
-	var mes = ('0' + (ahora.getMonth() + 1)).slice(-2);
-	var dia = ('0' + ahora.getDate()).slice(-2);
-	var hora = ('0' + ahora.getHours()).slice(-2);
-	var min = ('0' + ahora.getMinutes()).slice(-2);
-	var seg = ('0' + ahora.getSeconds()).slice(-2);
-	
-	return anio + mes + dia + '_' + hora + min + seg;
+	return ahora.toISOString().slice(0, 19).replace(/[-T:]/g, "");
 }
 
-// Mostrar notificación moderna tipo Toast
-function mostrarNotificacion(mensaje, tipo) {
-	// Crear el toast si no existe
-	if ($('#toast-container').length === 0) {
-		$('body').append(`
-			<div id="toast-container" style="
-				position: fixed;
-				top: 20px;
-				right: 20px;
-				z-index: 9999;
-			"></div>
-		`);
-	}
-	
-	// Colores según tipo
-	var colores = {
-		'success': { bg: '#10b981', icon: 'fa-check-circle' },
-		'error': { bg: '#ef4444', icon: 'fa-times-circle' },
-		'warning': { bg: '#f59e0b', icon: 'fa-exclamation-triangle' },
-		'info': { bg: '#3b82f6', icon: 'fa-info-circle' }
-	};
-	
-	var color = colores[tipo] || colores['info'];
-	
-	// Crear el toast
-	var toastId = 'toast-' + Date.now();
-	var toast = $(`
-		<div id="${toastId}" style="
-			background: ${color.bg};
-			color: white;
-			padding: 16px 20px;
-			border-radius: 12px;
-			margin-bottom: 10px;
-			box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-			display: flex;
-			align-items: center;
-			gap: 12px;
-			min-width: 300px;
-			animation: slideIn 0.3s ease-out;
-			font-size: 14px;
-			font-weight: 500;
-		">
-			<i class="fa ${color.icon}" style="font-size: 20px;"></i>
-			<span style="flex: 1;">${mensaje}</span>
-			<i class="fa fa-times" style="cursor: pointer; opacity: 0.8;" onclick="$('#${toastId}').fadeOut(200, function(){ $(this).remove(); });"></i>
-		</div>
-	`);
-	
-	// Agregar animación CSS
-	if ($('#toast-animation').length === 0) {
-		$('head').append(`
-			<style id="toast-animation">
-				@keyframes slideIn {
-					from {
-						transform: translateX(400px);
-						opacity: 0;
-					}
-					to {
-						transform: translateX(0);
-						opacity: 1;
-					}
-				}
-				@keyframes slideOut {
-					from {
-						transform: translateX(0);
-						opacity: 1;
-					}
-					to {
-						transform: translateX(400px);
-						opacity: 0;
-					}
-				}
-			</style>
-		`);
-	}
-	
-	// Agregar al contenedor
-	$('#toast-container').append(toast);
-	
-	// Auto-remover después de 3 segundos
-	setTimeout(function() {
-		$('#' + toastId).css('animation', 'slideOut 0.3s ease-in');
-		setTimeout(function() {
-			$('#' + toastId).fadeOut(200, function() {
-				$(this).remove();
-			});
-		}, 300);
-	}, 3000);
-}
-
-//Función para guardar o editar (CON ALERTAS MODERNIZADAS)
-function guardaryeditar(e)
-{
+//Función para guardar o editar
+function guardaryeditar(e) {
 	e.preventDefault();
-	$("#btnGuardar").prop("disabled",true);
+	$("#btnGuardar").prop("disabled", true);
 	var formData = new FormData($("#formulario")[0]);
 
 	$.ajax({
 		url: "../ajax/marca.php?op=guardaryeditar",
-	    type: "POST",
-	    data: formData,
-	    contentType: false,
-	    processData: false,
-	    success: function(datos)
-	    {
-	    	if (datos == "duplicado") {
-	    		// Notificación moderna en lugar de bootbox
-	    		mostrarNotificacion('⚠️ Esta marca ya existe en el sistema', 'warning');
-	    		$("#btnGuardar").prop("disabled", false);
-	    	} else {
-		        // Notificación moderna en lugar de bootbox
-		        if (datos.indexOf("registrada") > -1) {
-		        	mostrarNotificacion('✅ Marca registrada exitosamente', 'success');
-		        } else if (datos.indexOf("actualizada") > -1) {
-		        	mostrarNotificacion('✅ Marca actualizada exitosamente', 'success');
-		        } else {
-		        	mostrarNotificacion('❌ ' + datos, 'error');
-		        }
-		        
-		        mostrarform(false);
-		        tabla.ajax.reload();
-		        cargarKPIsAdicionales();
-	    	}
-	    },
-	    error: function() {
-	    	mostrarNotificacion('❌ Error al procesar la solicitud', 'error');
-	    	$("#btnGuardar").prop("disabled", false);
-	    }
+		type: "POST",
+		data: formData,
+		contentType: false,
+		processData: false,
+		success: function (datos) {
+			if (datos == "duplicado") {
+				mostrarNotificacion('⚠️ Esta marca ya existe en el sistema', 'warning');
+				$("#btnGuardar").prop("disabled", false);
+			} else {
+				if (datos.indexOf("registrada") > -1) {
+					mostrarNotificacion('Marca registrada exitosamente', 'success');
+				} else if (datos.indexOf("actualizada") > -1) {
+					mostrarNotificacion('Marca actualizada exitosamente', 'success');
+				} else {
+					mostrarNotificacion('❌ ' + datos, 'error');
+				}
+
+				mostrarform(false);
+				tabla.ajax.reload();
+				cargarKPIsAdicionales();
+			}
+		},
+		error: function () {
+			mostrarNotificacion('Error al procesar la solicitud', 'error');
+			$("#btnGuardar").prop("disabled", false);
+		}
 	});
 	limpiar();
 }
 
-function mostrar(idmarca)
-{
-	$.post("../ajax/marca.php?op=mostrar",{idmarca : idmarca}, function(data, status)
-	{
-		data = JSON.parse(data);		
+function mostrar(idmarca) {
+	$.post("../ajax/marca.php?op=mostrar", { idmarca: idmarca }, function (data, status) {
+		data = JSON.parse(data);
 		mostrarform(true);
 
 		$("#idmarca").val(data.idmarca);
 		$("#nombre").val(data.nombre);
 		$("#descripcion").val(data.descripcion);
- 	});
+	});
 }
 
-function desactivar(idmarca)
-{
-	bootbox.confirm("¿Está seguro de desactivar la marca?", function(result){
-		if(result)
-        {
-        	$.post("../ajax/marca.php?op=desactivar", {idmarca : idmarca}, function(e){
-        		// Notificación moderna
-        		if (e.indexOf("Desactivada") > -1) {
-        			mostrarNotificacion('✅ ' + e, 'success');
-        		} else {
-        			mostrarNotificacion('❌ ' + e, 'error');
-        		}
-	            tabla.ajax.reload();
-	            cargarKPIsAdicionales();
-        	});	
-        }
-	})
+function desactivar(idmarca) {
+	Swal.fire({
+		title: '¿Está seguro?',
+		text: "¿Desea desactivar la marca?",
+		icon: 'warning',
+		showCancelButton: true,
+		confirmButtonColor: '#d33',
+		cancelButtonColor: '#3085d6',
+		confirmButtonText: 'Sí, desactivar',
+		cancelButtonText: 'Cancelar'
+	}).then((result) => {
+		if (result.isConfirmed) {
+			$.post("../ajax/marca.php?op=desactivar", { idmarca: idmarca }, function (e) {
+				if (e.indexOf("Desactivada") > -1) {
+					mostrarNotificacion(' ' + e, 'success');
+				} else {
+					mostrarNotificacion(' ' + e, 'error');
+				}
+				tabla.ajax.reload();
+				cargarKPIsAdicionales();
+			});
+		}
+	});
 }
 
-function activar(idmarca)
-{
-	bootbox.confirm("¿Está seguro de activar la marca?", function(result){
-		if(result)
-        {
-        	$.post("../ajax/marca.php?op=activar", {idmarca : idmarca}, function(e){
-        		// Notificación moderna
-        		if (e.indexOf("activada") > -1) {
-        			mostrarNotificacion('✅ ' + e, 'success');
-        		} else {
-        			mostrarNotificacion('❌ ' + e, 'error');
-        		}
-	            tabla.ajax.reload();
-	            cargarKPIsAdicionales();
-        	});	
-        }
-	})
+function activar(idmarca) {
+	Swal.fire({
+		title: '¿Está seguro?',
+		text: "¿Desea activar la marca?",
+		icon: 'question',
+		showCancelButton: true,
+		confirmButtonColor: '#00a65a',
+		cancelButtonColor: '#d33',
+		confirmButtonText: 'Sí, activar',
+		cancelButtonText: 'Cancelar'
+	}).then((result) => {
+		if (result.isConfirmed) {
+			$.post("../ajax/marca.php?op=activar", { idmarca: idmarca }, function (e) {
+				if (e.indexOf("activada") > -1) {
+					mostrarNotificacion(' ' + e, 'success');
+				} else {
+					mostrarNotificacion(' ' + e, 'error');
+				}
+				tabla.ajax.reload();
+				cargarKPIsAdicionales();
+			});
+		}
+	});
 }
 
 init();

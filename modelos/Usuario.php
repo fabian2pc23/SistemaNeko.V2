@@ -1,5 +1,5 @@
 <?php
-// modelos/Usuario.php
+// modelos/Usuario.php - VERSIÓN CORREGIDA Y COMPATIBLE
 require "../config/Conexion.php";
 
 class Usuario
@@ -16,19 +16,18 @@ class Usuario
         return $row && isset($row['nombre']) ? $row['nombre'] : null;
     }
 
-    // Avatar por rol (si no suben imagen)
     private function avatarPorRol($cargo){
         $k = mb_strtolower(trim((string)$cargo),'UTF-8');
-        if ($k === 'administrador') return 'administrador.png';
+        if ($k === 'administrador' || $k === 'admin') return 'administrador.png';
         if ($k === 'almacenero')   return 'almacenero.png';
         if ($k === 'vendedor')     return 'vendedor.png';
         return 'usuario.png';
     }
 
-    // === Permisos por rol ===
     public function permisos_por_rol($id_rol){
         return $this->permisosDeRol($id_rol);
     }
+    
     private function permisosDeRol($id_rol){
         $id_rol = (int)$id_rol;
         $sql = "SELECT idpermiso FROM rol_permiso WHERE id_rol='$id_rol'";
@@ -37,6 +36,7 @@ class Usuario
         if ($rs) while ($row = $rs->fetch_assoc()) { $out[] = (int)$row['idpermiso']; }
         return $out;
     }
+    
     private function setPermisosUsuario($idusuario, $permisos){
         $idusuario = (int)$idusuario;
         if (!is_array($permisos) || count($permisos) === 0) return true;
@@ -50,38 +50,119 @@ class Usuario
     }
 
     /* ============================================================
+       MÚLTIPLES ROLES - USAR TABLA usuario_roles_new
+       ============================================================ */
+    public function asignarRolesMultiples($idusuario, $roles_array){
+        $idusuario = (int)$idusuario;
+        
+        if (!is_array($roles_array) || count($roles_array) === 0) {
+            return false;
+        }
+        
+        // Validar que haya al menos un rol principal
+        $tienePrincipal = false;
+        foreach($roles_array as $r){
+            if (isset($r['es_principal']) && (int)$r['es_principal'] === 1) {
+                $tienePrincipal = true;
+                break;
+            }
+        }
+        
+        if (!$tienePrincipal) {
+            return false;
+        }
+        
+        // Limpiar roles actuales
+        ejecutarConsulta("DELETE FROM usuario_roles_new WHERE idusuario='$idusuario'");
+        
+        // Insertar nuevos roles
+        foreach($roles_array as $rol){
+            $id_rol = (int)($rol['id_rol'] ?? 0);
+            $es_principal = (int)($rol['es_principal'] ?? 0);
+            
+            if ($id_rol > 0) {
+                ejecutarConsulta("INSERT INTO usuario_roles_new (idusuario, id_rol, es_principal) 
+                                  VALUES ('$idusuario', '$id_rol', '$es_principal')");
+            }
+        }
+        
+        return true;
+    }
+    
+    public function obtenerRolesUsuario($idusuario){
+        $idusuario = (int)$idusuario;
+        
+        // Intentar usar procedimiento almacenado
+        $sql = "SELECT 
+                    ur.id_usuario_rol,
+                    ur.idusuario,
+                    ur.id_rol,
+                    r.nombre AS nombre_rol,
+                    ur.es_principal,
+                    ur.asignado_en
+                FROM usuario_roles_new ur
+                INNER JOIN rol_usuarios r ON ur.id_rol = r.id_rol
+                WHERE ur.idusuario = '$idusuario'
+                ORDER BY ur.es_principal DESC, r.nombre ASC";
+        
+        return ejecutarConsulta($sql);
+    }
+    
+    public function obtenerPermisosAcumulativos($idusuario){
+        $idusuario = (int)$idusuario;
+        
+        $sql = "SELECT DISTINCT 
+                    p.idpermiso,
+                    p.nombre
+                FROM usuario_roles_new ur
+                INNER JOIN rol_permiso rp ON ur.id_rol = rp.id_rol
+                INNER JOIN permiso p ON rp.idpermiso = p.idpermiso
+                WHERE ur.idusuario = '$idusuario'
+                ORDER BY p.nombre ASC";
+        
+        $rs = ejecutarConsulta($sql);
+        $permisos = array();
+        if ($rs) {
+            while ($row = $rs->fetch_assoc()) {
+                $permisos[] = (int)$row['idpermiso'];
+            }
+        }
+        return $permisos;
+    }
+
+    /* ============================================================
        INSERTAR
        ============================================================ */
     public function insertar(
         $nombre,$tipo_documento,$num_documento,$direccion,$telefono,$email,$cargo,$clave,$imagen,$permisos,
-        $id_rol = null, $modo_permisos = ''
+        $roles_array = null, $modo_permisos = ''
     ){
-        // Completar cargo desde el rol si viene id_rol
-        if ((empty($cargo) || $cargo === '0') && !empty($id_rol)) {
-            $cargo = $this->obtenerNombreRol($id_rol) ?: '';
+        // Si viene roles_array, usamos múltiples roles
+        if (is_array($roles_array) && count($roles_array) > 0) {
+            // Obtener cargo del rol principal
+            foreach($roles_array as $r){
+                if (isset($r['es_principal']) && (int)$r['es_principal'] === 1) {
+                    $cargo = $this->obtenerNombreRol($r['id_rol']) ?: $cargo;
+                    break;
+                }
+            }
         }
 
-        $tieneRol      = !is_null($id_rol) && $id_rol !== '' && (int)$id_rol > 0;
+        $tieneRoles = is_array($roles_array) && count($roles_array) > 0;
         $tienePermisos = is_array($permisos) && count($permisos) > 0;
 
-        // Si no mandan permisos y modo='rol' → traer del rol
-        if (!$tienePermisos && $modo_permisos === 'rol' && $tieneRol) {
-            $permisos = $this->permisosDeRol((int)$id_rol);
-            $tienePermisos = count($permisos) > 0;
-        }
+        $condicion = ($tieneRoles || $tienePermisos) ? '1' : '3';
 
-        // Estado: si hay rol o permisos → Activo; si no → Pendiente(3)
-        $condicion = ($tieneRol || $tienePermisos) ? '1' : '3';
-
-        // Avatar por rol si no llega imagen
         if ($imagen === null || $imagen === '') {
             $imagen = $this->avatarPorRol($cargo);
         }
 
         $cols = "nombre,tipo_documento,num_documento,direccion,telefono,email,cargo,clave,imagen,condicion";
         $vals = "'$nombre','$tipo_documento','$num_documento','$direccion','$telefono','$email','$cargo','$clave','$imagen','$condicion'";
-        if ($tieneRol) {
-            $id_rol = (int)$id_rol;
+
+        // Si hay un solo rol en el array, también guardarlo en id_rol (compatibilidad)
+        if ($tieneRoles && count($roles_array) === 1) {
+            $id_rol = (int)$roles_array[0]['id_rol'];
             $cols .= ",id_rol";
             $vals .= ",'$id_rol'";
         }
@@ -89,7 +170,12 @@ class Usuario
         $sql = "INSERT INTO usuario ($cols) VALUES ($vals)";
         $idusuarionew = ejecutarConsulta_retornarID($sql);
 
-        // Aplicar permisos (explícitos o derivados)
+        // Asignar múltiples roles
+        if ($tieneRoles) {
+            $this->asignarRolesMultiples($idusuarionew, $roles_array);
+            $permisos = $this->obtenerPermisosAcumulativos($idusuarionew);
+        }
+
         $this->setPermisosUsuario($idusuarionew, $permisos);
         return true;
     }
@@ -99,28 +185,26 @@ class Usuario
        ============================================================ */
     public function editar(
         $idusuario,$nombre,$tipo_documento,$num_documento,$direccion,$telefono,$email,$cargo,$clave,$imagen,$permisos,
-        $id_rol = null, $modo_permisos = '', $mantener_clave = false
+        $roles_array = null, $modo_permisos = '', $mantener_clave = false
     ){
         $idusuario = (int)$idusuario;
 
-        // Datos actuales para decidir imagen/estado
-        $act = ejecutarConsultaSimpleFila("SELECT imagen, condicion, id_rol, cargo FROM usuario WHERE idusuario='$idusuario'");
+        $act = ejecutarConsultaSimpleFila("SELECT imagen, condicion FROM usuario WHERE idusuario='$idusuario'");
         $imgActual  = $act['imagen']     ?? '';
         $condActual = (string)($act['condicion'] ?? '1');
 
-        // Si cargo vacío y llega id_rol → nombre del rol
-        if ((empty($cargo) || $cargo === '0') && !empty($id_rol)) {
-            $cargo = $this->obtenerNombreRol($id_rol) ?: '';
+        // Si viene roles_array, obtener cargo del rol principal
+        if (is_array($roles_array) && count($roles_array) > 0) {
+            foreach($roles_array as $r){
+                if (isset($r['es_principal']) && (int)$r['es_principal'] === 1) {
+                    $cargo = $this->obtenerNombreRol($r['id_rol']) ?: $cargo;
+                    break;
+                }
+            }
         }
 
-        $tieneRol      = !is_null($id_rol) && $id_rol !== '' && (int)$id_rol > 0;
+        $tieneRoles = is_array($roles_array) && count($roles_array) > 0;
         $tienePermisos = is_array($permisos) && count($permisos) > 0;
-
-        // Si no mandan permisos y modo='rol' → traer del rol
-        if (!$tienePermisos && $modo_permisos === 'rol' && $tieneRol) {
-            $permisos      = $this->permisosDeRol((int)$id_rol);
-            $tienePermisos = count($permisos) > 0;
-        }
 
         $sets = array();
         $sets[] = "nombre='$nombre'";
@@ -135,12 +219,9 @@ class Usuario
             $sets[] = "clave='$clave'";
         }
 
-        // Imagen:
         if ($imagen !== null && $imagen !== '') {
-            // subieron archivo nuevo (nombre ya resuelto en ajax)
             $sets[] = "imagen='$imagen'";
         } else {
-            // si NO suben y el actual es de los defaults, ajustar al rol
             $defaults = ['administrador.png','almacenero.png','vendedor.png','usuario.png'];
             if (in_array($imgActual, $defaults, true)) {
                 $nuevo = $this->avatarPorRol($cargo);
@@ -148,18 +229,35 @@ class Usuario
             }
         }
 
-        if ($tieneRol) { $sets[] = "id_rol='".((int)$id_rol)."'"; }
+        // Si hay un solo rol, actualizar id_rol (compatibilidad)
+        if ($tieneRoles && count($roles_array) === 1) {
+            $id_rol = (int)$roles_array[0]['id_rol'];
+            $sets[] = "id_rol='$id_rol'";
+        } elseif ($tieneRoles && count($roles_array) > 1) {
+            // Si hay múltiples roles, usar el principal como id_rol
+            foreach($roles_array as $r){
+                if (isset($r['es_principal']) && (int)$r['es_principal'] === 1) {
+                    $id_rol = (int)$r['id_rol'];
+                    $sets[] = "id_rol='$id_rol'";
+                    break;
+                }
+            }
+        }
 
-        // Si estaba Pendiente (3) y ahora hay rol o permisos → Activar (1)
-        if ($condActual === '3' && ($tieneRol || $tienePermisos)) {
+        if ($condActual === '3' && ($tieneRoles || $tienePermisos)) {
             $sets[] = "condicion='1'";
         }
 
         $sql = "UPDATE usuario SET ".implode(",", $sets)." WHERE idusuario='$idusuario'";
         ejecutarConsulta($sql);
 
-        // Permisos: aplicar si llegan o si modo='rol'
-        if ($tienePermisos || ($modo_permisos === 'rol' && $tieneRol)) {
+        // Asignar múltiples roles
+        if ($tieneRoles) {
+            $this->asignarRolesMultiples($idusuario, $roles_array);
+            $permisos = $this->obtenerPermisosAcumulativos($idusuario);
+        }
+
+        if ($tienePermisos || ($modo_permisos === 'rol' && $tieneRoles)) {
             ejecutarConsulta("DELETE FROM usuario_permiso WHERE idusuario='$idusuario'");
             return $this->setPermisosUsuario($idusuario, $permisos);
         }
@@ -169,14 +267,14 @@ class Usuario
     public function desactivar($idusuario){
         return ejecutarConsulta("UPDATE usuario SET condicion='0' WHERE idusuario='$idusuario'");
     }
+    
     public function activar($idusuario){
         return ejecutarConsulta("UPDATE usuario SET condicion='1' WHERE idusuario='$idusuario'");
     }
 
     public function mostrar($idusuario){
-        $sql="SELECT u.*, r.nombre AS nombre_rol
+        $sql="SELECT u.* 
               FROM usuario u
-              LEFT JOIN rol_usuarios r ON u.id_rol = r.id_rol
               WHERE u.idusuario='$idusuario'";
         return ejecutarConsultaSimpleFila($sql);
     }
@@ -190,12 +288,17 @@ class Usuario
                 u.telefono,
                 u.email,
                 u.cargo,
-                u.id_rol,
                 u.imagen,
                 u.condicion,
-                r.nombre AS nombre_rol
+                (SELECT GROUP_CONCAT(
+                    CONCAT(r.nombre, IF(ur.es_principal=1, ' 👑', ''))
+                    ORDER BY ur.es_principal DESC, r.nombre ASC
+                    SEPARATOR ', '
+                )
+                FROM usuario_roles_new ur
+                INNER JOIN rol_usuarios r ON ur.id_rol = r.id_rol
+                WHERE ur.idusuario = u.idusuario) AS todos_roles
               FROM usuario u
-              LEFT JOIN rol_usuarios  r  ON u.id_rol = r.id_rol
               LEFT JOIN tipo_documento td ON u.id_tipodoc = td.id_tipodoc
               ORDER BY u.idusuario DESC";
         return ejecutarConsulta($sql);
@@ -205,9 +308,8 @@ class Usuario
         return ejecutarConsulta("SELECT * FROM usuario_permiso WHERE idusuario='$idusuario'");
     }
 
-    // LOGIN por email
     public function verificar($email, $clave){
-        $sql="SELECT idusuario, nombre, tipo_documento, num_documento, telefono, email, cargo, imagen, id_rol
+        $sql="SELECT idusuario, nombre, tipo_documento, num_documento, telefono, email, cargo, imagen
               FROM usuario
               WHERE email='$email' AND clave='$clave' AND condicion='1'";
         return ejecutarConsulta($sql);

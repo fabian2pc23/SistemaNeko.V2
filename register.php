@@ -370,7 +370,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="css/estilos.css?v=<?= time() ?>">
   <style>
-    /* ========== ESTILOS PROFESIONALES Y CORPORATIVOS ========== */
+    /* ========== ESTILOS ULTRA MODERNOS V2.0 ========== */
     
     /* Variables CSS para modo claro/oscuro */
     :root {
@@ -385,12 +385,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       --text-label: #1e293b;
       --text-label-light: #e2e8f0;
       
+      /* Nuevas variables para inputs modernos */
+      --input-bg: #ffffff;
+      --input-bg-dark: rgba(30, 41, 59, 0.3);
+      --input-bg-focus: #fafbfc;
+      --input-border: #e2e8f0;
+      --input-border-dark: rgba(148, 163, 184, 0.2);
+      --input-border-hover: #cbd5e1;
+      --input-border-focus: #3b82f6;
+      --input-text: #1e293b;
+      --input-text-dark: #e2e8f0;
+      --input-placeholder: #94a3b8;
+      
       --bg-rules: #f8fafc;
       --bg-rules-dark: rgba(30, 41, 59, 0.4);
-      --bg-req-error: rgba(220, 38, 38, 0.05);
+      --bg-req-error: rgba(239, 68, 68, 0.08);
       --bg-req-error-dark: rgba(220, 38, 38, 0.15);
-      --bg-req-success: rgba(5, 150, 105, 0.05);
+      --bg-req-success: rgba(16, 185, 129, 0.08);
       --bg-req-success-dark: rgba(5, 150, 105, 0.15);
+      --bg-req-pending: rgba(148, 163, 184, 0.08);
       
       --eye-bg: rgba(148, 163, 184, 0.1);
       --eye-bg-hover: rgba(148, 163, 184, 0.18);
@@ -413,6 +426,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         --text-info: #93c5fd;
         --text-muted: #94a3b8;
         --text-label: #e2e8f0;
+        
+        --input-bg: var(--input-bg-dark);
+        --input-bg-focus: rgba(30, 41, 59, 0.5);
+        --input-border: var(--input-border-dark);
+        --input-border-hover: rgba(148, 163, 184, 0.3);
+        --input-text: var(--input-text-dark);
+        
         --bg-rules: var(--bg-rules-dark);
         --bg-req-error: var(--bg-req-error-dark);
         --bg-req-success: var(--bg-req-success-dark);
@@ -440,6 +460,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       --text-info: #93c5fd;
       --text-muted: #94a3b8;
       --text-label: #e2e8f0;
+      
+      --input-bg: var(--input-bg-dark);
+      --input-bg-focus: rgba(30, 41, 59, 0.5);
+      --input-border: var(--input-border-dark);
+      --input-border-hover: rgba(148, 163, 184, 0.3);
+      --input-text: var(--input-text-dark);
+      
       --bg-rules: var(--bg-rules-dark);
       --bg-req-error: var(--bg-req-error-dark);
       --bg-req-success: var(--bg-req-success-dark);
@@ -457,77 +484,200 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       --btn-edit-color: #cbd5e1;
     }
     
-    /* Iconos de validación con estilo corporativo */
+    /* ========== INPUTS COMPACTOS Y PROFESIONALES ========== */
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="tel"],
+    select {
+      width: 100%;
+      height: 24px; /* COMPACTO COMO EN LA IMAGEN */
+      padding: 10px 9px; /* PADDING AJUSTADO */
+      font-size: 15px; /* LEGIBLE */
+      font-weight: 500; /* SEMI-BOLD */
+      color: var(--input-text);
+      background: var(--input-bg);
+      border: 1px solid var(--input-border); /* BORDE PROFESIONAL */
+      border-radius: 10px; /* REDONDEADO MODERNO */
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+    
+    input::placeholder {
+      color: var(--input-placeholder);
+      font-weight: 400;
+    }
+    
+    /* Hover en inputs */
+    input:hover,
+    select:hover {
+      border-color: var(--input-border-hover);
+      background: var(--input-bg-focus);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    }
+    
+    /* Focus en inputs - MUY NOTORIO */
+    input:focus,
+    select:focus {
+      outline: none;
+      border-color: var(--input-border-focus);
+      background: var(--input-bg-focus);
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15), 0 4px 12px rgba(59, 130, 246, 0.1);
+      transform: translateY(-1px);
+    }
+    
+    /* Readonly inputs - estilo diferenciado */
+    input[readonly] {
+      background: rgba(148, 163, 184, 0.08);
+      border-color: rgba(148, 163, 184, 0.2);
+      cursor: not-allowed;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+    
+    input[readonly]:hover {
+      box-shadow: none;
+      transform: none;
+    }
+    
+    /* ========== VALIDACIÓN VISUAL DINÁMICA ========== */
+    
+    /* Estados de validación */
+    input.validating {
+      border-color: #60a5fa !important;
+      background: rgba(96, 165, 250, 0.05);
+      box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.15);
+      animation: pulse-border 1.5s ease-in-out infinite;
+    }
+    
+    @keyframes pulse-border {
+      0%, 100% { border-color: #60a5fa; }
+      50% { border-color: #93c5fd; }
+    }
+    
+    input.valid {
+      border-color: #10b981 !important;
+      background: rgba(16, 185, 129, 0.05);
+      box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.12);
+    }
+    
+    input.invalid {
+      border-color: #ef4444 !important;
+      background: rgba(239, 68, 68, 0.05);
+      box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.12);
+    }
+    
+    /* ========== ICONOS DE VALIDACIÓN COMPACTOS ========== */
     .validation-icon {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 18px;
-      height: 18px;
+      width: 20px; /* TAMAÑO COMPACTO */
+      height: 20px;
       border-radius: 50%;
       font-size: 11px;
-      font-weight: 600;
+      font-weight: 700;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
     }
     
+    /* ========== REQUISITOS DE CONTRASEÑA COMPACTOS ========== */
     .req {
       display: flex;
       align-items: center;
-      gap: 10px;
-      font-size: 0.875rem;
-      margin: 6px 0;
-      padding: 6px 10px;
-      border-radius: 6px;
-      transition: all 0.25s ease;
-      font-weight: 500;
+      gap: 11px; /* ESPACIO COMPACTO */
+      font-size: 14px; /* TAMAÑO LEGIBLE */
+      margin: 1px 0; /* MARGEN COMPACTO */
+      padding: 9px 12px; /* PADDING COMPACTO */
+      border-radius: 8px; /* REDONDEADO EQUILIBRADO */
+      transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      font-weight: 600; /* SEMI-BOLD */
+      border: 2px solid transparent;
     }
     
+    /* Estado pendiente (gris) */
+    .req.pending {
+      color: var(--text-muted);
+      background: var(--bg-req-pending);
+      border-color: rgba(148, 163, 184, 0.2);
+    }
+    
+    .req.pending .validation-icon {
+      background: linear-gradient(135deg, #94a3b8, #64748b);
+      color: white;
+      opacity: 0.6;
+    }
+    
+    .req.pending .validation-icon::before {
+      content: '○';
+      font-size: 16px;
+    }
+    
+    /* Estado error (rojo) */
     .req.bad {
       color: var(--text-error);
       background: var(--bg-req-error);
+      border-color: rgba(239, 68, 68, 0.2);
+      animation: shake 0.4s ease-in-out;
+    }
+    
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-4px); }
+      75% { transform: translateX(4px); }
     }
     
     .req.bad .validation-icon {
-      background: linear-gradient(135deg, #dc2626, #b91c1c);
+      background: linear-gradient(135deg, #ef4444, #dc2626);
       color: white;
-      box-shadow: 0 2px 4px rgba(220, 38, 38, 0.3);
+      box-shadow: 0 3px 8px rgba(239, 68, 68, 0.4);
     }
     
     .req.bad .validation-icon::before {
       content: '✕';
-      font-size: 12px;
+      font-size: 14px;
+      font-weight: 900;
     }
     
+    /* Estado exitoso (verde) */
     .req.ok {
       color: var(--text-success);
       background: var(--bg-req-success);
+      border-color: rgba(16, 185, 129, 0.2);
+      animation: success-pop 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
+    
+    @keyframes success-pop {
+      0% { transform: scale(0.95); }
+      50% { transform: scale(1.02); }
+      100% { transform: scale(1); }
     }
     
     .req.ok .validation-icon {
-      background: linear-gradient(135deg, #059669, #047857);
+      background: linear-gradient(135deg, #10b981, #059669);
       color: white;
-      box-shadow: 0 2px 4px rgba(5, 150, 105, 0.3);
+      box-shadow: 0 3px 8px rgba(16, 185, 129, 0.4);
     }
     
     .req.ok .validation-icon::before {
       content: '✓';
-      font-size: 12px;
-      font-weight: 700;
+      font-size: 15px;
+      font-weight: 900;
     }
 
-    /* Botón de ojo empresarial - PERFECTAMENTE AJUSTADO */
+    /* ========== BOTÓN DE OJO COMPACTO ========== */
     .input-eye {
       position: absolute;
-      right: 6px;
+      right: 8px; /* POSICIÓN COMPACTA */
       top: 50%;
       transform: translateY(-50%);
-      width: 18px;
-      height: 18px;
-      min-width: 30px;
-      border-radius: 6px;
+      width: 16px; /* TAMAÑO COMPACTO */
+      height: 19px;
+      min-width: 19px;
+      border-radius: 8px; /* REDONDEADO EQUILIBRADO */
       background: var(--eye-bg);
-      border: 1px solid var(--eye-border);
+      border: 2px solid var(--eye-border); /* BORDE EQUILIBRADO */
       display: flex;
       align-items: center;
       justify-content: center;
@@ -535,21 +685,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       user-select: none;
       flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
     }
     
     .input-eye:hover {
       background: var(--eye-bg-hover);
       border-color: var(--eye-border-hover);
-      transform: translateY(-50%) scale(1.05);
+      transform: translateY(-50%) scale(1.08);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
     
     .input-eye:active {
       transform: translateY(-50%) scale(0.95);
     }
 
-    /* Icono del ojo - MEJORADO Y MÁS VISIBLE */
+    /* Icono del ojo - TAMAÑO COMPACTO */
     .eye-icon {
-      width: 16px;
+      width: 16px; /* COMPACTO */
       height: 16px;
       position: relative;
       transition: all 0.3s ease;
@@ -560,9 +712,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       position: absolute;
       width: 16px;
       height: 9px;
-      border: 2px solid var(--eye-icon);
+      border: 2px solid var(--eye-icon); /* BORDE DEFINIDO */
       border-radius: 50% 50% 50% 50% / 100% 100% 0 0;
-      top: 3px;
+      top: 3.5px;
       left: 0;
       transition: all 0.3s ease;
     }
@@ -570,7 +722,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     .eye-icon::after {
       content: '';
       position: absolute;
-      width: 4px;
+      width: 4px; /* COMPACTO */
       height: 4px;
       background: var(--eye-icon);
       border-radius: 50%;
@@ -615,99 +767,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     .input-wrap input {
       width: 100%;
-      padding-right: 44px !important;
+      padding-right: 48px !important; /* ESPACIO PARA EL OJO COMPACTO */
     }
 
-    /* Estado de validación visual en inputs */
-    input.validating {
-      border-color: #60a5fa !important;
-      box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15);
-    }
-    
-    input.valid {
-      border-color: #34d399 !important;
-    }
-    
-    input.invalid {
-      border-color: #f87171 !important;
-    }
-    
-    /* Iconos de validación en inputs */
-    @media (prefers-color-scheme: dark), (prefers-color-scheme: no-preference) {
-      body.dark input.valid,
-      .dark-mode input.valid,
-      [data-theme="dark"] input.valid {
-        background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M13.5 4.5L6 12L2.5 8.5' stroke='%2334d399' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-        background-repeat: no-repeat;
-        background-position: right 14px center;
-        background-size: 18px;
-      }
-      
-      body.dark input.invalid,
-      .dark-mode input.invalid,
-      [data-theme="dark"] input.invalid {
-        background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 4L4 12M4 4L12 12' stroke='%23f87171' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
-        background-repeat: no-repeat;
-        background-position: right 14px center;
-        background-size: 18px;
-      }
-    }
-    
-    /* Modo claro */
-    input.valid {
-      background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M13.5 4.5L6 12L2.5 8.5' stroke='%23059669' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 14px center;
-      background-size: 18px;
-    }
-    
-    input.invalid {
-      background-image: url("data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 16 16' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 4L4 12M4 4L12 12' stroke='%23dc2626' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 14px center;
-      background-size: 18px;
-    }
-
-    /* Botón de edición mejorado */
+    /* ========== BOTÓN DE EDICIÓN COMPACTO ========== */
     .btn-edit {
-      min-width: 90px;
-      height: 42px;
+      min-width: 95px; /* ANCHO COMPACTO */
+      height: 44px; /* ALTURA IGUAL AL INPUT */
       background: var(--btn-edit-bg);
-      border: 1.5px solid var(--btn-edit-border);
-      border-radius: 8px;
+      border: 2px solid var(--btn-edit-border); /* BORDE EQUILIBRADO */
+      border-radius: 10px; /* REDONDEADO EQUILIBRADO */
       color: var(--btn-edit-color);
-      font-weight: 600;
-      font-size: 0.875rem;
+      font-weight: 700; /* BOLD */
+      font-size: 14px; /* TAMAÑO PERFECTO */
       cursor: pointer;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       white-space: nowrap;
       padding: 0 16px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
     
     .btn-edit:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
     }
     
     .btn-edit:active {
       transform: translateY(0);
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
     }
     
     .btn-edit.active {
       background: linear-gradient(135deg, #3b82f6, #2563eb);
       border-color: #2563eb;
       color: white;
-      box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
+      box-shadow: 0 6px 16px rgba(59, 130, 246, 0.5);
     }
 
-    /* Estado de carga profesional */
+    /* ========== INDICADORES DE ESTADO PERFECTOS ========== */
     .loading-spinner {
       display: inline-block;
-      width: 16px;
-      height: 16px;
-      border: 2px solid rgba(148, 163, 184, 0.3);
+      width: 18px; /* TAMAÑO PERFECTO */
+      height: 18px;
+      border: 2.5px solid rgba(148, 163, 184, 0.3); /* BORDE EQUILIBRADO */
       border-top-color: var(--text-muted);
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
@@ -717,13 +819,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       to { transform: rotate(360deg); }
     }
 
-    /* Indicadores de estado mejorados */
     .status-indicator {
       position: absolute;
-      right: 14px;
+      right: 16px;
       top: 50%;
       transform: translateY(-50%);
-      font-size: 18px;
+      font-size: 20px; /* TAMAÑO PERFECTO */
       pointer-events: none;
       transition: all 0.3s ease;
     }
@@ -737,14 +838,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       50% { opacity: 0.5; }
     }
 
-    /* Hints mejorados - CON VARIABLES */
+    /* ========== HINTS PERFECTOS ========== */
     .hint {
       display: block;
-      margin-top: 6px;
-      font-size: 0.8125rem;
+      margin-top: 6px; /* MARGEN PERFECTO */
+      font-size: 13px; /* TAMAÑO PERFECTO */
       color: var(--text-muted);
       transition: all 0.3s ease;
-      font-weight: 500;
+      font-weight: 500; /* SEMI-BOLD */
+      padding-left: 4px;
     }
     
     .hint.success {
@@ -759,13 +861,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       color: var(--text-info);
     }
 
-    /* Contenedor de reglas de contraseña - CON VARIABLES */
+    /* ========== CONTENEDOR DE REGLAS COMPACTO ========== */
     #rules {
-      margin-top: 12px;
-      padding: 12px;
+      margin-top: 12px; /* MARGEN COMPACTO */
+      padding: 14px; /* PADDING COMPACTO */
       background: var(--bg-rules);
-      border-radius: 8px;
-      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 10px; /* REDONDEADO EQUILIBRADO */
+      border: 2px solid rgba(148, 163, 184, 0.2); /* BORDE EQUILIBRADO */
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    /* ========== CAMPO DE FORMULARIO COMPACTO ========== */
+    .field {
+      margin-bottom: 18px; /* ESPACIO COMPACTO */
+    }
+    
+    .field-label {
+      display: block;
+      margin-bottom: 7px; /* MARGEN COMPACTO */
+      font-weight: 700; /* BOLD */
+      color: var(--text-label);
+      font-size: 13px; /* TAMAÑO PERFECTO */
+      letter-spacing: 0.2px;
+
+    }
+
+    /* ========== ALERTAS PERFECTAS ========== */
+    .alert {
+      padding: 16px 18px; /* PADDING PERFECTO */
+      margin-bottom: 20px; /* MARGEN PERFECTO */
+      border-radius: 10px; /* REDONDEADO EQUILIBRADO */
+      font-weight: 600; /* SEMI-BOLD */
+      font-size: 14px; /* TAMAÑO PERFECTO */
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      border: 2px solid transparent;
+    }
+    
+    .alert-error {
+      background: rgba(239, 68, 68, 0.12);
+      color: var(--text-error);
+      border-color: rgba(239, 68, 68, 0.3);
+      border-left: 5px solid #ef4444; /* BORDE LATERAL EQUILIBRADO */
+    }
+    
+    .alert-success {
+      background: rgba(16, 185, 129, 0.12);
+      color: var(--text-success);
+      border-color: rgba(16, 185, 129, 0.3);
+      border-left: 5px solid #10b981;
     }
 
     /* Ocultar elementos */
@@ -773,7 +916,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       display: none !important;
     }
 
-    /* Scrollbar personalizado */
+    /* ========== SCROLLBAR PERFECTO ========== */
     .auth-form {
       max-height: 70vh;
       overflow-y: auto;
@@ -781,120 +924,101 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     .auth-form::-webkit-scrollbar {
-      width: 8px;
+      width: 8px; /* ANCHO PERFECTO */
     }
     
     .auth-form::-webkit-scrollbar-track {
       background: rgba(148, 163, 184, 0.1);
-      border-radius: 4px;
+      border-radius: 5px; /* REDONDEADO EQUILIBRADO */
     }
     
     .auth-form::-webkit-scrollbar-thumb {
       background: linear-gradient(180deg, #94a3b8, #64748b);
-      border-radius: 4px;
+      border-radius: 5px;
       transition: background 0.3s ease;
+      border: 2px solid rgba(255, 255, 255, 0.2);
     }
     
     .auth-form::-webkit-scrollbar-thumb:hover {
       background: linear-gradient(180deg, #64748b, #475569);
     }
 
-    /* Campo de formulario */
-    .field {
-      margin-bottom: 1.25rem;
-    }
-    
-    .field-label {
-      display: block;
-      margin-bottom: 6px;
-      font-weight: 600;
-      color: var(--text-label);
-      font-size: 0.9rem;
-    }
-
-    /* Alertas mejoradas */
-    .alert {
-      padding: 14px 16px;
-      margin-bottom: 18px;
-      border-radius: 10px;
-      font-weight: 500;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-    }
-    
-    .alert-error {
-      background: rgba(220, 38, 38, 0.15);
-      color: var(--text-error);
-      border-left: 4px solid #dc2626;
-      border: 1px solid rgba(220, 38, 38, 0.3);
-    }
-    
-    .alert-success {
-      background: rgba(5, 150, 105, 0.15);
-      color: var(--text-success);
-      border-left: 4px solid #059669;
-      border: 1px solid rgba(5, 150, 105, 0.3);
-    }
-
-    /* Mejoras en inputs */
-    input, select {
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    
-    input:focus, select:focus {
-      outline: none;
-      border-color: #60a5fa;
-      box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15);
-    }
-
-    /* Responsive */
+    /* ========== RESPONSIVE COMPACTO ========== */
     @media (max-width: 768px) {
+      input[type="text"],
+      input[type="email"],
+      input[type="password"],
+      input[type="tel"],
+      select {
+        height: 42px;
+        font-size: 14px;
+        padding: 10px 14px;
+      }
+      
       .input-eye {
-        width: 28px;
-        height: 28px;
-        min-width: 28px;
-        right: 5px;
+        width: 34px;
+        height: 34px;
+        min-width: 34px;
+        right: 7px;
       }
       
       .eye-icon {
-        width: 14px;
-        height: 14px;
+        width: 15px;
+        height: 15px;
       }
       
       .eye-icon::before {
-        width: 14px;
+        width: 15px;
         height: 8px;
-        top: 3px;
+        border-width: 2px;
       }
       
       .eye-icon::after {
-        width: 3px;
-        height: 3px;
-        left: 5.5px;
-        top: 5px;
+        width: 3.5px;
+        height: 3.5px;
+        left: 5.75px;
       }
       
       .input-wrap input {
-        padding-right: 40px !important;
+        padding-right: 46px !important;
       }
       
       .btn-edit {
-        min-width: 80px;
-        height: 38px;
-        font-size: 0.8125rem;
+        min-width: 85px;
+        height: 42px;
+        font-size: 13px;
+      }
+      
+      .req {
+        font-size: 13px;
+        padding: 8px 11px;
+      }
+      
+      .validation-icon {
+        width: 19px;
+        height: 19px;
       }
     }
     
-    /* Fix para que el botón nunca sobresalga en ningún tamaño */
     @media (max-width: 480px) {
+      input[type="text"],
+      input[type="email"],
+      input[type="password"],
+      input[type="tel"],
+      select {
+        height: 40px;
+        font-size: 14px;
+      }
+      
       .input-eye {
-        width: 26px;
-        height: 26px;
-        min-width: 26px;
-        right: 4px;
+        width: 32px;
+        height: 32px;
+        min-width: 32px;
+        right: 6px;
       }
       
       .input-wrap input {
-        padding-right: 36px !important;
+        padding-right: 44px !important;
       }
     }
   </style>
@@ -1017,14 +1141,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
             <small id="pwdHelp" class="hint">Debe cumplir todos los requisitos:</small>
             <div id="rules">
-              <div class="req bad" id="r-len"><span class="validation-icon"></span> 10–64 caracteres</div>
-              <div class="req bad" id="r-up"><span class="validation-icon"></span> Al menos 1 mayúscula (A-Z)</div>
-              <div class="req bad" id="r-low"><span class="validation-icon"></span> Al menos 1 minúscula (a-z)</div>
-              <div class="req bad" id="r-num"><span class="validation-icon"></span> Al menos 1 número (0-9)</div>
-              <div class="req bad" id="r-spe"><span class="validation-icon"></span> Al menos 1 especial (!@#$%^&*)</div>
-              <div class="req bad" id="r-spc"><span class="validation-icon"></span> Sin espacios</div>
-              <div class="req bad" id="r-pii"><span class="validation-icon"></span> No contiene correo/nombres</div>
-              <div class="req bad" id="r-common"><span class="validation-icon"></span> No es contraseña común</div>
+              <div class="req pending" id="r-len"><span class="validation-icon"></span> 10–64 caracteres</div>
+              <div class="req pending" id="r-up"><span class="validation-icon"></span> Al menos 1 mayúscula (A-Z)</div>
+              <div class="req pending" id="r-low"><span class="validation-icon"></span> Al menos 1 minúscula (a-z)</div>
+              <div class="req pending" id="r-num"><span class="validation-icon"></span> Al menos 1 número (0-9)</div>
+              <div class="req pending" id="r-spe"><span class="validation-icon"></span> Al menos 1 especial (!@#$%^&*)</div>
+              <div class="req pending" id="r-spc"><span class="validation-icon"></span> Sin espacios</div>
+              <div class="req pending" id="r-pii"><span class="validation-icon"></span> No contiene correo/nombres</div>
+              <div class="req pending" id="r-common"><span class="validation-icon"></span> No es contraseña común</div>
             </div>
           </label>
 
@@ -1047,6 +1171,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </div>
 
 <script>
+// ================= JAVASCRIPT MEJORADO CON VALIDACIÓN DINÁMICA =================
+
 // Toggle edición dirección (con control de "dirty")
 const direccionInput = document.getElementById('direccion');
 const editDirBtn = document.getElementById('editDir');
@@ -1159,26 +1285,44 @@ function togglePass(id, btnId){
 togglePass('pwd','togglePwd'); 
 togglePass('pwd2','togglePwd2');
 
-// ================= Validación en vivo de contraseña =================
+// ================= VALIDACIÓN EN VIVO DE CONTRASEÑA - MEJORADA =================
 (function(){
   const pwd = document.getElementById('pwd');
   const pwd2 = document.getElementById('pwd2');
   const email = document.getElementById('email');
   const common = new Set(['123456','123456789','12345678','12345','qwerty','password','111111','abc123','123123','iloveyou','admin','welcome','monkey','dragon','qwertyuiop','000000']);
   
-  function mark(id, ok){ 
-    const el = document.getElementById(id); 
-    el.classList.toggle('ok', ok); 
-    el.classList.toggle('bad', !ok); 
+  // Función mejorada para marcar requisitos con 3 estados: pending, bad, ok
+  function mark(id, state){ 
+    const el = document.getElementById(id);
+    // Remover todas las clases de estado
+    el.classList.remove('pending', 'bad', 'ok');
+    // Agregar la clase correspondiente
+    el.classList.add(state);
   }
   
   function strongCheck(v){
-    const len = v.length>=10 && v.length<=64, 
-          up=/[A-Z]/.test(v), 
-          low=/[a-z]/.test(v), 
-          num=/[0-9]/.test(v), 
-          spe=/[!@#$%^&*()_\+\=\-\[\]{};:,.?]/.test(v), 
-          spc=!/\s/.test(v);
+    // Si no hay contraseña, todos los requisitos están en "pending"
+    if (!v || v.length === 0) {
+      mark('r-len', 'pending');
+      mark('r-up', 'pending');
+      mark('r-low', 'pending');
+      mark('r-num', 'pending');
+      mark('r-spe', 'pending');
+      mark('r-spc', 'pending');
+      mark('r-pii', 'pending');
+      mark('r-common', 'pending');
+      return false;
+    }
+    
+    // Validaciones individuales
+    const len = v.length>=10 && v.length<=64;
+    const up=/[A-Z]/.test(v);
+    const low=/[a-z]/.test(v);
+    const num=/[0-9]/.test(v);
+    const spe=/[!@#$%^&*()_\+\=\-\[\]{};:,.?]/.test(v);
+    const spc=!/\s/.test(v);
+    
     const lowers = v.toLowerCase(); 
     let pii = true; 
     const pieces=[];
@@ -1186,17 +1330,52 @@ togglePass('pwd2','togglePwd2');
     (nombres.value+' '+apellidos.value).split(/\s+/).forEach(p=>{ p=p.toLowerCase(); if(p.length>=4) pieces.push(p); });
     for (const p of pieces){ if(p && lowers.includes(p)){ pii=false; break; } }
     const notCommon = !common.has(lowers);
-    mark('r-len',len); mark('r-up',up); mark('r-low',low); mark('r-num',num); mark('r-spe',spe); mark('r-spc',spc); mark('r-pii',pii); mark('r-common',notCommon);
+    
+    // Marcar cada requisito con ok o bad (nunca pending si hay texto)
+    mark('r-len', len ? 'ok' : 'bad');
+    mark('r-up', up ? 'ok' : 'bad');
+    mark('r-low', low ? 'ok' : 'bad');
+    mark('r-num', num ? 'ok' : 'bad');
+    mark('r-spe', spe ? 'ok' : 'bad');
+    mark('r-spc', spc ? 'ok' : 'bad');
+    mark('r-pii', pii ? 'ok' : 'bad');
+    mark('r-common', notCommon ? 'ok' : 'bad');
+    
     return len&&up&&low&&num&&spe&&spc&&pii&&notCommon;
   }
   
   function syncValidity(){
-    strongCheck(pwd.value);
-    if (!strongCheck(pwd.value)) pwd.setCustomValidity('La contraseña no cumple los requisitos mínimos.'); 
-    else pwd.setCustomValidity('');
-    if (pwd2.value && pwd2.value !== pwd.value) pwd2.setCustomValidity('Las contraseñas no coinciden.'); 
-    else pwd2.setCustomValidity('');
+    const isValid = strongCheck(pwd.value);
+    
+    if (!pwd.value) {
+      pwd.setCustomValidity('');
+      pwd.classList.remove('valid', 'invalid');
+    } else if (!isValid) {
+      pwd.setCustomValidity('La contraseña no cumple los requisitos mínimos.');
+      pwd.classList.remove('valid');
+      pwd.classList.add('invalid');
+    } else {
+      pwd.setCustomValidity('');
+      pwd.classList.remove('invalid');
+      pwd.classList.add('valid');
+    }
+    
+    if (pwd2.value && pwd2.value !== pwd.value) {
+      pwd2.setCustomValidity('Las contraseñas no coinciden.');
+      pwd2.classList.remove('valid');
+      pwd2.classList.add('invalid');
+    } else if (pwd2.value && pwd2.value === pwd.value && isValid) {
+      pwd2.setCustomValidity('');
+      pwd2.classList.remove('invalid');
+      pwd2.classList.add('valid');
+    } else {
+      pwd2.setCustomValidity('');
+      pwd2.classList.remove('valid', 'invalid');
+    }
   }
+  
+  // Inicializar en estado "pending"
+  strongCheck('');
   
   pwd.addEventListener('input', syncValidity); 
   pwd2.addEventListener('input', syncValidity); 

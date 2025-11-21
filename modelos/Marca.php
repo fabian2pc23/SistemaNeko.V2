@@ -1,6 +1,6 @@
 <?php 
 //Incluímos inicialmente la conexión a la base de datos
-require "../config/Conexion.php";
+require_once "../config/Conexion.php";
 
 Class Marca
 {
@@ -13,24 +13,69 @@ Class Marca
 	//Implementamos un método para insertar registros
 	public function insertar($nombre,$descripcion)
 	{
-	    try {
-	        $sql="INSERT INTO marca (nombre,descripcion,condicion)
-	              VALUES ('$nombre','$descripcion','1')";
-	        return ejecutarConsulta($sql);
-	    } catch (Exception $e) {
-	        if (strpos($e->getMessage(), 'Duplicate') !== false) {
-	            return "duplicado";
-	        } else {
-	            return "error";
-	        }
-	    }
+		$validar = $this->validarDuplicado($nombre);
+		if ($validar) {
+			return "duplicado";
+		}
+
+		$sql="INSERT INTO marca (nombre,descripcion,condicion)
+		      VALUES ('$nombre','$descripcion','1')";
+		return ejecutarConsulta($sql);
 	}
 
 	//Implementamos un método para editar registros
 	public function editar($idmarca,$nombre,$descripcion)
 	{
+		$validar = $this->validarDuplicado($nombre, $idmarca);
+		if ($validar) {
+			return "duplicado";
+		}
+
 		$sql="UPDATE marca SET nombre='$nombre',descripcion='$descripcion' WHERE idmarca='$idmarca'";
 		return ejecutarConsulta($sql);
+	}
+
+	//Validar duplicados (Exacto y Singular/Plural)
+	public function validarDuplicado($nombre, $idmarca = 0)
+	{
+		// Normalizar nombre (eliminar espacios extra y convertir a minúsculas para comparación)
+		$nombre = trim($nombre);
+		
+		// Generar variaciones (Singular/Plural básico)
+		// Si termina en 's', quitamos la 's' para buscar el singular
+		// Si no termina en 's', agregamos 's' y 'es' para buscar plurales
+		
+		$variaciones = array();
+		$variaciones[] = $nombre; // El nombre exacto
+
+		if (substr($nombre, -1) == 's' || substr($nombre, -1) == 'S') {
+			$variaciones[] = substr($nombre, 0, -1); // Posible singular
+			if (substr($nombre, -2) == 'es' || substr($nombre, -2) == 'ES') {
+				$variaciones[] = substr($nombre, 0, -2); // Posible singular de 'es'
+			}
+		} else {
+			$variaciones[] = $nombre . 's'; // Posible plural simple
+			$variaciones[] = $nombre . 'es'; // Posible plural con 'es'
+		}
+
+		// Construir la consulta SQL
+		// Buscamos cualquiera de las variaciones
+		$sql = "SELECT * FROM marca WHERE (";
+		$first = true;
+		foreach ($variaciones as $val) {
+			if (!$first) $sql .= " OR ";
+			$sql .= "nombre LIKE '$val'";
+			$first = false;
+		}
+		$sql .= ") AND idmarca != '$idmarca'";
+
+		$resultado = ejecutarConsulta($sql);
+		
+		// Si hay resultados, es un duplicado
+		if ($resultado->num_rows > 0) {
+			return true;
+		}
+		return false;
 	}
 
 	//Implementamos un método para desactivar marcas
@@ -90,53 +135,26 @@ Class Marca
 		return ejecutarConsulta($sql);
 	}
 
-	// Marcas con stock crítico (artículos con stock <= 5)
+	// Marcas con stock crítico (al menos un artículo con stock <= 5)
 	public function marcasStockCritico()
 	{
-		$sql = "SELECT COUNT(DISTINCT m.idmarca) as total 
+		$sql = "SELECT DISTINCT m.idmarca, m.nombre
 		        FROM marca m
 		        INNER JOIN articulo a ON m.idmarca = a.idmarca
-		        WHERE a.stock <= 5 AND a.stock > 0 AND m.condicion = 1";
-		return ejecutarConsultaSimpleFila($sql);
+		        WHERE m.condicion = 1 AND a.stock <= 5
+		        ORDER BY m.nombre ASC";
+		return ejecutarConsulta($sql);
 	}
 
-	// Marcas nuevas (últimas 5 marcas creadas por ID más alto)
+	// Marcas nuevas (últimas 5 registradas)
 	public function marcasNuevas()
 	{
-		$sql = "SELECT COUNT(*) as total 
-		        FROM (
-		            SELECT idmarca 
-		            FROM marca 
-		            WHERE condicion = 1
-		            ORDER BY idmarca DESC 
-		            LIMIT 5
-		        ) as nuevas";
-		return ejecutarConsultaSimpleFila($sql);
-	}
-
-	// Método adicional: Obtener estadísticas de marcas
-	public function estadisticasMarcas()
-	{
-		$sql = "SELECT 
-		        COUNT(*) as total_marcas,
-		        SUM(CASE WHEN condicion = 1 THEN 1 ELSE 0 END) as marcas_activas,
-		        SUM(CASE WHEN condicion = 0 THEN 1 ELSE 0 END) as marcas_inactivas
-		        FROM marca";
-		return ejecutarConsultaSimpleFila($sql);
-	}
-
-	// Método adicional: Marcas con más artículos
-	public function marcasConMasArticulos($limite = 5)
-	{
-		$sql = "SELECT m.nombre, COUNT(a.idarticulo) as total_articulos
-		        FROM marca m
-		        LEFT JOIN articulo a ON m.idmarca = a.idmarca AND a.condicion = 1
-		        WHERE m.condicion = 1
-		        GROUP BY m.idmarca, m.nombre
-		        ORDER BY total_articulos DESC
-		        LIMIT $limite";
+		$sql = "SELECT idmarca, nombre
+		        FROM marca
+		        WHERE condicion = 1
+		        ORDER BY idmarca DESC
+		        LIMIT 5";
 		return ejecutarConsulta($sql);
 	}
 }
 
-?>

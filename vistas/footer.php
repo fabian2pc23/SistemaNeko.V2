@@ -22,5 +22,21 @@
 
     <script src="../public/js/bootbox.min.js"></script> 
     <script src="../public/js/bootstrap-select.min.js"></script>
+    <script>
+      $(document).ready(function() {
+        var url = window.location.href;
+        // Get the filename from the URL
+        var page = url.substring(url.lastIndexOf('/') + 1);
+        
+        // Find the link that matches the current page
+        $('.sidebar-menu a').each(function() {
+          var link = $(this).attr('href');
+          if (link == page) {
+            $(this).parent('li').addClass('active');
+            $(this).closest('.treeview').addClass('active');
+          }
+        });
+      });
+    </script>
   </body>
 </html>

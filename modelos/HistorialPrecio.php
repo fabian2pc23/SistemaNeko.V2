@@ -1,5 +1,5 @@
 <?php
-require "../config/Conexion.php";
+require_once "../config/Conexion.php";
 
 class HistorialPrecios {
 
@@ -46,14 +46,14 @@ class HistorialPrecios {
     return ejecutarConsulta($sql);
   }
 
-  /* Lee precios vigentes desde la vista v_precios_actuales */
+  /* Lee precios vigentes desde la tabla articulo */
   public function listarVigentes($idarticulo = 0){
     $idarticulo = (int)$idarticulo;
-    $where = $idarticulo>0 ? "WHERE v.idarticulo = $idarticulo" : "";
-    $sql = "SELECT v.idarticulo, v.nombre, v.precio_venta, v.precio_compra, v.stock
-            FROM v_precios_actuales v
+    $where = $idarticulo>0 ? "WHERE a.idarticulo = $idarticulo" : "";
+    $sql = "SELECT a.idarticulo, a.nombre, a.precio_venta, a.precio_compra, a.stock
+            FROM articulo a
             $where
-            ORDER BY v.nombre ASC";
+            ORDER BY a.nombre ASC";
     return ejecutarConsulta($sql);
   }
 

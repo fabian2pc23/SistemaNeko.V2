@@ -1,18 +1,13 @@
 <?php
-// vistas/historial_precios.php — Estilo corporativo tipo categoría/artículo
+// vistas/historial_precios.php — Modernizado con Chart.js
 ob_start();
 if (session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
 require_once __DIR__ . '/_requires_auth.php';
 require 'header.php';
 
-/**
- * Permisos: dejamos visible si tiene Almacén o Compras.
- * Si quieres restringirlo a uno solo, cambia la expresión.
- */
 $canVerHistorial = ( !empty($_SESSION['almacen']) && (int)$_SESSION['almacen']===1 )
                  || ( !empty($_SESSION['compras']) && (int)$_SESSION['compras']===1 );
 
-// Paleta corporativa (igual que en categoría)
 $nekoPrimary     = '#1565c0';
 $nekoPrimaryDark = '#0d47a1';
 ?>
@@ -22,14 +17,19 @@ $nekoPrimaryDark = '#0d47a1';
     --neko-primary: <?= $nekoPrimary ?>;
     --neko-primary-dark: <?= $nekoPrimaryDark ?>;
     --neko-bg:#f5f7fb;
+    --neko-success: #059669;
+    --neko-warning: #d97706;
+    --neko-danger: #dc2626;
   }
   .content-wrapper{ background: var(--neko-bg); }
+  
+  /* Cards */
   .neko-card{
     background:#fff; border:1px solid rgba(2,24,54,.06);
     border-radius:14px; box-shadow:0 8px 24px rgba(2,24,54,.06);
     overflow:hidden; margin-top:10px;
   }
-  .neko-card__header{
+  .neko-card .neko-card__header{
     display:flex; align-items:center; justify-content:space-between;
     background: linear-gradient(90deg, var(--neko-primary-dark), var(--neko-primary));
     color:#fff; padding:14px 18px;
@@ -38,21 +38,83 @@ $nekoPrimaryDark = '#0d47a1';
     font-size:1.1rem; font-weight:600; letter-spacing:.2px; margin:0;
     display:flex; gap:10px; align-items:center;
   }
-  .neko-actions .btn{ border-radius:10px; }
   .neko-card__body{ padding:18px; }
 
-  .btn-primary{ background:var(--neko-primary); border-color:var(--neko-primary); }
-  .btn-primary:hover{ background:var(--neko-primary-dark); border-color:var(--neko-primary-dark); }
+  /* Botones */
+  .neko-actions .btn{ border-radius:10px; }
+  .btn-primary{ 
+    background: linear-gradient(135deg, var(--neko-primary-dark), var(--neko-primary));
+    border:none; box-shadow:0 2px 8px rgba(21,101,192,.25);
+  }
+  .btn-primary:hover{ 
+    background: linear-gradient(135deg, var(--neko-primary), var(--neko-primary-dark));
+    transform:translateY(-1px);
+  }
 
-  .form-group{ margin-bottom:14px; }
-  .w-220{ width: 220px; }
-  .text-muted-small{ color:#64748b; font-size:.85rem; }
+  /* Filter Bar */
+  .filter-bar {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 20px;
+    flex-wrap: wrap; background: #fff; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0;
+  }
+  .filter-bar label { font-weight: 600; color: #334155; margin: 0; }
 
-  /* Tablas */
+  /* Chart Container */
+  #chart-container {
+    background: #fff; border-radius: 12px; padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.08); margin-bottom: 20px;
+    border: 1px solid #e2e8f0; display: none;
+  }
+  #chart-container h4 {
+    margin: 0 0 16px 0; color: #1e293b; font-weight: 700;
+    display: flex; align-items: center; gap: 8px;
+  }
+  #priceChart { max-height: 350px; }
+
+  /* Tabs */
+  .nav-tabs {
+    border-bottom: 2px solid #e2e8f0;
+  }
+  .nav-tabs > li > a {
+    color: #64748b; font-weight: 600;
+  }
+  .nav-tabs > li.active > a {
+    color: var(--neko-primary); border-bottom: 2px solid var(--neko-primary);
+  }
+
+  /* Tabla */
   #tbl_vigentes thead th,
-  #tbl_mov thead th{ background:#eef3fb; color:#0b2752; }
-  #tbl_vigentes tfoot th,
-  #tbl_mov tfoot th{ background:#f8fafc; }
+  #tbl_mov thead th { 
+    background: linear-gradient(135deg, #1e293b, #334155); 
+    color:#fff; font-weight:600; text-transform:uppercase; 
+    font-size:0.75rem; padding:12px;
+  }
+  #tbl_vigentes tbody tr:hover,
+  #tbl_mov tbody tr:hover { background:#f8fafc; }
+  
+  /* Ocultar controles nativos DT */
+  #tbl_vigentes_wrapper .dataTables_filter, 
+  #tbl_vigentes_wrapper .dataTables_length, 
+  #tbl_vigentes_wrapper .dt-buttons,
+  #tbl_mov_wrapper .dataTables_filter, 
+  #tbl_mov_wrapper .dataTables_length, 
+  #tbl_mov_wrapper .dt-buttons { 
+    display: none !important; 
+  }
+
+  /* Export Buttons */
+  .export-actions { display: flex; gap: 6px; margin-bottom: 12px; }
+  .btn-export {
+    padding: 6px 12px; border: 1px solid #e2e8f0; background: #fff; border-radius: 6px;
+    color: #64748b; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 6px;
+  }
+  .btn-export:hover { background: #f8fafc; color: #334155; border-color: #cbd5e1; }
+
+  .text-muted-small{ color:#64748b; font-size:.85rem; margin-top: 4px; }
+
+  @media (max-width: 992px) {
+    .filter-bar { flex-direction: column; align-items: stretch; }
+    #chart-container { padding: 12px; }
+  }
 </style>
 
 <div class="content-wrapper">
@@ -64,7 +126,7 @@ $nekoPrimaryDark = '#0d47a1';
           <!-- Header -->
           <div class="neko-card__header">
             <h1 class="neko-card__title">
-              <i class="fa fa-tags"></i> Historial de Precios
+              <i class="fa fa-line-chart"></i> Historial de Precios
             </h1>
             <div class="neko-actions">
               <button class="btn btn-light" id="btnRecargar" style="background:#e3f2fd;border:0;color:#0d47a1;">
@@ -78,12 +140,18 @@ $nekoPrimaryDark = '#0d47a1';
 
           <!-- Filtros -->
           <div class="neko-card__body" style="padding-bottom:8px;">
-            <div class="row" style="margin-bottom:12px;">
-              <div class="col-md-6">
-                <label>Filtrar por artículo:</label>
-                <select id="filtro_articulo" class="form-control selectpicker" data-live-search="true" title="Seleccione artículo" data-size="8"></select>
-                <div class="text-muted-small">Puedes dejarlo vacío para ver todo.</div>
-              </div>
+            <div class="filter-bar">
+              <label>Filtrar por artículo:</label>
+              <select id="filtro_articulo" class="form-control selectpicker" data-live-search="true" title="Seleccione artículo" data-size="8" style="flex: 1; min-width: 250px;"></select>
+              <div class="text-muted-small" style="width: 100%;">Selecciona un artículo para ver su historial de precios y gráfico de tendencia.</div>
+            </div>
+          </div>
+
+          <!-- Chart Container -->
+          <div class="neko-card__body" style="padding-top:0;">
+            <div id="chart-container">
+              <h4><i class="fa fa-area-chart"></i> Tendencia de Precios</h4>
+              <canvas id="priceChart"></canvas>
             </div>
           </div>
 
@@ -104,7 +172,33 @@ $nekoPrimaryDark = '#0d47a1';
           <div class="tab-content neko-card__body">
             <!-- Vigentes -->
             <div role="tabpanel" class="tab-pane active" id="vigentes">
-              <div class="panel-body table-responsive" id="listado_vigentes">
+              <!-- Controles de búsqueda y paginación -->
+              <div class="filter-bar" style="margin-bottom: 16px;">
+                <div class="search-container" style="flex: 1; min-width: 200px; position: relative;">
+                  <i class="fa fa-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8;"></i>
+                  <input type="text" id="search-vigentes" class="search-input" placeholder="Buscar en precios vigentes..." style="width: 100%; padding: 8px 12px 8px 36px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.9rem; outline: none;">
+                </div>
+                
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span style="font-size:0.85rem; font-weight:600; color:#64748b;">Mostrar:</span>
+                  <select id="entries-vigentes" class="filter-select" style="padding: 6px 24px 6px 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.85rem; color: #334155;">
+                    <option value="5">5</option>
+                    <option value="10" selected>10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                  </select>
+                </div>
+
+                <div class="export-actions">
+                  <button class="btn-export" onclick="exportarTabla('copy', 'vigentes')" title="Copiar"><i class="fa fa-copy"></i> Copiar</button>
+                  <button class="btn-export" onclick="exportarTabla('excel', 'vigentes')" title="Excel"><i class="fa fa-file-excel-o"></i> Excel</button>
+                  <button class="btn-export" onclick="exportarTabla('csv', 'vigentes')" title="CSV"><i class="fa fa-file-text-o"></i> CSV</button>
+                  <button class="btn-export" onclick="exportarTabla('pdf', 'vigentes')" title="PDF"><i class="fa fa-file-pdf-o"></i> PDF</button>
+                </div>
+              </div>
+
+              <div class="table-responsive">
                 <table id="tbl_vigentes" class="table table-striped table-bordered table-condensed table-hover" style="width:100%">
                   <thead>
                     <th>ID</th>
@@ -114,20 +208,39 @@ $nekoPrimaryDark = '#0d47a1';
                     <th>Stock</th>
                   </thead>
                   <tbody></tbody>
-                  <tfoot>
-                    <th>ID</th>
-                    <th>Artículo</th>
-                    <th>Precio venta</th>
-                    <th>Precio compra</th>
-                    <th>Stock</th>
-                  </tfoot>
                 </table>
               </div>
             </div>
 
             <!-- Movimientos -->
             <div role="tabpanel" class="tab-pane" id="movimientos">
-              <div class="panel-body table-responsive" id="listado_movimientos">
+              <!-- Controles de búsqueda y paginación -->
+              <div class="filter-bar" style="margin-bottom: 16px;">
+                <div class="search-container" style="flex: 1; min-width: 200px; position: relative;">
+                  <i class="fa fa-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8;"></i>
+                  <input type="text" id="search-movimientos" class="search-input" placeholder="Buscar en movimientos..." style="width: 100%; padding: 8px 12px 8px 36px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.9rem; outline: none;">
+                </div>
+                
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span style="font-size:0.85rem; font-weight:600; color:#64748b;">Mostrar:</span>
+                  <select id="entries-movimientos" class="filter-select" style="padding: 6px 24px 6px 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.85rem; color: #334155;">
+                    <option value="5">5</option>
+                    <option value="10" selected>10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                  </select>
+                </div>
+
+                <div class="export-actions">
+                  <button class="btn-export" onclick="exportarTabla('copy', 'movimientos')" title="Copiar"><i class="fa fa-copy"></i> Copiar</button>
+                  <button class="btn-export" onclick="exportarTabla('excel', 'movimientos')" title="Excel"><i class="fa fa-file-excel-o"></i> Excel</button>
+                  <button class="btn-export" onclick="exportarTabla('csv', 'movimientos')" title="CSV"><i class="fa fa-file-text-o"></i> CSV</button>
+                  <button class="btn-export" onclick="exportarTabla('pdf', 'movimientos')" title="PDF"><i class="fa fa-file-pdf-o"></i> PDF</button>
+                </div>
+              </div>
+
+              <div class="table-responsive">
                 <table id="tbl_mov" class="table table-striped table-bordered table-condensed table-hover" style="width:100%">
                   <thead>
                     <th>#</th>
@@ -141,22 +254,10 @@ $nekoPrimaryDark = '#0d47a1';
                     <th>Fecha</th>
                   </thead>
                   <tbody></tbody>
-                  <tfoot>
-                    <th>#</th>
-                    <th>Artículo</th>
-                    <th>Código</th>
-                    <th>Precio anterior</th>
-                    <th>Precio nuevo</th>
-                    <th>Motivo</th>
-                    <th>Fuente</th>
-                    <th>Usuario</th>
-                    <th>Fecha</th>
-                  </tfoot>
                 </table>
               </div>
             </div>
           </div>
-          <!-- /Body -->
         </div>
 
       </div>
@@ -222,138 +323,10 @@ $nekoPrimaryDark = '#0d47a1';
 
 <?php require 'footer.php'; ?>
 
-<!-- Inline mínimo funcional -->
-<script>
-(function(){
-  // Marcar menú activo si añadiste el item simple (sin treeview)
-  document.addEventListener('DOMContentLoaded', function(){
-    var li = document.querySelector('aside .sidebar-menu li > a[href="historial_precios.php"]');
-    if (li && li.parentElement){ li.parentElement.classList.add('active'); }
-  });
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 
-  // ---- Helpers
-  function cargarArticulosEnSelect($sel){
-    // Usa tu endpoint real para artículos activos
-    $.post("../ajax/articulo.php?op=selectActivos", function(r){
-      $sel.html(r);
-      try{ $sel.selectpicker('refresh'); }catch(_){}
-    });
-  }
+<!-- Script dedicado -->
+<script type="text/javascript" src="scripts/historial_precios.js"></script>
 
-  // ---- DataTables
-  var tblV = $('#tbl_vigentes').DataTable({
-    aProcessing:true, aServerSide:true,
-    dom:'Bfrtip', buttons:['copyHtml5','excelHtml5','csvHtml5','pdf'],
-    ajax:{
-      url:'../ajax/historial_precios.php?op=listar_vigentes',
-      type:'get',
-      data:function(d){
-        d.idarticulo = $('#filtro_articulo').val() || 0;
-      },
-      dataType:'json',
-      error:function(e){ console.error(e.responseText); }
-    },
-    iDisplayLength:10,
-    order:[[1,'asc']],
-    columns:[
-      {"data":0},{"data":1},{"data":2},{"data":3},{"data":4}
-    ]
-  });
-
-  var tblM = $('#tbl_mov').DataTable({
-    aProcessing:true, aServerSide:true,
-    dom:'Bfrtip', buttons:['copyHtml5','excelHtml5','csvHtml5','pdf'],
-    ajax:{
-      url:'../ajax/historial_precios.php?op=listar_movimientos',
-      type:'get',
-      data:function(d){
-        d.idarticulo = $('#filtro_articulo').val() || 0;
-      },
-      dataType:'json',
-      error:function(e){ console.error(e.responseText); }
-    },
-    iDisplayLength:10,
-    order:[[8,'desc']],
-    columns:[
-      {"data":0},{"data":1},{"data":2},{"data":3},{"data":4},{"data":5},{"data":6},{"data":7},{"data":8}
-    ]
-  });
-
-  // ---- Filtro
-  cargarArticulosEnSelect($('#filtro_articulo'));
-  $('#filtro_articulo').on('changed.bs.select', function(){
-    tblV.ajax.reload(null,false);
-    tblM.ajax.reload(null,false);
-  });
-
-  // ---- Recargar
-  $('#btnRecargar').on('click', function(){
-    tblV.ajax.reload(null,false);
-    tblM.ajax.reload(null,false);
-  });
-
-  // ---- Modal de actualización
-  $('#btnAbrirModal').on('click', function(){
-    cargarArticulosEnSelect($('#sel_articulo_mdl'));
-    $('#precio_actual').val('');
-    $('#precio_nuevo').val('');
-    $('#motivo').val('');
-    $('#idarticulo_mdl').val('');
-    $('#mdlPrecio').modal('show');
-  });
-
-  // Al elegir artículo en el modal, obtener precio vigente
-  $('#sel_articulo_mdl').on('changed.bs.select', function(){
-    var idart = $(this).val();
-    if(!idart){ $('#precio_actual').val(''); $('#idarticulo_mdl').val(''); return; }
-    $.getJSON('../ajax/historial_precios.php?op=ultimo&idarticulo='+encodeURIComponent(idart))
-      .done(function(resp){
-        if(resp && resp.success){
-          var pv = (resp.precio_venta ?? 0);
-          $('#precio_actual').val( (pv.toFixed ? pv.toFixed(2) : pv) );
-          $('#idarticulo_mdl').val(idart);
-        }else{
-          $('#precio_actual').val('');
-          $('#idarticulo_mdl').val('');
-        }
-      }).fail(function(){
-        $('#precio_actual').val(''); $('#idarticulo_mdl').val('');
-      });
-  });
-
-  // Envío del formulario de actualización
-  $('#frmPrecio').on('submit', function(e){
-    e.preventDefault();
-    var formData = new FormData(this);
-    $.ajax({
-      url: '../ajax/historial_precios.php?op=actualizar_precio',
-      type: 'POST',
-      data: formData,
-      contentType:false, processData:false
-    })
-    .done(function(r){
-      try{
-        var j = JSON.parse(r);
-        if(j.success){
-          bootbox.alert(j.message || 'Precio actualizado', function(){
-            $('#mdlPrecio').modal('hide');
-            tblV.ajax.reload(null,false);
-            tblM.ajax.reload(null,false);
-          });
-        }else{
-          bootbox.alert(j.message || 'No se pudo actualizar el precio');
-        }
-      }catch(_){
-        console.error('Respuesta inesperada:', r);
-        bootbox.alert('Respuesta inesperada del servidor');
-      }
-    })
-    .fail(function(){ bootbox.alert('Error de comunicación'); });
-  });
-
-})();
-</script>
-
-<!-- Si ya tienes un JS dedicado, lo puedes mantener (no es obligatorio) -->
-<!-- <script type="text/javascript" src="scripts/historial_precios.js"></script> -->
 <?php ob_end_flush(); ?>

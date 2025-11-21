@@ -1,0 +1,252 @@
+/**
+ * NEKO ERP - Responsive Utilities
+ * CSS global para hacer todas las vistas responsive
+ * Compatible con AdminLTE
+ */
+
+/* ==================== RESPONSIVE UTILITIES (Mobile < 768px) ==================== */
+
+@media (max-width: 768px) {
+
+  /* Fix Layout Mobile - CRITICAL */
+  .content-wrapper,
+  .main-footer {
+    margin-left: 0 !important;
+  }
+
+  .main-header .logo,
+  .main-header .navbar {
+    width: 100% !important;
+  }
+
+  .main-header .navbar {
+    margin: 0 !important;
+  }
+
+  /* Fix Header Overlap (Logo + Navbar = 100px) */
+  .main-header {
+    height: 100px !important;
+    max-height: 100px !important;
+  }
+
+  .content-wrapper {
+    padding-top: 100px !important;
+  }
+
+  .main-sidebar {
+    top: 100px !important;
+  }
+
+  /* Neko Cards */
+  .neko-card__header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    text-align: center;
+  }
+
+  .neko-card__title {
+    justify-content: center;
+    font-size: 1.2rem;
+  }
+
+  .neko-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .neko-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* KPI Cards */
+  .kpi-container {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+  }
+
+  .kpi-card {
+    padding: 14px;
+  }
+
+  /* Filter Bar */
+  .filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .filter-group {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .filter-btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .search-input-wrapper {
+    max-width: 100%;
+  }
+
+  /* Export Group */
+  .export-group {
+    width: 100%;
+    flex-direction: column;
+    margin-left: 0;
+  }
+
+  .export-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Tables */
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table {
+    font-size: 0.85rem;
+  }
+
+  .dataTables_wrapper .dataTables_length,
+  .dataTables_wrapper .dataTables_filter {
+    text-align: left;
+    margin-bottom: 10px;
+  }
+
+  /* Forms */
+  .form-group {
+    margin-bottom: 12px;
+  }
+
+  .modal-dialog {
+    margin: 10px;
+  }
+
+  .form-horizontal .form-group {
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  /* Buttons */
+  .btn-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .btn-group .btn {
+    width: 100%;
+    border-radius: 4px !important;
+  }
+
+  /* Box (AdminLTE) */
+  .box-header .box-tools {
+    width: 100%;
+    margin-top: 10px;
+  }
+
+  .box-header.with-border {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  /* DataTables específico */
+  .dataTables_wrapper .row {
+    margin: 0;
+  }
+
+  .dataTables_wrapper .col-sm-6 {
+    width: 100%;
+  }
+
+  div.dataTables_wrapper div.dataTables_length select {
+    width: auto;
+    display: inline-block;
+  }
+
+  /* Utilities Mobile */
+  .hide-mobile {
+    display: none !important;
+  }
+
+  .show-mobile {
+    display: block !important;
+  }
+
+  .stack-mobile {
+    flex-direction: column !important;
+  }
+
+  .stack-mobile>* {
+    width: 100% !important;
+    margin-bottom: 8px;
+  }
+
+  .full-mobile {
+    width: 100% !important;
+  }
+}
+
+/* ==================== SMALL MOBILE (< 480px) ==================== */
+
+@media (max-width: 480px) {
+
+  /* Texto más pequeño */
+  .neko-card__title {
+    font-size: 1.1rem;
+  }
+
+  .kpi-card__value {
+    font-size: 1.5rem !important;
+  }
+
+  .kpi-card__title {
+    font-size: 0.7rem;
+  }
+
+  /* Botones más compactos */
+  .btn {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+  }
+
+  .btn-sm {
+    padding: 5px 10px;
+    font-size: 0.75rem;
+  }
+
+  /* Tablas más compactas */
+  .table {
+    font-size: 0.75rem;
+  }
+
+  .table>thead>tr>th,
+  .table>tbody>tr>td {
+    padding: 6px;
+  }
+
+  /* Modales full screen */
+  .modal-dialog {
+    width: 100%;
+    margin: 0;
+  }
+
+  .modal-content {
+    border-radius: 0;
+    min-height: 100vh;
+  }
+}
+
+/* ==================== UTILITY CLASSES (Desktop Default) ==================== */
+
+.show-mobile {
+  display: none !important;
+}

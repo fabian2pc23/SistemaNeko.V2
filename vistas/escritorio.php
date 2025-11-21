@@ -1,10 +1,5 @@
-<?php
-// =====================================================
-// DASHBOARD EJECUTIVO MEJORADO - ERP AUTOPARTES
-// Version 2.0 - Con filtros avanzados y análisis comparativo
-// =====================================================
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+﻿<?php
+header('Content-Type: text/html; charset=utf-8');
 ob_start();
 
 require_once __DIR__ . '/_requires_auth.php';
@@ -27,11 +22,14 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
   $fechaInicioTrimestreDefault = date('Y-m-01', mktime(0, 0, 0, $primerMesTrimestre, 1, $anioActual));
   $fechaFinTrimestreDefault = date('Y-m-t', mktime(0, 0, 0, $primerMesTrimestre + 2, 1, $anioActual));
   
-  // Obtener parámetros de filtro
+  // Obtener parÃ¡metros de filtro
   $filtroFechaInicio = isset($_GET['fecha_inicio']) ? $_GET['fecha_inicio'] : $fechaInicioTrimestreDefault;
   $filtroFechaFin = isset($_GET['fecha_fin']) ? $_GET['fecha_fin'] : $fechaFinTrimestreDefault;
-  $filtroCategoria = 0; // Eliminado
-  $filtroComparativo = 0; // Eliminado // 0=no, 1=mes anterior, 2=año anterior
+  
+  // Filtros eliminados (hardcoded a 0)
+  $filtroCategoria = 0; 
+  $filtroComparativo = 0; 
+  // 0=no, 1=mes anterior, 2=año anterior
   
   // Calcular periodo comparativo si está activado
   $fechaInicioComp = '';
@@ -82,10 +80,29 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
   $totalv = $regv->total_venta ?? 0;
 
   /* ============================================================
-     MÉTRICAS EJECUTIVAS - PERIODO FILTRADO
+     MÉTRICAS EJECUTIVAS - TOTALES HISTÓRICOS (ALL-TIME)
      ============================================================ */
 
-  // 1. RENTABILIDAD Y MÁRGENES
+  // 1. TOTAL VENTAS HISTÓRICO
+  $rsVentasHist = $consulta->totalventahistorico();
+  $regVentasHist = $rsVentasHist ? $rsVentasHist->fetch_object() : null;
+  $totalVentasHistorico = $regVentasHist ? (float)$regVentasHist->total_venta : 0;
+
+  // 2. TOTAL COMPRAS HISTÓRICO
+  $rsComprasHist = $consulta->totalcomprahistorico();
+  $regComprasHist = $rsComprasHist ? $rsComprasHist->fetch_object() : null;
+  $totalComprasHistorico = $regComprasHist ? (float)$regComprasHist->total_compra : 0;
+
+  // 3. MARGEN NETO HISTÓRICO
+  $margenNetoHistorico = $totalVentasHistorico - $totalComprasHistorico;
+  $porcentajeMargenHistorico = $totalVentasHistorico > 0 ? (($margenNetoHistorico / $totalVentasHistorico) * 100) : 0;
+
+  // 4. TOTAL TRANSACCIONES HISTÓRICO
+  $rsTransacciones = $consulta->totaltransaccioneshistorico();
+  $regTransacciones = $rsTransacciones ? $rsTransacciones->fetch_object() : null;
+  $totalTransaccionesHistorico = $regTransacciones ? (int)$regTransacciones->total_transacciones : 0;
+
+  // MANTENEMOS CÁLCULOS DEL PERIODO PARA OTROS GRÁFICOS
   $sql = "SELECT 
             IFNULL(SUM(dv.cantidad * dv.precio_venta), 0) AS ingresos_totales,
             IFNULL(SUM(dv.cantidad * a.precio_compra), 0) AS costos_totales
@@ -100,27 +117,7 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
   $margenBrutoPeriodo = $ingresosPeriodo - $costosPeriodo;
   $porcentajeMargen = $ingresosPeriodo > 0 ? (($margenBrutoPeriodo / $ingresosPeriodo) * 100) : 0;
 
-  // Comparativo si está activado
-  $ingresosPeriodoComp = 0;
-  $variacionIngresos = 0;
-  $variacionPorcentaje = 0;
-  
-  if ($filtroComparativo > 0) {
-    $sqlComp = "SELECT 
-                  IFNULL(SUM(dv.cantidad * dv.precio_venta), 0) AS ingresos_totales
-                FROM detalle_venta dv
-                INNER JOIN venta v ON dv.idventa = v.idventa
-                INNER JOIN articulo a ON dv.idarticulo = a.idarticulo
-                WHERE $whereVentasComp";
-    $rsComp = ejecutarConsulta($sqlComp);
-    $rowComp = $rsComp ? $rsComp->fetch_object() : null;
-    $ingresosPeriodoComp = $rowComp ? (float)$rowComp->ingresos_totales : 0;
-    
-    $variacionIngresos = $ingresosPeriodo - $ingresosPeriodoComp;
-    $variacionPorcentaje = $ingresosPeriodoComp > 0 ? (($variacionIngresos / $ingresosPeriodoComp) * 100) : 0;
-  }
-
-  // 2. ROTACIÓN DE INVENTARIO
+  // 2. ROTACIÃ“N DE INVENTARIO
   $whereInventario = "a.condicion = 1";
   if ($filtroCategoria > 0) {
     $whereInventario .= " AND a.idcategoria = $filtroCategoria";
@@ -371,7 +368,15 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
   $ventasDias = '';
   if ($rsDias) {
     while ($reg = $rsDias->fetch_object()) {
-      $diasSemana .= '"' . $reg->dia_semana . '",';
+      // Traducir días al español
+      $diaIngles = $reg->dia_semana;
+      $diasEspanol = [
+          'Monday' => 'Lunes', 'Tuesday' => 'Martes', 'Wednesday' => 'Miércoles',
+          'Thursday' => 'Jueves', 'Friday' => 'Viernes', 'Saturday' => 'Sábado', 'Sunday' => 'Domingo'
+      ];
+      $diaTraducido = isset($diasEspanol[$diaIngles]) ? $diasEspanol[$diaIngles] : $diaIngles;
+      
+      $diasSemana .= '"' . $diaTraducido . '",';
       $ventasDias .= number_format((float)$reg->total, 2, '.', '') . ',';
     }
   }
@@ -386,675 +391,442 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
 
   ?>
   <style>
-    :root{
-      --neko-primary:#1565c0;
-      --neko-primary-dark:#0d47a1;
-      --neko-bg:#f5f7fb;
-      --card-border:1px solid rgba(2,24,54,.06);
-      --shadow:0 8px 24px rgba(2,24,54,.06);
-      --success:#10b981;
-      --warning:#f59e0b;
-      --danger:#ef4444;
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
+    /* Estilos Neko Dashboard Corporate */
+    :root {
+      --neko-primary: #1565c0;
+      --neko-primary-dark: #0d47a1;
+      --neko-bg: #f5f7fb;
+      --card-border: 1px solid #e2e8f0;
+      --shadow: 0 2px 10px rgba(0,0,0,0.05);
     }
-    .content-wrapper{ background:var(--neko-bg); }
-    .neko-card{
-      background:#fff; border:var(--card-border);
-      border-radius:14px; box-shadow:var(--shadow); overflow:hidden; margin-top:10px;
+
+    .content-wrapper { background: var(--neko-bg); }
+
+    /* Main Card Container */
+    .neko-card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      border: none;
+      margin-bottom: 20px;
+      overflow: hidden;
     }
-    .neko-card__header{
-      display:flex; align-items:center; justify-content:space-between;
-      background:linear-gradient(90deg, var(--neko-primary-dark), var(--neko-primary));
-      color:#fff; padding:14px 18px;
+    .neko-card__header {
+      background: var(--neko-primary-dark);
+      color: #fff;
+      padding: 15px 25px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
-    .neko-card__title{
-      font-size:1.1rem; font-weight:600; letter-spacing:.2px; margin:0;
-      display:flex; gap:10px; align-items:center;
+    .neko-card__title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #fff;
     }
-    .neko-card__body{ padding:18px; }
+    .neko-card__body {
+      padding: 25px;
+      background: #fff;
+    }
+
+    /* KPI Cards */
+    .kpi-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+      border: 1px solid #eef2f6;
+      transition: transform 0.2s, box-shadow 0.2s;
+      cursor: pointer;
+      position: relative;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      height: 100%;
+    }
+    .kpi-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+      border-color: var(--neko-primary);
+    }
+    .kpi-content { display: flex; flex-direction: column; justify-content: center; }
+    .kpi__label { font-size: 0.8rem; font-weight: 600; color: #64748b; margin-bottom: 5px; text-transform: uppercase; }
+    .kpi__value { font-size: 1.4rem; font-weight: 700; color: #334155; margin: 0; }
+    .kpi__sub { font-size: 0.75rem; color: #94a3b8; margin-top: 4px; }
+    
+    .kpi__icon {
+      width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; flex-shrink: 0;
+    }
+    .kpi__icon--success { background: #d1fae5; color: #059669; }
+    .kpi__icon--warning { background: #fef3c7; color: #d97706; }
+    .kpi__icon--danger { background: #fee2e2; color: #dc2626; }
+    .kpi__icon--purple { background: #f3e8ff; color: #9333ea; }
+    .kpi__icon--blue { background: #e0f2fe; color: #0284c7; }
+    
+    .kpi__badge {
+      font-family: 'Poppins', sans-serif;
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      margin-top: 8px;
+    }
+    .badge--success { background: #d1fae5; color: #065f46; }
+    .badge--warning { background: #fef3c7; color: #92400e; }
+    .badge--danger { background: #fee2e2; color: #991b1b; }
 
     /* Resumen Ejecutivo */
-    .executive-summary{
-      background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      border-radius:12px;
-      padding:20px;
-      margin-bottom:24px;
-      box-shadow:0 10px 30px rgba(102,126,234,0.3);
+    .executive-summary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 24px;
+      box-shadow: 0 10px 30px rgba(102,126,234,0.3);
+      color: #fff;
     }
-    .executive-summary__header{
-      color:#fff;
-      font-size:1.1rem;
-      font-weight:700;
-      margin-bottom:16px;
-      display:flex;
-      align-items:center;
-      gap:8px;
+    .executive-summary__header {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
-    .executive-summary__content{
-      display:grid;
-      grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));
-      gap:16px;
+    .summary-stat {
+      background: rgba(255,255,255,0.95);
+      border-radius: 10px;
+      padding: 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: all 0.3s ease;
+      color: #334155;
     }
-    .summary-stat{
-      background:rgba(255,255,255,0.95);
-      border-radius:10px;
-      padding:14px;
-      display:flex;
-      align-items:center;
-      gap:12px;
-      transition:all 0.3s ease;
+    .summary-stat:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
     }
-    .summary-stat:hover{
-      transform:translateY(-4px);
-      box-shadow:0 8px 20px rgba(0,0,0,0.15);
+    .summary-stat__icon {
+      width: 50px; height: 50px; border-radius: 10px; display: grid; place-items: center; font-size: 1.3rem;
     }
-    .summary-stat__icon{
-      width:50px;
-      height:50px;
-      border-radius:10px;
-      display:grid;
-      place-items:center;
-      font-size:1.3rem;
-    }
-    .summary-stat__info{
-      flex:1;
-    }
-    .summary-stat__label{
-      font-size:0.75rem;
-      color:#64748b;
-      font-weight:600;
-      text-transform:uppercase;
-      letter-spacing:0.5px;
-      margin-bottom:4px;
-    }
-    .summary-stat__value{
-      font-size:1.3rem;
-      font-weight:800;
-      color:#0f172a;
-    }
-
-    /* Tooltip helper */
-    .tooltip-icon{
-      display:inline-block;
-      width:16px;
-      height:16px;
-      background:#94a3b8;
-      color:#fff;
-      border-radius:50%;
-      text-align:center;
-      line-height:16px;
-      font-size:11px;
-      cursor:help;
-      margin-left:4px;
-    }
-    .tooltip-icon:hover{
-      background:var(--neko-primary);
-    }
+    .summary-stat__info { flex: 1; }
+    .summary-stat__label { font-size: 0.75rem; color: #64748b; font-weight: 600; text-transform: uppercase; margin-bottom: 4px; }
+    .summary-stat__value { font-size: 1.3rem; font-weight: 800; color: #0f172a; }
 
     /* Accesos Rápidos */
-    .quick-access{
-      background:#fff;
-      border:var(--card-border);
-      border-radius:12px;
-      padding:16px;
-      margin-bottom:24px;
-      box-shadow:var(--shadow);
+    .quick-access {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
     }
-    .quick-access__title{
-      font-size:0.95rem;
-      font-weight:700;
-      color:#0b2752;
-      margin-bottom:12px;
-      display:flex;
-      align-items:center;
-      gap:8px;
+    .quick-access__title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #0b2752;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
-    .quick-access__grid{
-      display:grid;
-      grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));
-      gap:12px;
+    .quick-access__grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
     }
-    .quick-access-card{
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      gap:8px;
-      padding:14px;
-      background:#f8fafc;
-      border:1px solid #e2e8f0;
-      border-radius:10px;
-      text-decoration:none;
-      transition:all 0.3s ease;
+    .quick-access-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 14px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      color: #64748b;
     }
-    .quick-access-card:hover{
-      transform:translateY(-4px);
-      box-shadow:0 8px 20px rgba(0,0,0,0.1);
-      border-color:var(--neko-primary);
-      text-decoration:none;
+    .quick-access-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+      border-color: var(--neko-primary);
+      color: var(--neko-primary);
     }
-    .quick-access-card__icon{
-      width:48px;
-      height:48px;
-      border-radius:12px;
-      display:grid;
-      place-items:center;
-      font-size:1.4rem;
+    .quick-access-card__icon {
+      width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;
     }
-    .quick-access-card__label{
-      font-size:0.85rem;
-      font-weight:600;
-      color:#475569;
-      text-align:center;
+    .quick-access-card__label { font-weight: 600; font-size: 0.85rem; text-align: center; }
+
+    /* Chart Cards */
+    .chart-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      border: 1px solid #e2e8f0;
+      margin-bottom: 20px;
+      transition: all 0.3s ease;
     }
-    .quick-access-card:hover .quick-access-card__label{
-      color:var(--neko-primary);
+    .chart-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    }
+    .chart-card h4 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #334155;
+      margin-top: 0;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid #f1f5f9;
+      padding-bottom: 10px;
     }
 
-    /* Panel de Filtros */
-    .filter-panel{
-      background:#fff;
-      border:var(--card-border);
-      border-radius:12px;
-      box-shadow:var(--shadow);
-      padding:14px 18px;
-      margin-bottom:20px;
+    /* Filters */
+    .filter-panel {
+      background: #f8fafc;
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid #e2e8f0;
+      margin-bottom: 25px;
     }
-    .filter-panel__title{
-      font-size:0.9rem;
-      font-weight:700;
-      color:#0b2752;
-      margin:0 0 10px;
-      display:flex;
-      align-items:center;
-      gap:8px;
+    .filter-row {
+      display: flex;
+      gap: 15px;
+      align-items: flex-end;
+      flex-wrap: wrap;
     }
-    .filter-panel__title i{
-      color:var(--neko-primary);
+    .filter-group { flex: 1; min-width: 150px; }
+    .filter-group label { font-weight: 600; color: #0b2752; font-size: 0.8rem; margin-bottom: 6px; display: block; }
+    .filter-group .form-control {
+      height: 38px;
+      border-radius: 8px;
+      border: 1px solid #dbe3ef;
+      padding: 6px 12px;
+      font-size: 0.9rem;
     }
-    .filter-row{
-      display:flex;
-      gap:10px;
-      flex-wrap:nowrap;
-      align-items:flex-end;
+    .btn-filter {
+      height: 38px;
+      padding: 0 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
     }
-    .filter-group{
-      flex:0 0 auto;
-      min-width:160px;
-    }
-    .filter-group label{
-      display:block;
-      font-size:0.75rem;
-      font-weight:600;
-      color:#475569;
-      margin-bottom:5px;
-      text-transform:uppercase;
-      letter-spacing:0.3px;
-    }
-    .filter-group input,
-    .filter-group select{
-      width:100%;
-      padding:8px 10px;
-      border:1px solid #e2e8f0;
-      border-radius:6px;
-      font-size:0.85rem;
-      transition:all 0.3s ease;
-    }
-    .filter-group input:focus,
-    .filter-group select:focus{
-      outline:none;
-      border-color:var(--neko-primary);
-      box-shadow:0 0 0 3px rgba(21,101,192,0.1);
-    }
-    .filter-actions{
-      display:flex;
-      gap:8px;
-      align-items:flex-end;
-      margin-left:auto;
-    }
-    .btn-filter{
-      padding:8px 16px;
-      border:none;
-      border-radius:6px;
-      font-weight:600;
-      font-size:0.85rem;
-      cursor:pointer;
-      transition:all 0.3s ease;
-      display:inline-flex;
-      align-items:center;
-      gap:5px;
-      white-space:nowrap;
-    }
-    .btn-filter--primary{
-      background:var(--neko-primary);
-      color:#fff;
-    }
-    .btn-filter--primary:hover{
-      background:var(--neko-primary-dark);
-      transform:translateY(-2px);
-      box-shadow:0 4px 12px rgba(21,101,192,0.3);
-    }
-    .btn-filter--secondary{
-      background:#f1f5f9;
-      color:#475569;
-    }
-    .btn-filter--secondary:hover{
-      background:#e2e8f0;
-    }
-    .btn-filter--export{
-      background:#10b981;
-      color:#fff;
-    }
-    .btn-filter--export:hover{
-      background:#059669;
-      transform:translateY(-2px);
-      box-shadow:0 4px 12px rgba(16,185,129,0.3);
-    }
+    .btn-filter--primary { background: var(--neko-primary); color: #fff; }
+    .btn-filter--primary:hover { background: var(--neko-primary-dark); box-shadow: 0 4px 12px rgba(21,101,192,0.3); }
+    .btn-filter--secondary { background: #fff; border: 1px solid #dbe3ef; color: #64748b; }
+    .btn-filter--secondary:hover { background: #f1f5f9; border-color: #cbd5e1; }
+    .btn-filter--export { background: #10b981; color: #fff; }
+    .btn-filter--export:hover { background: #059669; box-shadow: 0 4px 12px rgba(16,185,129,0.3); }
 
-    /* Presets más compactos */
-    .quick-presets{
-      display:flex;
-      gap:6px;
-      flex-wrap:wrap;
-      margin-top:10px;
+    /* Quick Presets */
+    .quick-presets { display: flex; gap: 8px; margin-top: 15px; flex-wrap: wrap; }
+    .preset-btn {
+      border-radius: 50px;
+      font-weight: 500;
+      padding: 6px 16px;
+      border: 1px solid #e2e8f0;
+      background: #fff;
+      color: #64748b;
+      font-size: 0.8rem;
+      transition: all 0.2s;
     }
-    .preset-btn{
-      padding:5px 10px;
-      background:#f8fafc;
-      border:1px solid #e2e8f0;
-      border-radius:5px;
-      font-size:0.75rem;
-      font-weight:600;
-      color:#475569;
-      cursor:pointer;
-      transition:all 0.3s ease;
+    .preset-btn:hover { background: #e0f2fe; color: #0284c7; border-color: #bae6fd; }
+
+    /* Tables */
+    .top-table { width: 100%; border-collapse: collapse; }
+    .top-table th {
+      background: linear-gradient(135deg, #1e293b, #334155);
+      color: #fff;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      padding: 12px;
+      text-align: left;
     }
-    .preset-btn:hover{
-      background:var(--neko-primary);
-      color:#fff;
-      border-color:var(--neko-primary);
-    }
-    .kpi{
-      display:flex; align-items:center; gap:14px;
-      background:#fff; border:var(--card-border); border-radius:12px; box-shadow:var(--shadow);
-      padding:14px 16px; height:100%; transition: all 0.3s ease;
-    }
-    .kpi:hover{
-      transform: translateY(-2px);
-      box-shadow:0 12px 28px rgba(2,24,54,.12);
-    }
-    .kpi__icon{
-      width:46px; height:46px; display:grid; place-items:center; border-radius:10px;
-      background:#e3f2fd; color:#0d47a1; font-size:20px;
-    }
-    .kpi__icon--success{ background:#d1fae5; color:#059669; }
-    .kpi__icon--warning{ background:#fef3c7; color:#d97706; }
-    .kpi__icon--danger{ background:#fee2e2; color:#dc2626; }
-    .kpi__icon--purple{ background:#e9d5ff; color:#9333ea; }
+    .top-table th:first-child { border-top-left-radius: 8px; }
+    .top-table th:last-child { border-top-right-radius: 8px; }
+    .top-table td { padding: 12px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; color: #334155; font-size: 0.9rem; }
+    .top-table tr:hover { background: #f8fafc; }
     
-    .kpi__label{ color:#64748b; margin:0; font-size:.85rem; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; }
-    .kpi__value{ margin:0; font-weight:700; color:#0b2752; font-size:1.35rem; }
-    .kpi__sub{
-      margin:4px 0 0; font-size:.78rem; color:#94a3b8;
-    }
-    .kpi__badge{
-      display:inline-block;
-      padding:3px 8px;
-      border-radius:6px;
-      font-size:0.7rem;
-      font-weight:600;
-      margin-top:4px;
-    }
-    .badge--success{ background:#d1fae5; color:#065f46; }
-    .badge--warning{ background:#fef3c7; color:#92400e; }
-    .badge--danger{ background:#fee2e2; color:#991b1b; }
+    .top-table__product { display: flex; align-items: center; gap: 12px; }
+    .top-table__img { width: 36px; height: 36px; border-radius: 6px; object-fit: cover; border: 1px solid #e2e8f0; }
+    .top-table__metric { font-weight: 600; background: #f1f5f9; padding: 4px 8px; border-radius: 6px; font-size: 0.85rem; }
 
-    /* Contenedor de gráfico */
-    .chart-card{
-      background:#fff; border:var(--card-border); border-radius:12px; box-shadow:var(--shadow);
-      padding:14px 16px; height:100%;
+    /* Lists */
+    .client-item, .alert-item, .rentabilidad-item {
+      display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #f1f5f9;
     }
-    .chart-card h4{
-      margin:0 0 10px; font-size:1rem; color:#0b2752; font-weight:600;
-      display:flex;
-      align-items:center;
-      gap:8px;
-    }
-    .chart-card h4 i{
-      color:var(--neko-primary);
-      font-size:1.1rem;
-    }
-    .chart-holder{
-      position: relative;
-      height: 280px;
-      width: 100%;
-    }
-    .chart-holder--small{
-      height: 220px;
-    }
-
-    /* Tabla Top Productos */
-    .top-table{
-      width:100%;
-      border-collapse:collapse;
-    }
-    .top-table th{
-      background:#f8fafc;
-      color:#475569;
-      font-size:0.75rem;
-      font-weight:600;
-      text-transform:uppercase;
-      padding:10px 12px;
-      text-align:left;
-      border-bottom:2px solid #e2e8f0;
-    }
-    .top-table td{
-      padding:10px 12px;
-      border-bottom:1px solid #f1f5f9;
-      font-size:0.875rem;
-    }
-    .top-table tr:hover{
-      background:#f8fafc;
-    }
-    .top-table__img{
-      width:40px;
-      height:40px;
-      border-radius:8px;
-      object-fit:cover;
-      border:2px solid #e2e8f0;
-    }
-    .top-table__product{
-      display:flex;
-      align-items:center;
-      gap:10px;
-    }
-    .top-table__name{
-      font-weight:600;
-      color:#0f172a;
-      margin:0;
-    }
-    .top-table__cat{
-      font-size:0.75rem;
-      color:#94a3b8;
-      margin:2px 0 0;
-    }
-    .top-table__metric{
-      font-weight:700;
-      color:#0d47a1;
-    }
-
-    /* Alertas Stock */
-    .alert-item{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      padding:10px 12px;
-      background:#fef2f2;
-      border-left:3px solid #ef4444;
-      border-radius:6px;
-      margin-bottom:8px;
-    }
-    .alert-item__name{
-      font-weight:600;
-      color:#0f172a;
-      font-size:0.875rem;
-    }
-    .alert-item__cat{
-      font-size:0.75rem;
-      color:#64748b;
-    }
-    .alert-item__stock{
-      background:#dc2626;
-      color:#fff;
-      padding:4px 10px;
-      border-radius:6px;
-      font-weight:700;
-      font-size:0.875rem;
-    }
-
-    /* Badges Cliente */
-    .client-item{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      padding:10px 0;
-      border-bottom:1px solid #f1f5f9;
-    }
-    .client-item:last-child{
-      border-bottom:none;
-    }
-    .client-item__name{
-      font-weight:600;
-      color:#0f172a;
-      font-size:0.875rem;
-    }
-    .client-item__metric{
-      text-align:right;
-    }
-    .client-item__value{
-      font-weight:700;
-      color:#0d47a1;
-      font-size:0.9rem;
-    }
-    .client-item__label{
-      font-size:0.7rem;
-      color:#94a3b8;
-    }
-
-    /* Items de rentabilidad */
-    .rentabilidad-item{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      padding:12px;
-      border-radius:8px;
-      margin-bottom:10px;
-      background:#f8fafc;
-      transition:all 0.3s ease;
-    }
-    .rentabilidad-item:hover{
-      background:#f1f5f9;
-      transform:translateX(4px);
-    }
-    .rentabilidad-item__name{
-      font-weight:600;
-      color:#0f172a;
-      font-size:0.875rem;
-      margin-bottom:4px;
-    }
-    .rentabilidad-item__cat{
-      font-size:0.75rem;
-      color:#64748b;
-    }
-    .rentabilidad-item__metrics{
-      text-align:right;
-    }
-    .rentabilidad-item__margen{
-      font-weight:800;
-      font-size:1.2rem;
-      margin-bottom:2px;
-    }
-    .rentabilidad-item__ganancia{
-      font-size:0.8rem;
-      color:#64748b;
-      font-weight:600;
-    }
-
-    .mb-16{ margin-bottom:16px; }
-    .mb-20{ margin-bottom:20px; }
+    .client-item:last-child, .alert-item:last-child, .rentabilidad-item:last-child { border-bottom: none; }
+    .client-item:hover, .alert-item:hover, .rentabilidad-item:hover { background: #f8fafc; }
     
-    /* Sección separadora */
-    .section-divider{
-      margin:24px 0;
-      border-top:2px solid #e2e8f0;
-      padding-top:24px;
+    /* Utilities */
+    .section-title { 
+      font-family: 'Poppins', sans-serif;
+      font-size: 1.25rem; 
+      font-weight: 600; 
+      color: #1e293b; 
+      margin: 35px 0 20px 0; 
+      display: flex; 
+      align-items: center; 
+      gap: 12px;
+      letter-spacing: -0.5px;
     }
-    .section-title{
-      font-size:1.1rem;
-      font-weight:700;
-      color:#0b2752;
-      margin:0 0 16px;
-      display:flex;
-      align-items:center;
-      gap:8px;
-    }
-    .section-title i{
-      color:var(--neko-primary);
-    }
-
-    /* Presets rápidos */
-    .quick-presets{
-      display:flex;
-      gap:8px;
-      flex-wrap:wrap;
-      margin-top:12px;
-    }
-    .preset-btn{
-      padding:6px 12px;
-      background:#f8fafc;
-      border:1px solid #e2e8f0;
-      border-radius:6px;
-      font-size:0.8rem;
-      font-weight:600;
-      color:#475569;
-      cursor:pointer;
-      transition:all 0.3s ease;
-    }
-    .preset-btn:hover{
-      background:var(--neko-primary);
-      color:#fff;
-      border-color:var(--neko-primary);
-    }
+    .section-divider { height: 1px; background: #e2e8f0; margin: 30px 0; }
+    .row-flex { display: flex; flex-wrap: wrap; }
+    .row-flex > [class*='col-'] { display: flex; flex-direction: column; }
+    .chart-holder { position: relative; height: 300px; width: 100%; }
+    .chart-holder--small { height: 250px; }
   </style>
 
   <div class="content-wrapper">
     <section class="content">
       <div class="row">
         <div class="col-md-12">
-
+          
+          <!-- Main Corporate Card -->
           <div class="neko-card">
             <div class="neko-card__header">
               <h1 class="neko-card__title">
                 <i class="fa fa-dashboard"></i> Dashboard Ejecutivo - ERP Autopartes
               </h1>
-              <div class="neko-actions">
-                <span style="font-size:0.85rem;opacity:0.9;">
-                  <i class="fa fa-calendar"></i> <?php echo date('d/m/Y H:i'); ?>
-                </span>
+              <div style="font-size:0.85rem; opacity:0.9;">
+                <i class="fa fa-calendar"></i> <?php echo date('d/m/Y H:i'); ?>
               </div>
             </div>
 
             <div class="neko-card__body">
               
-              <!-- ================== PANEL DE FILTROS AVANZADOS ================== -->
+              <!-- ================== FILTROS AVANZADOS ================== -->
               <div class="filter-panel">
-                <h3 class="filter-panel__title">
+                <div class="filter-panel__title">
                   <i class="fa fa-filter"></i> Filtros Avanzados
-                </h3>
-                
-                <form method="GET" action="" id="formFiltros">
+                </div>
+                <form method="get" id="formFiltros">
                   <div class="filter-row">
-                    
                     <div class="filter-group">
                       <label for="fecha_inicio">Fecha Inicio</label>
-                      <input type="date" id="fecha_inicio" name="fecha_inicio" 
-                             value="<?php echo $filtroFechaInicio; ?>" max="<?php echo date('Y-m-d'); ?>">
+                      <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" value="<?php echo $filtroFechaInicio; ?>">
                     </div>
-
                     <div class="filter-group">
                       <label for="fecha_fin">Fecha Fin</label>
-                      <input type="date" id="fecha_fin" name="fecha_fin" 
-                             value="<?php echo $filtroFechaFin; ?>" max="<?php echo date('Y-m-d'); ?>">
+                      <input type="date" class="form-control" id="fecha_fin" name="fecha_fin" value="<?php echo $filtroFechaFin; ?>">
                     </div>
+                    
+                    <!-- Filtros de Categoría y Comparativo eliminados por solicitud -->
 
                     <div class="filter-actions">
                       <button type="submit" class="btn-filter btn-filter--primary">
-                        <i class="fa fa-search"></i> Aplicar
+                        <i class="fa fa-search"></i> Filtrar
                       </button>
-                      <button type="button" onclick="limpiarFiltros()" class="btn-filter btn-filter--secondary">
-                        <i class="fa fa-refresh"></i> Limpiar
+                      <button type="button" class="btn-filter btn-filter--secondary" onclick="limpiarFiltros()">
+                        <i class="fa fa-eraser"></i> Limpiar
                       </button>
-                      <button type="button" onclick="guardarConfiguracion()" class="btn-filter btn-filter--secondary" title="Guardar configuración actual">
-                        <i class="fa fa-bookmark"></i>
-                      </button>
-                      <button type="button" onclick="exportarDatos()" class="btn-filter btn-filter--export">
+                      <button type="button" class="btn-filter btn-filter--export" onclick="exportarDatos()">
                         <i class="fa fa-file-excel-o"></i> Exportar
                       </button>
+                      <button type="button" class="btn-filter btn-filter--secondary" onclick="guardarConfiguracion()">
+                        <i class="fa fa-save"></i> Guardar
+                      </button>
                     </div>
-
                   </div>
-
-                  <!-- Presets rápidos -->
+                  
                   <div class="quick-presets">
-                    <button type="button" class="preset-btn" onclick="aplicarPreset('hoy')">
-                      <i class="fa fa-clock-o"></i> Hoy
-                    </button>
-                    <button type="button" class="preset-btn" onclick="aplicarPreset('semana')">
-                      <i class="fa fa-calendar"></i> Semana
-                    </button>
-                    <button type="button" class="preset-btn" onclick="aplicarPreset('mes')">
-                      <i class="fa fa-calendar-o"></i> Mes
-                    </button>
-                    <button type="button" class="preset-btn" onclick="aplicarPreset('trimestre')">
-                      <i class="fa fa-calendar-check-o"></i> Trimestre
-                    </button>
-                    <button type="button" class="preset-btn" onclick="aplicarPreset('anio')">
-                      <i class="fa fa-calendar"></i> Año
-                    </button>
+                    <button type="button" class="preset-btn" onclick="aplicarPreset('hoy')">Hoy</button>
+                    <button type="button" class="preset-btn" onclick="aplicarPreset('semana')">Esta Semana</button>
+                    <button type="button" class="preset-btn" onclick="aplicarPreset('mes')">Este Mes</button>
+                    <button type="button" class="preset-btn" onclick="aplicarPreset('trimestre')">Este Trimestre</button>
+                    <button type="button" class="preset-btn" onclick="aplicarPreset('anio')">Este Año</button>
                   </div>
                 </form>
               </div>
 
-              <!-- ================== RESUMEN EJECUTIVO RÁPIDO ================== -->
+              <!-- ================== RESUMEN EJECUTIVO (HISTÓRICO) ================== -->
               <div class="executive-summary">
                 <div class="executive-summary__header">
-                  <i class="fa fa-bolt"></i> Resumen Ejecutivo
+                  <i class="fa fa-globe"></i> Resumen Ejecutivo (Histórico Global)
                 </div>
-                <div class="executive-summary__content">
-                  <div class="summary-stat">
-                    <div class="summary-stat__icon" style="background:#d1fae5;color:#059669;">
-                      <i class="fa fa-shopping-cart"></i>
-                    </div>
-                    <div class="summary-stat__info">
-                      <div class="summary-stat__label">Total Ventas</div>
-                      <div class="summary-stat__value">S/ <?php echo number_format($ingresosPeriodo, 2); ?></div>
+                <div class="row row-flex">
+                  <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12 mb-16">
+                    <a href="venta.php" class="kpi-card" style="text-decoration:none; color:inherit;">
+                      <div class="summary-stat" style="width:100%;">
+                        <div class="summary-stat__icon" style="background:#e0f2fe;color:#0284c7;">
+                          <i class="fa fa-dollar"></i>
+                        </div>
+                        <div class="summary-stat__info">
+                          <div class="summary-stat__label">Total Ventas (Histórico)</div>
+                          <div class="summary-stat__value">S/ <?php echo number_format($totalVentasHistorico, 2); ?></div>
+                        </div>
+                      </div>
+                    </a>
+                  </div>
+                  
+                  <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12 mb-16">
+                    <a href="ingreso.php" class="kpi-card" style="text-decoration:none; color:inherit;">
+                      <div class="summary-stat" style="width:100%;">
+                        <div class="summary-stat__icon" style="background:#fee2e2;color:#dc2626;">
+                          <i class="fa fa-shopping-bag"></i>
+                        </div>
+                        <div class="summary-stat__info">
+                          <div class="summary-stat__label">Total Compras (Histórico)</div>
+                          <div class="summary-stat__value">S/ <?php echo number_format($totalComprasHistorico, 2); ?></div>
+                        </div>
+                      </div>
+                    </a>
+                  </div>
+                  
+                  <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12 mb-16">
+                    <div class="kpi-card" onclick="showKpiInfo('margen')" style="width:100%;">
+                      <div class="summary-stat" style="width:100%;">
+                        <div class="summary-stat__icon" style="background:#d1fae5;color:#059669;">
+                          <i class="fa fa-line-chart"></i>
+                        </div>
+                        <div class="summary-stat__info">
+                          <div class="summary-stat__label">Margen Neto (Histórico)</div>
+                          <div class="summary-stat__value">
+                            <?php echo number_format($porcentajeMargenHistorico, 1); ?>%
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                   
-                  <div class="summary-stat">
-                    <div class="summary-stat__icon" style="background:#fee2e2;color:#dc2626;">
-                      <i class="fa fa-truck"></i>
-                    </div>
-                    <div class="summary-stat__info">
-                      <div class="summary-stat__label">Total Compras</div>
-                      <div class="summary-stat__value">S/ <?php echo number_format($costosPeriodo, 2); ?></div>
-                    </div>
-                  </div>
-                  
-                  <div class="summary-stat">
-                    <div class="summary-stat__icon" style="background:#fef3c7;color:#d97706;">
-                      <i class="fa fa-line-chart"></i>
-                    </div>
-                    <div class="summary-stat__info">
-                      <div class="summary-stat__label">Margen Neto</div>
-                      <div class="summary-stat__value"><?php echo number_format($porcentajeMargen, 1); ?>%</div>
-                    </div>
-                  </div>
-                  
-                  <div class="summary-stat">
-                    <div class="summary-stat__icon" style="background:#e9d5ff;color:#9333ea;">
-                      <i class="fa fa-repeat"></i>
-                    </div>
-                    <div class="summary-stat__info">
-                      <div class="summary-stat__label">Transacciones</div>
-                      <div class="summary-stat__value"><?php echo number_format($numVentasPeriodo); ?></div>
-                    </div>
+                  <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12 mb-16">
+                    <a href="venta.php" class="kpi-card" style="text-decoration:none; color:inherit;">
+                      <div class="summary-stat" style="width:100%;">
+                        <div class="summary-stat__icon" style="background:#f3e8ff;color:#9333ea;">
+                          <i class="fa fa-exchange"></i>
+                        </div>
+                        <div class="summary-stat__info">
+                          <div class="summary-stat__label">Transacciones (Histórico)</div>
+                          <div class="summary-stat__value"><?php echo number_format($totalTransaccionesHistorico); ?></div>
+                        </div>
+                      </div>
+                    </a>
                   </div>
                 </div>
               </div>
 
-              <!-- ================== ACCESOS RÁPIDOS ================== -->
               <div class="quick-access">
                 <div class="quick-access__title">
-                  <i class="fa fa-flash"></i> Accesos Rápidos
+                  <i class="fa fa-flash"></i> Accesos RÃ¡pidos
                 </div>
                 <div class="quick-access__grid">
                   <a href="venta.php" class="quick-access-card">
@@ -1064,35 +836,35 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
                     <div class="quick-access-card__label">Nueva Venta</div>
                   </a>
                   
-                  <a href="ingreso.php" class="quick-access-card">
+                  <a href="ingreso.php" class="quick-access-card kpi-card">
                     <div class="quick-access-card__icon" style="background:#fef3c7;color:#d97706;">
                       <i class="fa fa-download"></i>
                     </div>
                     <div class="quick-access-card__label">Nueva Compra</div>
                   </a>
                   
-                  <a href="articulo.php" class="quick-access-card">
+                  <a href="articulo.php" class="quick-access-card kpi-card">
                     <div class="quick-access-card__icon" style="background:#e9d5ff;color:#9333ea;">
                       <i class="fa fa-cube"></i>
                     </div>
                     <div class="quick-access-card__label">Productos</div>
                   </a>
                   
-                  <a href="persona.php" class="quick-access-card">
+                  <a href="cliente.php" class="quick-access-card kpi-card">
                     <div class="quick-access-card__icon" style="background:#d1fae5;color:#059669;">
                       <i class="fa fa-users"></i>
                     </div>
                     <div class="quick-access-card__label">Clientes</div>
                   </a>
                   
-                  <a href="#" onclick="window.print();return false;" class="quick-access-card">
+                  <a href="#" onclick="window.print();return false;" class="quick-access-card kpi-card">
                     <div class="quick-access-card__icon" style="background:#fee2e2;color:#dc2626;">
                       <i class="fa fa-print"></i>
                     </div>
                     <div class="quick-access-card__label">Imprimir</div>
                   </a>
                   
-                  <a href="#" onclick="mostrarAyuda();return false;" class="quick-access-card">
+                  <a href="#" onclick="mostrarAyuda();return false;" class="quick-access-card kpi-card">
                     <div class="quick-access-card__icon" style="background:#f1f5f9;color:#475569;">
                       <i class="fa fa-question-circle"></i>
                     </div>
@@ -1101,18 +873,18 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
                 </div>
               </div>
 
-              <!-- ================== SECCIÓN 1: HOY (NO MODIFICAR) ================== -->
+              <!-- ================== SECCIÃ“N 1: HOY (NO MODIFICAR) ================== -->
               <h3 class="section-title">
                 <i class="fa fa-clock-o"></i> Operaciones de Hoy
               </h3>
               <div class="row mb-20">
                 <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 mb-16">
-                  <div class="kpi">
+                  <div class="kpi kpi-card">
                     <div class="kpi__icon"><i class="ion ion-ios-download"></i></div>
                     <div>
                       <p class="kpi__label">Compras de hoy</p>
                       <h3 class="kpi__value">S/ <?php echo number_format((float)$totalc, 2, '.', ''); ?></h3>
-                      <p class="kpi__sub">Movimiento de abastecimiento del día.</p>
+                      <p class="kpi__sub">Movimiento de abastecimiento del dÃ­a.</p>
                       <a href="ingreso.php" class="small text-primary">
                         Ir a Compras <i class="fa fa-arrow-circle-right"></i>
                       </a>
@@ -1121,7 +893,7 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
                 </div>
 
                 <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 mb-16">
-                  <div class="kpi">
+                  <div class="kpi kpi-card">
                     <div class="kpi__icon"><i class="ion ion-ios-cart"></i></div>
                     <div>
                       <p class="kpi__label">Ventas de hoy</p>
@@ -1137,13 +909,13 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
 
               <div class="section-divider"></div>
 
-              <!-- ================== SECCIÓN 2: MÉTRICAS EJECUTIVAS ================== -->
+              <!-- ================== SECCIÃ“N 2: MÃ‰TRICAS EJECUTIVAS ================== -->
               <h3 class="section-title">
-                <i class="fa fa-line-chart"></i> Análisis Financiero del Periodo Seleccionado
+                <i class="fa fa-line-chart"></i> AnÃ¡lisis Financiero del Periodo Seleccionado
               </h3>
-              <div class="row mb-20">
+              <div class="row row-flex mb-20">
                 <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12 mb-16">
-                  <div class="kpi">
+                  <div class="kpi kpi-card" onclick="showKpiInfo('margen-bruto')">
                     <div class="kpi__icon kpi__icon--success">
                       <i class="fa fa-money"></i>
                     </div>
@@ -1161,7 +933,7 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
                 </div>
 
                 <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12 mb-16">
-                  <div class="kpi">
+                  <div class="kpi kpi-card" onclick="showKpiInfo('inventario')">
                     <div class="kpi__icon kpi__icon--warning">
                       <i class="fa fa-cubes"></i>
                     </div>
@@ -1172,16 +944,16 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
                       </p>
                       <h3 class="kpi__value">S/ <?php echo number_format($valorInventario, 2, '.', ''); ?></h3>
                       <p class="kpi__sub">
-                        <?php echo number_format($stockTotal); ?> unidades • 
+                        <?php echo number_format($stockTotal); ?> unidades â€¢ 
                         <?php echo $totalProductos; ?> productos
                       </p>
                       <?php if ($diasRotacion > 0): ?>
                       <span class="kpi__badge <?php echo $diasRotacion <= 30 ? 'badge--success' : ($diasRotacion <= 60 ? 'badge--warning' : 'badge--danger'); ?>">
-                        <?php echo $diasRotacion; ?> días rotación
+                        <?php echo $diasRotacion; ?> dias de rotacion
                       </span>
                       <?php endif; ?>
                       <?php if ($productosSinVenta > 0): ?>
-                      <p class="kpi__sub" style="color:#ef4444;margin-top:6px;">
+                      <p class="kpi__sub pulse-critical" style="color:#ef4444;margin-top:6px;padding:4px;border-radius:4px;">
                         <i class="fa fa-exclamation-circle"></i> <?php echo $productosSinVenta; ?> sin venta
                       </p>
                       <?php endif; ?>
@@ -1190,14 +962,14 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
                 </div>
 
                 <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12 mb-16">
-                  <div class="kpi">
+                  <div class="kpi kpi-card" onclick="showKpiInfo('clientes')">
                     <div class="kpi__icon kpi__icon--purple">
                       <i class="fa fa-users"></i>
                     </div>
                     <div style="width:100%;">
                       <p class="kpi__label">
                         Clientes Activos
-                        <span class="tooltip-icon" title="Clientes únicos que realizaron compras en el periodo">?</span>
+                        <span class="tooltip-icon" title="Clientes Ãºnicos que realizaron compras en el periodo">?</span>
                       </p>
                       <h3 class="kpi__value"><?php echo $clientesActivos; ?></h3>
                       <p class="kpi__sub">Compraron en el periodo</p>
@@ -1206,14 +978,14 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
                 </div>
 
                 <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12 mb-16">
-                  <div class="kpi">
+                  <div class="kpi kpi-card" onclick="showKpiInfo('ticket')">
                     <div class="kpi__icon">
                       <i class="fa fa-shopping-cart"></i>
                     </div>
                     <div style="width:100%;">
                       <p class="kpi__label">
                         Ticket Promedio
-                        <span class="tooltip-icon" title="Valor promedio por transacción de venta">?</span>
+                        <span class="tooltip-icon" title="Valor promedio por transacciÃ³n de venta">?</span>
                       </p>
                       <h3 class="kpi__value">S/ <?php echo number_format($ticketPromedio, 2, '.', ''); ?></h3>
                       <p class="kpi__sub"><?php echo $numVentasPeriodo; ?> operaciones</p>
@@ -1224,14 +996,14 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
 
               <div class="section-divider"></div>
 
-              <!-- ================== SECCIÓN 3: TOP PRODUCTOS + CATEGORÍAS ================== -->
+              <!-- ================== SECCIÃ“N 3: TOP PRODUCTOS + CATEGORÃAS ================== -->
               <h3 class="section-title">
                 <i class="fa fa-star"></i> Rendimiento de Productos
               </h3>
               <div class="row mb-20">
                 <div class="col-lg-6 col-md-12 mb-16">
                   <div class="chart-card">
-                    <h4><i class="fa fa-trophy"></i> Top 10 Productos Más Vendidos (Periodo Seleccionado)</h4>
+                    <h4><i class="fa fa-trophy"></i> Top 10 Productos Mas Vendidos (Periodo Seleccionado)</h4>
                     <div style="max-height:450px;overflow-y:auto;">
                       <table class="top-table">
                         <thead>
@@ -1287,7 +1059,7 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
 
                 <div class="col-lg-6 col-md-12 mb-16">
                   <div class="chart-card">
-                    <h4><i class="fa fa-pie-chart"></i> Ventas por Categoría (Periodo Seleccionado)</h4>
+                    <h4><i class="fa fa-pie-chart"></i> Ventas por Categoria (Periodo Seleccionado)</h4>
                     <div class="chart-holder chart-holder--small">
                       <?php if (!empty($labelsCateg)): ?>
                       <canvas id="chartCategorias"></canvas>
@@ -1295,7 +1067,7 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
                       <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#94a3b8;text-align:center;">
                         <div>
                           <i class="fa fa-pie-chart" style="font-size:3rem;opacity:0.3;display:block;margin-bottom:10px;"></i>
-                          No hay datos de categorías para mostrar
+                          No hay datos de categorÃ­as para mostrar
                         </div>
                       </div>
                       <?php endif; ?>
@@ -1306,14 +1078,14 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
 
               <div class="section-divider"></div>
 
-              <!-- ================== SECCIÓN 4: EVOLUCIÓN + TENDENCIAS ================== -->
+              <!-- ================== SECCIÃ“N 4: EVOLUCIÃ“N + TENDENCIAS ================== -->
               <h3 class="section-title">
-                <i class="fa fa-area-chart"></i> Análisis Temporal
+                <i class="fa fa-area-chart"></i> AnÃ¡lisis Temporal
               </h3>
               <div class="row mb-20">
                 <div class="col-lg-6 col-md-12 mb-16">
                   <div class="chart-card">
-                    <h4><i class="fa fa-bar-chart"></i> Evolución Ventas vs Compras (Últimos 6 Meses)</h4>
+                    <h4><i class="fa fa-bar-chart"></i> Evolucion Ventas vs Compras (Ultimos 6 Meses)</h4>
                     <div class="chart-holder">
                       <canvas id="chartEvolucion"></canvas>
                     </div>
@@ -1322,7 +1094,7 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
 
                 <div class="col-lg-6 col-md-12 mb-16">
                   <div class="chart-card">
-                    <h4><i class="fa fa-calendar-o"></i> Ventas por Día de la Semana (Periodo)</h4>
+                    <h4><i class="fa fa-calendar-o"></i> Ventas por Dia de la Semana (Periodo)</h4>
                     <div class="chart-holder">
                       <?php if (!empty($diasSemana)): ?>
                       <canvas id="chartDias"></canvas>
@@ -1330,7 +1102,7 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
                       <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#94a3b8;text-align:center;">
                         <div>
                           <i class="fa fa-calendar" style="font-size:3rem;opacity:0.3;display:block;margin-bottom:10px;"></i>
-                          No hay datos de días para mostrar
+                          No hay datos de dÃ­as para mostrar
                         </div>
                       </div>
                       <?php endif; ?>
@@ -1341,7 +1113,7 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
 
               <div class="section-divider"></div>
 
-              <!-- ================== SECCIÓN 5: CLIENTES + ALERTAS ================== -->
+              <!-- ================== SECCIÃ“N 5: CLIENTES + ALERTAS ================== -->
               <h3 class="section-title">
                 <i class="fa fa-users"></i> Clientes & Alertas de Inventario
               </h3>
@@ -1379,7 +1151,7 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
 
                 <div class="col-lg-6 col-md-12 mb-16">
                   <div class="chart-card">
-                    <h4><i class="fa fa-exclamation-triangle"></i> Productos con Stock Crítico (&lt; 5 unidades)</h4>
+                    <h4><i class="fa fa-exclamation-triangle"></i> Productos con Stock Cri­tico (&lt; 5 unidades)</h4>
                     <div style="padding:10px 0;">
                       <?php
                       if ($stockCritico && $stockCritico->num_rows > 0) {
@@ -1397,7 +1169,7 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
                           <?php
                         }
                       } else {
-                        echo '<p style="color:#10b981;text-align:center;padding:20px;"><i class="fa fa-check-circle"></i> No hay productos con stock crítico</p>';
+                        echo '<p style="color:#10b981;text-align:center;padding:20px;"><i class="fa fa-check-circle"></i> No hay productos con stock crÃ­tico</p>';
                       }
                       ?>
                     </div>
@@ -1407,15 +1179,15 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
 
               <div class="section-divider"></div>
 
-              <!-- ================== SECCIÓN 6: ANÁLISIS DE RENTABILIDAD ================== -->
+              <!-- ================== SECCIÃ“N 6: ANÃLISIS DE RENTABILIDAD ================== -->
               <h3 class="section-title">
-                <i class="fa fa-bar-chart"></i> Análisis de Rentabilidad por Producto
+                <i class="fa fa-bar-chart"></i> Analisis de Rentabilidad por Producto
               </h3>
               <div class="row mb-20">
                 <div class="col-lg-6 col-md-12 mb-16">
                   <div class="chart-card">
                     <h4 style="color:#059669;">
-                      <i class="fa fa-arrow-up"></i> Top 5 Productos Más Rentables
+                      <i class="fa fa-arrow-up"></i> Top 5 Productos Mas Rentables
                     </h4>
                     <div style="padding:10px 0;">
                       <?php
@@ -1427,7 +1199,7 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
                           <div class="rentabilidad-item">
                             <div>
                               <div class="rentabilidad-item__name"><?php echo htmlspecialchars($prod->nombre); ?></div>
-                              <div class="rentabilidad-item__cat"><?php echo htmlspecialchars($prod->categoria); ?> • <?php echo (int)$prod->unidades_vendidas; ?> unidades</div>
+                              <div class="rentabilidad-item__cat"><?php echo htmlspecialchars($prod->categoria); ?> a <?php echo (int)$prod->unidades_vendidas; ?> unidades</div>
                             </div>
                             <div class="rentabilidad-item__metrics">
                               <div class="rentabilidad-item__margen" style="color:<?php echo $colorMargen; ?>">
@@ -1466,7 +1238,7 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
                           <div class="rentabilidad-item">
                             <div>
                               <div class="rentabilidad-item__name"><?php echo htmlspecialchars($prod->nombre); ?></div>
-                              <div class="rentabilidad-item__cat"><?php echo htmlspecialchars($prod->categoria); ?> • <?php echo (int)$prod->unidades_vendidas; ?> unidades</div>
+                              <div class="rentabilidad-item__cat"><?php echo htmlspecialchars($prod->categoria); ?> a <?php echo (int)$prod->unidades_vendidas; ?> unidades</div>
                             </div>
                             <div class="rentabilidad-item__metrics">
                               <div class="rentabilidad-item__margen" style="color:<?php echo $colorMargen; ?>">
@@ -1489,17 +1261,19 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
                     </div>
                   </div>
                 </div>
+                </div>
               </div>
 
-            </div> <!-- /body -->
-          </div> <!-- /card -->
+            </div> <!-- /neko-card__body -->
+          </div> <!-- /neko-card -->
 
         </div>
+      </div>
       </div>
     </section>
   </div>
 
-  <?php require 'footer.php'; ?>
+
 
   <!-- Chart.js -->
   <script src="../public/js/Chart.bundle.min.js"></script>
@@ -1583,7 +1357,7 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
       form.submit();
       document.body.removeChild(form);
       
-      // Nota: Necesitarás crear el archivo exportar_dashboard.php para generar Excel/PDF
+      // Nota: NecesitarÃ¡s crear el archivo exportar_dashboard.php para generar Excel/PDF
       alert('Función de exportación en desarrollo. Crea el archivo exportar_dashboard.php para implementarla.');
     }
 
@@ -1608,44 +1382,28 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
     }
 
     function mostrarAyuda() {
-      const ayuda = `
-═══════════════════════════════════════════
-      GUÍA RÁPIDA - DASHBOARD ERP
-═══════════════════════════════════════════
-
-📊 FILTROS AVANZADOS:
-   • Selecciona rangos de fecha personalizados
-   • Filtra por categoría específica
-   • Compara con periodos anteriores
-   • Usa presets rápidos para análisis común
-
-💡 INDICADORES CLAVE:
-   • Margen Bruto: Rentabilidad general
-   • Valor Inventario: Capital inmovilizado
-   • Días Rotación: Velocidad de venta
-   • Ticket Promedio: Valor por operación
-
-📈 ANÁLISIS:
-   • Top Productos: Mejores vendedores
-   • Categorías: Distribución de ventas
-   • Clientes: Análisis de lealtad
-   • Rentabilidad: Márgenes por producto
-
-⚙️ FUNCIONES:
-   • 🔖 Guardar: Memoriza tu configuración
-   • 📥 Exportar: Descarga reportes
-   • 🖨️ Imprimir: Genera informes físicos
-
-═══════════════════════════════════════════
-Para soporte técnico, contacta al administrador
-      `;
-      
-      alert(ayuda);
+      Swal.fire({
+        title: '<strong>Ayuda del Dashboard</strong>',
+        icon: 'info',
+        html:
+          '<div style="text-align:left; font-size:0.9rem;">' +
+          '<p>Bienvenido al <b>Dashboard Ejecutivo</b>. Aquí podrás ver un resumen en tiempo real de tu negocio.</p>' +
+          '<ul style="margin-top:10px; list-style:none; padding:0;">' +
+          '<li style="margin-bottom:8px;"><i class="fa fa-check-circle" style="color:#10b981;"></i> <b>Filtros:</b> Selecciona un rango de fechas para analizar periodos específicos.</li>' +
+          '<li style="margin-bottom:8px;"><i class="fa fa-check-circle" style="color:#10b981;"></i> <b>KPIs:</b> Haz clic en las tarjetas de métricas para ver más detalles.</li>' +
+          '<li style="margin-bottom:8px;"><i class="fa fa-check-circle" style="color:#10b981;"></i> <b>Gráficos:</b> Visualiza la evolución de ventas y compras.</li>' +
+          '</ul>' +
+          '<p style="margin-top:15px; font-size:0.85rem; color:#64748b;">Para soporte técnico, contacta al administrador del sistema.</p>' +
+          '</div>',
+        showCloseButton: true,
+        focusConfirm: false,
+        confirmButtonText: '<i class="fa fa-thumbs-up"></i> Entendido',
+        confirmButtonAriaLabel: 'Entendido',
+        customClass: {
+          content: 'swal-custom-content'
+        }
+      });
     }
-
-    // Cargar configuración guardada al iniciar
-    window.addEventListener('DOMContentLoaded', cargarConfiguracionGuardada);
-
     // ==================== GRÁFICO CATEGORÍAS (DONUT) ====================
     (function(){
       const el = document.getElementById("chartCategorias");
@@ -1798,7 +1556,79 @@ Para soporte técnico, contacta al administrador
     })();
   </script>
 
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+
+  <script>
+    // Interactividad KPI con SweetAlert2
+    document.addEventListener('DOMContentLoaded', function() {
+      // REMOVED: Animation opacity logic that was hiding elements
+      
+      // KPI Click Events
+      const kpis = {
+        'total-ventas': {
+          title: 'Total Ventas Histórico',
+          text: 'Suma total de todas las ventas aceptadas en la historia del sistema.',
+          icon: 'success'
+        },
+        'total-compras': {
+          title: 'Total Compras Histórico',
+          text: 'Suma total de todas las compras aceptadas en la historia del sistema.',
+          icon: 'info'
+        },
+        'margen-neto': {
+          title: 'Margen Neto Histórico',
+          text: 'Diferencia entre Ventas Totales y Compras Totales.',
+          icon: 'question'
+        },
+        'transacciones': {
+          title: 'Total Transacciones',
+          text: 'Número total de operaciones de venta registradas.',
+          icon: 'warning'
+        }
+      };
+
+      // Asignar eventos a los KPIs (necesitas agregar IDs o clases específicas a los KPIs si no las tienen)
+      // Por ahora, usaremos selectores genéricos o agregaremos IDs en el HTML si es necesario.
+      // Asumiendo que los KPIs tienen enlaces, interceptamos el click.
+      
+      // Ejemplo para demostración: Interceptar clicks en enlaces dentro de .kpi-card
+      document.querySelectorAll('.kpi-card a').forEach(link => {
+        link.addEventListener('click', function(e) {
+          // Si quieres mantener la navegación, no hagas preventDefault.
+          // Si quieres solo mostrar info, usa preventDefault.
+          // El usuario pidió "interactivos con alertas", así que quizás mostrar info antes de navegar o solo info.
+          // Dado el diseño anterior, eran enlaces directos. Vamos a agregar un botón de "info" o hacer que toda la tarjeta muestre info si no es un enlace directo.
+        });
+      });
+    });
+    
+    function showKpiInfo(type) {
+      const info = {
+        'ventas': { title: 'Ventas Totales', text: 'Ingresos acumulados por ventas aceptadas.', icon: 'success' },
+        'compras': { title: 'Compras Totales', text: 'Gastos acumulados por compras aceptadas.', icon: 'warning' },
+        'margen': { title: 'Margen Neto', text: 'Rentabilidad calculada (Ventas - Compras).', icon: 'info' },
+        'transacciones': { title: 'Transacciones', text: 'Volumen total de operaciones.', icon: 'question' },
+        'margen-bruto': { title: 'Margen Bruto', text: 'Ingresos menos costos directos de los productos vendidos.', icon: 'success' },
+        'inventario': { title: 'Valor de Inventario', text: 'Valor total del stock actual calculado a precio de compra.', icon: 'info' },
+        'clientes': { title: 'Clientes Activos', text: 'Número de clientes únicos que han comprado en el periodo seleccionado.', icon: 'question' },
+        'ticket': { title: 'Ticket Promedio', text: 'Valor promedio de venta por transacción.', icon: 'success' }
+      };
+      
+      if(info[type]) {
+        Swal.fire({
+          title: info[type].title,
+          text: info[type].text,
+          icon: info[type].icon,
+          confirmButtonColor: '#3085d6',
+          confirmButtonText: 'Entendido'
+        });
+      }
+    }
+  </script>
+
   <?php
+  require 'footer.php';
 } else {
   require 'noacceso.php';
   require 'footer.php';

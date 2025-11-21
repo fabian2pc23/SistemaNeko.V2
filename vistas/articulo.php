@@ -9,7 +9,7 @@ $canAlmacen = !empty($_SESSION['almacen']) && (int)$_SESSION['almacen'] === 1;
 $nekoPrimary     = '#1565c0';
 $nekoPrimaryDark = '#0d47a1';
 ?>
-<?php if ($canAlmacen): ?>
+<?php if ($canAlmacen) { ?>
 <?php
   // ==================== KPIs OPTIMIZADOS ====================
   require_once "../config/Conexion.php";
@@ -22,7 +22,10 @@ $nekoPrimaryDark = '#0d47a1';
       SUM(CASE WHEN condicion = 1 AND stock > 0 THEN 1 ELSE 0 END)                 AS con_stock,
       SUM(CASE WHEN condicion = 1 AND stock <= 0 THEN 1 ELSE 0 END)                AS sin_stock,
       SUM(CASE WHEN condicion = 1 AND stock > 0 AND stock < 5 THEN 1 ELSE 0 END)   AS stock_bajo,
-      IFNULL(SUM(CASE WHEN condicion = 1 THEN stock ELSE 0 END),0)                 AS stock_total
+      IFNULL(SUM(CASE WHEN condicion = 1 THEN stock ELSE 0 END),0)                 AS stock_total,
+      -- Listas para tooltips (aunque ahora usaremos modal, mantenemos la query por si acaso)
+      (SELECT GROUP_CONCAT(nombre SEPARATOR '\n') FROM articulo WHERE condicion=1 AND stock<=0) AS lista_sin_stock,
+      (SELECT GROUP_CONCAT(nombre SEPARATOR '\n') FROM articulo WHERE condicion=1 AND stock>0 AND stock<5) AS lista_stock_bajo
     FROM articulo
   ";
   $rsKpi  = ejecutarConsulta($sqlKpi);
@@ -35,6 +38,9 @@ $nekoPrimaryDark = '#0d47a1';
   $kpiSinStock            = $rowKpi ? (int)$rowKpi->sin_stock            : 0;
   $kpiStockBajo           = $rowKpi ? (int)$rowKpi->stock_bajo           : 0;
   $kpiStockTotal          = $rowKpi ? (int)$rowKpi->stock_total          : 0;
+  
+  $listaSinStock          = $rowKpi ? $rowKpi->lista_sin_stock : '';
+  $listaStockBajo         = $rowKpi ? $rowKpi->lista_stock_bajo : '';
 ?>
 <style>
   :root{
@@ -104,6 +110,7 @@ $nekoPrimaryDark = '#0d47a1';
     box-shadow:0 2px 8px rgba(0,0,0,.08);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     border:1px solid rgba(0,0,0,.06);
+    position: relative;
   }
   .kpi-card:hover{
     transform: translateY(-2px);
@@ -193,39 +200,31 @@ $nekoPrimaryDark = '#0d47a1';
     border-radius:12px;
     border:1px solid #e2e8f0;
   }
-
   .filter-btn{
-    padding:8px 18px; 
-    border:none; 
+    border:none;
     background:transparent;
-    border-radius:8px; 
-    font-size:0.85rem; 
-    font-weight:600;
-    cursor:pointer; 
-    transition: all 0.2s ease;
+    padding:6px 12px;
+    border-radius:8px;
     color:#64748b;
-    display:flex;
-    align-items:center;
-    gap:6px;
+    font-weight:600;
+    font-size:0.85rem;
+    transition: all 0.2s ease;
   }
-  .filter-btn i{ font-size:0.9rem; }
   .filter-btn:hover{
-    background:#e2e8f0;
-    color:#334155;
+    background:#fff;
+    color:var(--neko-primary);
+    box-shadow:0 2px 4px rgba(0,0,0,.05);
   }
   .filter-btn.active{
-    background: linear-gradient(135deg, var(--neko-primary-dark), var(--neko-primary));
-    color:#fff;
-    box-shadow:0 2px 8px rgba(21,101,192,.25);
-  }
-  .filter-btn.active:hover{
-    background: linear-gradient(135deg, var(--neko-primary), var(--neko-primary-dark));
+    background:#fff;
+    color:var(--neko-primary);
+    box-shadow:0 2px 4px rgba(0,0,0,.05);
   }
 
   .search-input-wrapper{
     position:relative;
     flex:1;
-    max-width:350px;
+    min-width:200px;
   }
   .search-input-wrapper i{
     position:absolute;
@@ -436,7 +435,7 @@ $nekoPrimaryDark = '#0d47a1';
                 </div>
               </div>
 
-              <!-- 3. Con/Sin stock FUSIONADO con tooltip -->
+              <!-- 3. Con/Sin stock FUSIONADO con modal -->
               <div class="kpi-card kpi-card--warning">
                 <div class="kpi-card__title">Gestión de stock</div>
                 <div class="kpi-card__dual">
@@ -447,7 +446,7 @@ $nekoPrimaryDark = '#0d47a1';
                     </div>
                   </div>
                   <div class="kpi-dual-divider"></div>
-                  <div class="kpi-dual-item">
+                  <div class="kpi-dual-item" onclick="mostrarSinStock()" style="cursor:pointer;">
                     <div class="kpi-dual-item__label">Sin stock</div>
                     <div class="kpi-dual-item__value" id="kpi-sin-stock" style="color:#dc2626;">
                       <?php echo $kpiSinStock; ?>
@@ -456,8 +455,8 @@ $nekoPrimaryDark = '#0d47a1';
                 </div>
               </div>
 
-              <!-- 4. Stock bajo con tooltip -->
-              <div class="kpi-card kpi-card--danger">
+              <!-- 4. Stock bajo con modal -->
+              <div class="kpi-card kpi-card--danger" onclick="mostrarStockBajo()" style="cursor:pointer;">
                 <div class="kpi-card__title">Stock bajo (&lt; 5)</div>
                 <div class="kpi-card__header">
                   <div>
@@ -530,6 +529,11 @@ $nekoPrimaryDark = '#0d47a1';
                 ?>
               </select>
 
+              <select id="filter-marca" class="category-select">
+                <option value="">Todas las marcas</option>
+                <!-- Se llena desde JS -->
+              </select>
+
               <div class="export-group">
                 <button type="button" class="export-btn" onclick="exportarTabla('copy')" title="Copiar tabla al portapapeles">
                   <i class="fa fa-copy"></i> Copiar
@@ -552,25 +556,16 @@ $nekoPrimaryDark = '#0d47a1';
                   <th>Opciones</th>
                   <th>Nombre</th>
                   <th>Categoría</th>
+                  <th>Marca</th>
                   <th>Código</th>
                   <th>Stock</th>
                   <th>Precio Compra</th>
                   <th>Precio Venta</th>
                   <th>Imagen</th>
                   <th>Estado</th>
+                  <th>ID</th>
                 </thead>
                 <tbody></tbody>
-                <tfoot>
-                  <th>Opciones</th>
-                  <th>Nombre</th>
-                  <th>Categoría</th>
-                  <th>Código</th>
-                  <th>Stock</th>
-                  <th>Precio Compra</th>
-                  <th>Precio Venta</th>
-                  <th>Imagen</th>
-                  <th>Estado</th>
-                </tfoot>
               </table>
             </div>
           </div>
@@ -582,7 +577,7 @@ $nekoPrimaryDark = '#0d47a1';
 
               <h4 class="section-title"><span class="dot"></span> Datos del artículo</h4>
 
-              <!-- Fila 1: Nombre + Categoría -->
+              <!-- Fila 1: Nombre + Categoría + Marca -->
               <div class="row">
                 <div class="form-group col-lg-6">
                   <label>Nombre(*):</label>
@@ -591,24 +586,30 @@ $nekoPrimaryDark = '#0d47a1';
                   <div class="help-hint">Usa un nombre claro y único.</div>
                 </div>
 
-                <div class="form-group col-lg-6">
+                <div class="form-group col-lg-3">
                   <label>Categoría(*):</label>
                   <select id="idcategoria" name="idcategoria" class="form-control selectpicker"
                           data-live-search="true" required></select>
                 </div>
+
+                <div class="form-group col-lg-3">
+                  <label>Marca:</label>
+                  <select id="idmarca" name="idmarca" class="form-control selectpicker"
+                          data-live-search="true"></select>
+                </div>
               </div>
 
-              <!-- Fila 2: Stock + Precio compra + Precio venta -->
+              <!-- Fila 2: Precio compra + Precio venta -->
               <div class="row">
                 
-                <div class="form-group col-lg-4">
+                <div class="form-group col-lg-6">
                   <label>Precio compra(*):</label>
                   <input type="text" class="form-control" name="precio_compra" id="precio_compra"
                          placeholder="0.00" inputmode="decimal" required>
                   <div class="help-hint">Base para calcular precio de venta.</div>
                 </div>
 
-                <div class="form-group col-lg-4">
+                <div class="form-group col-lg-6">
                   <label>Precio venta(*):</label>
                   <input type="text" class="form-control" name="precio_venta" id="precio_venta"
                          placeholder="0.00" inputmode="decimal" required>
@@ -675,13 +676,14 @@ $nekoPrimaryDark = '#0d47a1';
     </div>
   </section>
 </div>
-<?php else: ?>
-  <?php require 'noacceso.php'; ?>
-<?php endif; ?>
 
-<?php require 'footer.php'; ?>
-<script type="text/javascript" src="../public/js/JsBarcode.all.min.js"></script>
-<script type="text/javascript" src="../public/js/jquery.PrintArea.js"></script>
+<?php
+} else {
+  require 'noacceso.php';
+}
+require 'footer.php';
+?>
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script type="text/javascript" src="scripts/articulo.js"></script>
-
 <?php ob_end_flush(); ?>

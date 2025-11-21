@@ -3,7 +3,7 @@ ob_start();
 if (strlen(session_id()) < 1) { session_start(); }
 
 require_once "../modelos/Usuario.php";
-require_once "../config/Conexion.php"; // ejecutarConsulta para selectRol
+require_once "../config/Conexion.php";
 
 $usuario = new Usuario();
 
@@ -16,21 +16,20 @@ function avatar_por_rol($cargo){
   return 'usuario.png';
 }
 
-/* ===== Helper: validar email existente (server-side) usando ajax/validate_email.php ===== */
+/* ===== Helper: validar email existente ===== */
 function validar_email_externo($email){
   $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
   $host   = $_SERVER['HTTP_HOST'] ?? 'localhost';
-  $base   = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\'); // ej: /ajax
+  $base   = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\');
   $url    = $scheme . '://' . $host . $base . '/validate_email.php?email=' . urlencode($email);
 
-  // Preferir cURL si está disponible (timeouts más finos)
   if (function_exists('curl_init')) {
     $ch = curl_init($url);
     curl_setopt_array($ch, [
       CURLOPT_RETURNTRANSFER => true,
       CURLOPT_CONNECTTIMEOUT => 5,
       CURLOPT_TIMEOUT        => 10,
-      CURLOPT_SSL_VERIFYPEER => false, // si usas https local sin cert
+      CURLOPT_SSL_VERIFYPEER => false,
     ]);
     $resp = curl_exec($ch);
     $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -63,9 +62,11 @@ $cargo           = isset($_POST["cargo"])           ? limpiarCadena($_POST["carg
 $clave           = isset($_POST["clave"])           ? limpiarCadena($_POST["clave"])           : "";
 $imagen          = isset($_POST["imagen"])          ? limpiarCadena($_POST["imagen"])          : "";
 
-$id_rol          = isset($_POST["id_rol"])          ? limpiarCadena($_POST["id_rol"])          : "";
-$modo_permisos   = isset($_POST["modo_permisos"])   ? limpiarCadena($_POST["modo_permisos"])   : ""; // 'rol'|'personalizado'|''
+$modo_permisos   = isset($_POST["modo_permisos"])   ? limpiarCadena($_POST["modo_permisos"])   : "";
 $mantener_clave  = isset($_POST["mantener_clave"])  ? limpiarCadena($_POST["mantener_clave"])  : "0";
+
+// ✅ NUEVO: Recibir array de roles con estructura: [{'id_rol':1,'es_principal':1}, {'id_rol':3,'es_principal':0}]
+$roles_json = isset($_POST["roles_data"]) ? $_POST["roles_data"] : "";
 
 switch ($_GET["op"]) {
 
@@ -95,7 +96,7 @@ case 'guardaryeditar':
       break; 
     }
 
-    // ✅ Validación fuerte de existencia de correo (server-side)
+    // ✅ Validación fuerte de existencia de correo
     list($okMail, $mailInfo) = validar_email_externo($email);
     if (!$okMail) {
       $detalle = is_array($mailInfo) && !empty($mailInfo['message']) ? $mailInfo['message'] : 'verificación fallida';
@@ -103,15 +104,45 @@ case 'guardaryeditar':
       break;
     }
 
+    // ✅ PROCESAR MÚLTIPLES ROLES
+    $roles_array = array();
+    if (!empty($roles_json)) {
+        $decoded = json_decode($roles_json, true);
+        if (is_array($decoded)) {
+            $roles_array = $decoded;
+        }
+    }
+
+    // Validar que haya al menos un rol
+    if (count($roles_array) === 0) {
+        echo "Error: Debe seleccionar al menos un rol para el usuario.";
+        break;
+    }
+
+    // Validar que haya exactamente un rol principal
+    $countPrincipal = 0;
+    foreach($roles_array as $r){
+        if (isset($r['es_principal']) && (int)$r['es_principal'] === 1) {
+            $countPrincipal++;
+        }
+    }
+    if ($countPrincipal === 0) {
+        echo "Error: Debe marcar un rol como PRINCIPAL.";
+        break;
+    }
+    if ($countPrincipal > 1) {
+        echo "Error: Solo puede haber un rol marcado como PRINCIPAL.";
+        break;
+    }
+
     // ❌ YA NO SE VALIDAN PERMISOS POR USUARIO
     // Todos los permisos se asignan por ROL.
-    // Forzamos el modo a 'rol' y dejamos sin permisos individuales.
     $modo_permisos = 'rol';
-    $permisos      = array(); // ya no usamos permiso[] desde el formulario
+    $permisos      = array();
 
     // Imagen subida
     if (!file_exists($_FILES['imagen']['tmp_name']) || !is_uploaded_file($_FILES['imagen']['tmp_name'])) {
-      $imagen = $_POST["imagenactual"] ?? $imagen; // puede venir vacío
+      $imagen = $_POST["imagenactual"] ?? $imagen;
     } else {
       $ext  = explode(".", $_FILES["imagen"]["name"]);
       $mime = $_FILES['imagen']['type'] ?? '';
@@ -163,19 +194,19 @@ case 'guardaryeditar':
       $rspta = $usuario->insertar(
         $nombre,$tipo_documento,$num_documento,$direccion,$telefono,$email,
         $cargo,$clavehash,$imagen,$permisos,
-        $id_rol,$modo_permisos
+        $roles_array,$modo_permisos
       );
       echo $rspta 
-        ? "Usuario registrado exitosamente. Puede iniciar sesión con su correo: $email"
+        ? "Usuario registrado exitosamente con múltiples roles. Puede iniciar sesión con su correo: $email"
         : "No se pudieron registrar todos los datos del usuario";
     } else {
       $rspta = $usuario->editar(
         $idusuario,$nombre,$tipo_documento,$num_documento,$direccion,$telefono,$email,
         $cargo,$clavehash,$imagen,$permisos,
-        $id_rol,$modo_permisos, ($mantener_clave === "1")
+        $roles_array,$modo_permisos, ($mantener_clave === "1")
       );
       echo $rspta 
-        ? "Usuario actualizado correctamente" 
+        ? "Usuario actualizado correctamente con sus roles" 
         : "Usuario no se pudo actualizar";
     }
   }
@@ -206,7 +237,31 @@ case 'mostrar':
 break;
 
 /* ============================================================
-   Listar (incluye Pendiente=3)
+   ✅ NUEVO: Obtener roles de un usuario
+   ============================================================ */
+case 'obtener_roles_usuario':
+  header('Content-Type: application/json; charset=utf-8');
+  if (!isset($_SESSION["nombre"]) || $_SESSION['acceso'] != 1) { 
+    echo json_encode(['error' => 'No autorizado']); 
+    break; 
+  }
+  $id_usuario_q = isset($_GET['idusuario']) ? intval($_GET['idusuario']) : 0;
+  $rspta = $usuario->obtenerRolesUsuario($id_usuario_q);
+  $roles = array();
+  if ($rspta) {
+      while ($row = $rspta->fetch_assoc()) {
+          $roles[] = array(
+              'id_rol' => (int)$row['id_rol'],
+              'nombre_rol' => $row['nombre_rol'],
+              'es_principal' => (int)$row['es_principal']
+          );
+      }
+  }
+  echo json_encode($roles);
+break;
+
+/* ============================================================
+   Listar (incluye todos los roles concatenados)
    ============================================================ */
 case 'listar':
   if (!isset($_SESSION["nombre"])) { header("Location: ../vistas/login.html"); }
@@ -239,7 +294,7 @@ case 'listar':
         "3" => $reg->num_documento,
         "4" => $reg->telefono,
         "5" => $reg->email,
-        "6" => $reg->cargo,
+        "6" => $reg->todos_roles ?: $reg->cargo, // Mostrar todos los roles o cargo legacy
         "7" => "<img src='../files/usuarios/".$reg->imagen."' height='50' width='50'>",
         "8" => $estado
       );
@@ -287,7 +342,7 @@ case 'permisos_por_rol':
 break;
 
 case 'verificar':
-  $logina = $_POST['logina']; // email
+  $logina = $_POST['logina'];
   $clavea = $_POST['clavea'];
   $clavehash = hash("SHA256",$clavea);
   $rspta = $usuario->verificar($logina, $clavehash);
@@ -297,20 +352,17 @@ case 'verificar':
     $_SESSION['nombre']    = $fetch->nombre;
     $_SESSION['imagen']    = $fetch->imagen;
     $_SESSION['email']     = $fetch->email;
-    // ✅ Guarda también el id_rol para que el header pueda mostrar el rol real o usar fallback
-    if (isset($fetch->id_rol)) { $_SESSION['id_rol'] = (int)$fetch->id_rol; }
 
-    $marcados = $usuario->listarmarcados($fetch->idusuario);
-    $valores  = array();
-    while ($per = $marcados->fetch_object()) { $valores[] = $per->idpermiso; }
+    // Obtener permisos acumulativos de todos los roles
+    $permisos = $usuario->obtenerPermisosAcumulativos($fetch->idusuario);
 
-    in_array(1,$valores)?$_SESSION['escritorio']=1:$_SESSION['escritorio']=0;
-    in_array(2,$valores)?$_SESSION['almacen']=1:$_SESSION['almacen']=0;
-    in_array(3,$valores)?$_SESSION['compras']=1:$_SESSION['compras']=0;
-    in_array(4,$valores)?$_SESSION['ventas']=1:$_SESSION['ventas']=0;
-    in_array(5,$valores)?$_SESSION['acceso']=1:$_SESSION['acceso']=0;
-    in_array(6,$valores)?$_SESSION['consultac']=1:$_SESSION['consultac']=0;
-    in_array(7,$valores)?$_SESSION['consultav']=1:$_SESSION['consultav']=0;
+    in_array(1,$permisos)?$_SESSION['escritorio']=1:$_SESSION['escritorio']=0;
+    in_array(2,$permisos)?$_SESSION['almacen']=1:$_SESSION['almacen']=0;
+    in_array(3,$permisos)?$_SESSION['compras']=1:$_SESSION['compras']=0;
+    in_array(4,$permisos)?$_SESSION['ventas']=1:$_SESSION['ventas']=0;
+    in_array(5,$permisos)?$_SESSION['acceso']=1:$_SESSION['acceso']=0;
+    in_array(6,$permisos)?$_SESSION['consultac']=1:$_SESSION['consultac']=0;
+    in_array(7,$permisos)?$_SESSION['consultav']=1:$_SESSION['consultav']=0;
   }
   echo json_encode($fetch);
 break;

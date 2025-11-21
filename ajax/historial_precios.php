@@ -58,6 +58,51 @@ switch ($op) {
     echo json_encode(["data"=>$data]);
     break;
 
+  /* === CHART DATA (Historial de precios para gráfico) === */
+  case 'listar_chart':
+    $id = isset($_GET['idarticulo']) ? (int)$_GET['idarticulo'] : 0;
+    if ($id <= 0) {
+        echo json_encode(["labels" => [], "datasets" => []]);
+        break;
+    }
+    
+    $rs = $hist->listarMovimientos($id);
+    $labels = [];
+    $preciosVenta = [];
+    $preciosCompra = [];
+    
+    // Array temporal para ordenar cronológicamente
+    $temp = [];
+    while ($r = $rs->fetch_object()) {
+        $temp[] = [
+            'fecha' => date('d/m/Y H:i', strtotime($r->fecha)),
+            'precio_nuevo' => (float)$r->precio_nuevo,
+            'precio_anterior' => (float)$r->precio_anterior
+        ];
+    }
+    
+    // Ordenar ascendente para el gráfico
+    $temp = array_reverse($temp);
+    
+    foreach ($temp as $t) {
+        $labels[] = $t['fecha'];
+        $preciosVenta[] = $t['precio_nuevo'];
+    }
+    
+    echo json_encode([
+        "labels" => $labels, 
+        "datasets" => [
+            [
+                "label" => "Precio de Venta",
+                "data" => $preciosVenta,
+                "borderColor" => "#1565c0",
+                "backgroundColor" => "rgba(21, 101, 192, 0.1)",
+                "tension" => 0.4
+            ]
+        ]
+    ]);
+    break;
+
   /* === Precio actual para el modal === */
   case 'ultimo':
     $id = (int)($_GET['idarticulo'] ?? 0);

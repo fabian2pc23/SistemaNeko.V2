@@ -340,7 +340,7 @@ $nekoPrimaryDark = '#0d47a1';
             <!-- ==================== KPIs ==================== -->
             <div class="kpi-container">
               <!-- Total Marcas -->
-              <div class="kpi-card kpi-card--primary">
+              <div class="kpi-card kpi-card--primary" style="cursor: pointer;">
                 <div class="kpi-card__title">Total Marcas</div>
                 <div class="kpi-card__header">
                   <div>
@@ -353,7 +353,7 @@ $nekoPrimaryDark = '#0d47a1';
               </div>
 
               <!-- Activas / Inactivas -->
-              <div class="kpi-card kpi-card--success">
+              <div class="kpi-card kpi-card--success" style="cursor: pointer;">
                 <div class="kpi-card__title">Estado de Marcas</div>
                 <div class="kpi-card__dual">
                   <div class="kpi-dual-item">
@@ -369,7 +369,7 @@ $nekoPrimaryDark = '#0d47a1';
               </div>
 
               <!-- Sin Artículos -->
-              <div class="kpi-card kpi-card--warning">
+              <div class="kpi-card kpi-card--warning" id="card-sin-articulos" style="cursor: pointer;">
                 <div class="kpi-card__title">Sin Artículos</div>
                 <div class="kpi-card__header">
                   <div>
@@ -382,7 +382,7 @@ $nekoPrimaryDark = '#0d47a1';
               </div>
 
               <!-- Stock Crítico -->
-              <div class="kpi-card kpi-card--danger">
+              <div class="kpi-card kpi-card--danger" id="card-stock-critico" style="cursor: pointer;">
                 <div class="kpi-card__title">Stock Crítico</div>
                 <div class="kpi-card__header">
                   <div>
@@ -395,7 +395,7 @@ $nekoPrimaryDark = '#0d47a1';
               </div>
 
               <!-- Nuevas (30 días) -->
-              <div class="kpi-card kpi-card--purple">
+              <div class="kpi-card kpi-card--purple" id="card-nuevas" style="cursor: pointer;">
                 <div class="kpi-card__title">Nuevas (30 días)</div>
                 <div class="kpi-card__header">
                   <div>
@@ -408,9 +408,8 @@ $nekoPrimaryDark = '#0d47a1';
               </div>
             </div>
 
-            <!-- ==================== FILTROS MODERNOS (REORDENADO) ==================== -->
+            <!-- ==================== FILTROS MODERNOS ==================== -->
             <div class="filter-bar">
-              <!-- Filtros de estado -->
               <div class="filter-group">
                 <button class="filter-btn active" data-filter="all" onclick="filtrarTabla('all')">
                   <i class="fa fa-th"></i> Todos
@@ -429,7 +428,7 @@ $nekoPrimaryDark = '#0d47a1';
                 <input type="text" class="search-input" id="searchInput" placeholder="Buscar por nombre...">
               </div>
 
-              <!-- Selector de registros por página (REPOSICIONADO) -->
+              <!-- Selector de registros por página -->
               <div class="filter-group" style="background: transparent; border: none; padding: 0;">
                 <label style="display: flex; align-items: center; gap: 8px; color: #64748b; font-size: 0.875rem; font-weight: 600; margin: 0;">
                   <span>Mostrar:</span>
@@ -533,5 +532,6 @@ $nekoPrimaryDark = '#0d47a1';
 <?php endif; ?>
 
 <?php require 'footer.php'; ?>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script type="text/javascript" src="scripts/marca.js"></script>
 <?php ob_end_flush(); ?>

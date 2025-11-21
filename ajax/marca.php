@@ -31,7 +31,11 @@ switch ($_GET["op"]){
 	        }
 	    } else {
 	        $rspta = $marca->editar($idmarca,$nombre,$descripcion);
-	        echo $rspta ? "Marca actualizada" : "No se pudo actualizar";
+			if ($rspta === "duplicado") {
+				echo "duplicado";
+			} else {
+				echo $rspta ? "Marca actualizada" : "No se pudo actualizar";
+			}
 	    }
 	break;
 
@@ -109,35 +113,41 @@ switch ($_GET["op"]){
 	case 'marcas_stock_critico':
 		header('Content-Type: application/json; charset=utf-8');
 		$rspta = $marca->marcasStockCritico();
-		if ($rspta && is_array($rspta)) {
-			echo json_encode(array(
-				'success' => true,
-				'total' => isset($rspta['total']) ? (int)$rspta['total'] : 0
-			));
-		} else {
-			echo json_encode(array(
-				'success' => false,
-				'total' => 0,
-				'error' => 'No se pudo obtener el resultado'
-			));
+		$marcas = array();
+		$total = 0;
+		
+		if ($rspta) {
+			while ($reg = $rspta->fetch_object()) {
+				$marcas[] = $reg->nombre;
+				$total++;
+			}
 		}
+
+		echo json_encode(array(
+			'success' => true,
+			'total' => $total,
+			'marcas' => $marcas
+		));
 	break;
 
 	case 'marcas_nuevas':
 		header('Content-Type: application/json; charset=utf-8');
 		$rspta = $marca->marcasNuevas();
-		if ($rspta && is_array($rspta)) {
-			echo json_encode(array(
-				'success' => true,
-				'total' => isset($rspta['total']) ? (int)$rspta['total'] : 0
-			));
-		} else {
-			echo json_encode(array(
-				'success' => false,
-				'total' => 0,
-				'error' => 'No se pudo obtener el resultado'
-			));
+		$marcas = array();
+		$total = 0;
+		
+		if ($rspta) {
+			while ($reg = $rspta->fetch_object()) {
+				$marcas[] = $reg->nombre;
+				$total++;
+			}
 		}
+
+		echo json_encode(array(
+			'success' => true,
+			'total' => $total,
+			'marcas' => $marcas
+		));
 	break;
 }
 //Fin de las validaciones de acceso

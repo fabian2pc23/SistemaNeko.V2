@@ -6,42 +6,139 @@
 var tabla;
 
 /* ======================== Utilidades ======================== */
-function debounce(fn, wait){
+function debounce(fn, wait) {
   let t;
-  return function(){
+  return function () {
     clearTimeout(t);
     const ctx = this, args = arguments;
-    t = setTimeout(function(){ fn.apply(ctx, args); }, wait||350);
+    t = setTimeout(function () { fn.apply(ctx, args); }, wait || 350);
   };
 }
 
-function setEstado(msg, kind){
-  let color = (kind==='ok') ? 'green'
-            : (kind==='err' ? '#b91c1c'
-            : '#374151'); // slate-700
+function setEstado(msg, kind) {
+  let color = (kind === 'ok') ? 'green'
+    : (kind === 'err' ? '#b91c1c'
+      : '#374151'); // slate-700
   $("#estadoDoc").remove();
   $("#num_documento").closest('.input-group, .form-group').after(
-    '<small id="estadoDoc" style="display:block;margin-top:6px;color:'+color+';font-weight:600;">'+msg+'</small>'
+    '<small id="estadoDoc" style="display:block;margin-top:6px;color:' + color + ';font-weight:600;">' + msg + '</small>'
   );
 }
 
-function bloquearCamposFijos(){
+function bloquearCamposFijos() {
   // Nombre y Dirección solo los trae RENIEC
   $("#nombre").prop("readonly", true).addClass("disabled");
   $("#direccion").prop("readonly", true).addClass("disabled");
 }
-function desbloquearCamposFijos(){
+function desbloquearCamposFijos() {
   $("#nombre").prop("readonly", false).removeClass("disabled");
   $("#direccion").prop("readonly", false).removeClass("disabled");
 }
 
+/* ======================== Toast (mismo estilo que Ventas) ======================== */
+function ensureToastStyles() {
+  if (document.getElementById('neko-toast-styles')) return;
+  const css = `
+    #nekoToastContainer{
+      position:fixed; right:18px; bottom:18px; z-index:9999;
+      display:flex; flex-direction:column; gap:8px; pointer-events:none;
+    }
+    .neko-toast{
+      min-width:260px; max-width:360px; background:#0f172a; color:#f9fafb;
+      padding:10px 12px; border-radius:10px; box-shadow:0 10px 25px rgba(15,23,42,.5);
+      display:flex; align-items:flex-start; gap:8px; font-size:.86rem;
+      pointer-events:auto; opacity:0.96;
+    }
+    .neko-toast-success{border-left:4px solid #22c55e;}
+    .neko-toast-error{border-left:4px solid #ef4444;}
+    .neko-toast-info{border-left:4px solid #3b82f6;}
+    .neko-toast-icon{ font-size:1rem; margin-top:1px; }
+    .neko-toast-close{ margin-left:auto; cursor:pointer; opacity:.7; }
+    .neko-toast-close:hover{opacity:1;}
+  `;
+  const style = document.createElement('style');
+  style.id = 'neko-toast-styles';
+  style.textContent = css;
+  document.head.appendChild(style);
+}
+
+function showToast(type, message) {
+  ensureToastStyles();
+  let container = document.getElementById('nekoToastContainer');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'nekoToastContainer';
+    document.body.appendChild(container);
+  }
+
+  let icon = 'ℹ️', cls = 'neko-toast-info';
+  if (type === 'success') { icon = '✅'; cls = 'neko-toast-success'; }
+  else if (type === 'error') { icon = '⚠️'; cls = 'neko-toast-error'; }
+
+  const toast = document.createElement('div');
+  toast.className = 'neko-toast ' + cls;
+  toast.innerHTML = `
+    <span class="neko-toast-icon">${icon}</span>
+    <div>${message}</div>
+    <span class="neko-toast-close">&times;</span>
+  `;
+
+  toast.querySelector('.neko-toast-close').onclick = function () {
+    $(toast).fadeOut(150, function () { toast.remove(); });
+  };
+
+  container.appendChild(toast);
+  $(toast).hide().fadeIn(150);
+
+  setTimeout(function () {
+    $(toast).fadeOut(200, function () { toast.remove(); });
+  }, 3500);
+}
+
+/* ======================== Filtros Modernos ======================== */
+// 1. Filtro de Estado (Regex)
+function filtrarEstado(estado) {
+  $('.status-btn').removeClass('active');
+  $('#filter-' + estado).addClass('active');
+
+  // Columna 6: Estado (según ajax/persona.php)
+  if (estado === 'todos') {
+    tabla.column(6).search('').draw();
+  } else if (estado === 'activos') {
+    tabla.column(6).search('^Activado$', true, false).draw();
+  } else if (estado === 'inactivos') {
+    tabla.column(6).search('^Desactivado$', true, false).draw();
+  }
+}
+
+// 2. Buscador Global
+function setupSearchInput() {
+  $('#search-input').on('keyup', function () {
+    tabla.search(this.value).draw();
+  });
+}
+
+// 3. Cambiar Longitud
+function cambiarLongitud(len) {
+  tabla.page.len(len).draw();
+}
+
+// 4. Exportar
+function exportarTabla(type) {
+  if (type === 'excel') $('.buttons-excel').click();
+  if (type === 'pdf') $('.buttons-pdf').click();
+  if (type === 'csv') $('.buttons-csv').click();
+  if (type === 'copy') $('.buttons-copy').click();
+}
+
 /* ======================== Boot ======================== */
-function init(){
+function init() {
   mostrarform(false);
   listar();
+  setupSearchInput();
 
   // Guardar
-  $("#formulario").on("submit", function(e){ guardaryeditar(e); });
+  $("#formulario").on("submit", function (e) { guardaryeditar(e); });
 
   // Menú activo
   $('#mVentas').addClass("treeview active");
@@ -52,35 +149,41 @@ function init(){
 
   // Tipo documento visual y espejo hidden (para que siempre viaje en POST)
   $("#tipo_documento_view").val("DNI");
-  try { $("#tipo_documento_view").selectpicker('refresh'); } catch(e){}
+  try { $("#tipo_documento_view").selectpicker('refresh'); } catch (e) { }
   $("#tipo_documento_hidden").val("DNI");
-  $("#tipo_documento_view").on('change', function(){
+  $("#tipo_documento_view").on('change', function () {
     $("#tipo_documento_hidden").val(this.value || 'DNI');
   });
 
   // Handlers RENIEC
   $("#num_documento")
-    .on("input", function(){
+    .on("input", function () {
       // Solo dígitos y máximo 8
-      let v = (this.value||"").replace(/\D/g,'').slice(0,8);
+      let v = (this.value || "").replace(/\D/g, '').slice(0, 8);
       if (this.value !== v) this.value = v;
     })
     .on("keyup change", debounce(onDniChange, 400));
 
+  // Teléfono: solo dígitos, máx 9 (celular peruano)
+  $("#telefono").on("input", function () {
+    let v = (this.value || "").replace(/\D/g, '').slice(0, 9);
+    if (this.value !== v) this.value = v;
+  });
+
   // Botón buscar (consulta manual)
-  $("#btnBuscarDoc").off("click").on("click", function(){
-    const dni = ($("#num_documento").val()||"").replace(/\D/g,'');
-    if (dni.length===8) consultarReniec(dni);
-    else setEstado("Ingresa 8 dígitos de DNI","err");
+  $("#btnBuscarDoc").off("click").on("click", function () {
+    const dni = ($("#num_documento").val() || "").replace(/\D/g, '');
+    if (dni.length === 8) consultarReniec(dni);
+    else setEstado("Ingresa 8 dígitos de DNI", "err");
   });
 
   // Estado inicial y bloqueo de campos
-  setEstado("Esperando número…","info");
+  setEstado("Esperando número…", "info");
   bloquearCamposFijos();
 }
 
 /* ======================== Limpieza/Form ======================== */
-function limpiar(){
+function limpiar() {
   $("#idpersona").val("");
   $("#nombre").val("");
   $("#num_documento").val("");
@@ -91,44 +194,48 @@ function limpiar(){
   $("#tipo_persona").val("Cliente");
   $("#tipo_documento_view").val("DNI");
   $("#tipo_documento_hidden").val("DNI");
-  try { $("#tipo_documento_view").selectpicker('refresh'); } catch(e){}
+  try { $("#tipo_documento_view").selectpicker('refresh'); } catch (e) { }
 
-  setEstado("Esperando número…","info");
+  setEstado("Esperando número…", "info");
   bloquearCamposFijos();
 }
 
-function mostrarform(flag){
+function mostrarform(flag) {
   limpiar();
-  if (flag){
+  if (flag) {
     $("#listadoregistros").hide();
     $("#formularioregistros").show();
     $("#btnGuardar").prop("disabled", false);
     $("#btnagregar").hide();
-  }else{
+    // Ocultar barra de filtros al editar
+    $(".filter-bar").hide();
+  } else {
     $("#listadoregistros").show();
     $("#formularioregistros").hide();
     $("#btnagregar").show();
+    // Mostrar barra de filtros al listar
+    $(".filter-bar").show();
   }
 }
 
-function cancelarform(){
+function cancelarform() {
   limpiar();
   mostrarform(false);
 }
 
 /* ======================== Listado ======================== */
-function listar(){
+function listar() {
   tabla = $('#tbllistado').dataTable({
     lengthMenu: [5, 10, 25, 75, 100],
     aProcessing: true,
     aServerSide: true,
-    dom: '<Bl<f>rtip>', // Buttons + length + filter arriba
-    buttons: ['copyHtml5','excelHtml5','csvHtml5','pdf'],
+    dom: 'Bfrtip',
+    buttons: ['copyHtml5', 'excelHtml5', 'csvHtml5', 'pdf'],
     ajax: {
       url: '../ajax/persona.php?op=listarc',
       type: 'GET',
       dataType: 'json',
-      error: function(e){ console.log(e.responseText); }
+      error: function (e) { console.log(e.responseText); }
     },
     language: {
       lengthMenu: 'Mostrar : _MENU_ registros',
@@ -138,20 +245,59 @@ function listar(){
       }
     },
     bDestroy: true,
-    iDisplayLength: 5,
-    order: [[0,'desc']]
+    iDisplayLength: 10, // Default 10
+    order: [[0, 'desc']]
   }).DataTable();
 }
 
 /* ======================== Guardar/Editar ======================== */
-function guardaryeditar(e){
+function guardaryeditar(e) {
   e.preventDefault();
   $("#btnGuardar").prop("disabled", true);
 
-  // Sincroniza espejos: estos SI viajan en POST
+  // -------- VALIDACIONES FRONT --------
+  const dni = ($("#num_documento").val() || "").replace(/\D/g, '');
+  const tel = ($("#telefono").val() || "").trim();
+  const mail = ($("#email").val() || "").trim();
+
+  // DNI 8 dígitos
+  if (dni.length !== 8) {
+    showToast('error', 'El DNI debe tener exactamente 8 dígitos.');
+    $("#btnGuardar").prop("disabled", false);
+    return;
+  }
+
+  // Al menos un contacto (teléfono o email)
+  if (!tel && !mail) {
+    showToast('error', 'Debes registrar al menos un dato de contacto: teléfono o email.');
+    $("#btnGuardar").prop("disabled", false);
+    return;
+  }
+
+  // Validar teléfono si viene (celular peruano: 9 dígitos y empieza con 9)
+  if (tel) {
+    const telDigits = tel.replace(/\D/g, '');
+    if (!/^9\d{8}$/.test(telDigits)) {
+      showToast('error', 'El celular debe tener 9 dígitos y empezar con 9 (formato peruano).');
+      $("#btnGuardar").prop("disabled", false);
+      return;
+    }
+    $("#telefono").val(telDigits); // Guardamos solo dígitos
+  }
+
+  // Validar email si viene
+  if (mail) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(mail)) {
+      showToast('error', 'El correo electrónico no tiene un formato válido.');
+      $("#btnGuardar").prop("disabled", false);
+      return;
+    }
+  }
+
+  // -------- PREPARAR Y ENVIAR --------
   $("#tipo_persona").val("Cliente");
   $("#tipo_documento_hidden").val($("#tipo_documento_view").val() || 'DNI');
-
   bloquearCamposFijos(); // por si acaso
 
   var formData = new FormData($("#formulario")[0]);
@@ -161,24 +307,53 @@ function guardaryeditar(e){
     data: formData,
     contentType: false,
     processData: false,
-    success: function(datos){
-      bootbox.alert(datos);
-      mostrarform(false);
-      if (tabla && tabla.ajax && typeof tabla.ajax.reload==='function') tabla.ajax.reload();
+    success: function (datos) {
+      const raw = (datos || '').toString();
+
+      if (/Duplicate entry/i.test(raw)) {
+        showToast('error', 'Esta persona ya es un cliente de Neko SAC.');
+        $("#btnGuardar").prop("disabled", false);
+        return;
+      }
+
+      let ok = true;
+      let msg = '';
+
+      try {
+        const resp = JSON.parse(raw);
+        ok = !!resp.success;
+        msg = resp.message || (ok ? 'Cliente registrado correctamente.' : 'No se pudo registrar el cliente.');
+      } catch (e) {
+        msg = raw.trim();
+        if (!msg) {
+          msg = 'Cliente registrado correctamente.';
+          ok = true;
+        } else {
+          ok = !/error/i.test(msg);
+        }
+      }
+
+      showToast(ok ? 'success' : 'error', msg);
+
+      if (ok) {
+        mostrarform(false);
+        if (tabla && tabla.ajax && typeof tabla.ajax.reload === 'function') {
+          tabla.ajax.reload();
+        }
+      }
     },
-    error: function(xhr){
-      console.error('Error guardando cliente', xhr.status, xhr.responseText);
-      bootbox.alert("Ocurrió un error al guardar.");
+    error: function (xhr) {
+      showToast('error', 'Ocurrió un error al guardar el cliente.');
     },
-    complete: function(){
+    complete: function () {
       $("#btnGuardar").prop("disabled", false);
     }
   });
 }
 
 /* ======================== Mostrar/Eliminar ======================== */
-function mostrar(idpersona){
-  $.post("../ajax/persona.php?op=mostrar", { idpersona: idpersona }, function(data){
+function mostrar(idpersona) {
+  $.post("../ajax/persona.php?op=mostrar", { idpersona: idpersona }, function (data) {
     data = JSON.parse(data);
     mostrarform(true);
 
@@ -188,53 +363,63 @@ function mostrar(idpersona){
     $("#tipo_persona").val("Cliente");
     $("#tipo_documento_view").val("DNI");
     $("#tipo_documento_hidden").val("DNI");
-    try { $("#tipo_documento_view").selectpicker('refresh'); } catch(e){}
+    try { $("#tipo_documento_view").selectpicker('refresh'); } catch (e) { }
 
-    $("#num_documento").val((data.num_documento||'').replace(/\D/g,'').slice(0,8));
+    $("#num_documento").val((data.num_documento || '').replace(/\D/g, '').slice(0, 8));
     $("#telefono").val(data.telefono);
     $("#email").val(data.email);
-    $("#direccion").val(data.direccion||'');
+    $("#direccion").val(data.direccion || '');
 
     bloquearCamposFijos();
-    setEstado("Datos cargados (edición)","info");
+    setEstado("Datos cargados (edición)", "info");
   });
 }
 
-function eliminar(idpersona){
-  bootbox.confirm("¿Está Seguro de eliminar el cliente?", function(result){
-    if(result){
-      $.post("../ajax/persona.php?op=eliminar", { idpersona: idpersona }, function(e){
-        bootbox.alert(e);
-        if (tabla && tabla.ajax && typeof tabla.ajax.reload==='function') tabla.ajax.reload();
+function desactivar(idpersona) {
+  bootbox.confirm("¿Está Seguro de desactivar el cliente?", function (result) {
+    if (result) {
+      $.post("../ajax/persona.php?op=desactivar", { idpersona: idpersona }, function (e) {
+        showToast('info', e);
+        tabla.ajax.reload();
+      });
+    }
+  });
+}
+
+function activar(idpersona) {
+  bootbox.confirm("¿Está Seguro de activar el cliente?", function (result) {
+    if (result) {
+      $.post("../ajax/persona.php?op=activar", { idpersona: idpersona }, function (e) {
+        showToast('success', e);
+        tabla.ajax.reload();
       });
     }
   });
 }
 
 /* ======================== RENIEC ======================== */
-function onDniChange(){
-  const dni = ($("#num_documento").val()||"").replace(/\D/g,'');
-  if (dni.length===8){
+function onDniChange() {
+  const dni = ($("#num_documento").val() || "").replace(/\D/g, '');
+  if (dni.length === 8) {
     consultarReniec(dni);
-  }else{
+  } else {
     $("#nombre").val("");
     $("#direccion").val("");
-    setEstado("Esperando número…","info");
+    setEstado("Esperando número…", "info");
     bloquearCamposFijos();
   }
 }
 
-function consultarReniec(dni){
-  // Spinner en botón si existe
+function consultarReniec(dni) {
   const $btn = $("#btnBuscarDoc");
-  const hadBtn = $btn.length>0;
+  const hadBtn = $btn.length > 0;
   let oldHtml;
-  if (hadBtn){
+  if (hadBtn) {
     oldHtml = $btn.html();
     $btn.prop("disabled", true).html('<i class="fa fa-spinner fa-spin"></i>');
   }
 
-  setEstado("Consultando RENIEC…","info");
+  setEstado("Consultando RENIEC…", "info");
 
   $.ajax({
     url: "../ajax/reniec.php",
@@ -242,34 +427,32 @@ function consultarReniec(dni){
     dataType: "json",
     cache: false,
     data: { dni: dni, _: Date.now() },
-    success: function(resp){
-      if (resp && resp.success){
-        const nombre = [resp.nombres||'', resp.apellidos||''].join(' ').trim();
+    success: function (resp) {
+      if (resp && resp.success) {
+        const nombre = [resp.nombres || '', resp.apellidos || ''].join(' ').trim();
         $("#nombre").val(nombre);
         $("#direccion").val(resp.direccion || '');
         bloquearCamposFijos();
-        setEstado("Datos encontrados (RENIEC)","ok");
-      }else{
+        setEstado("Datos encontrados (RENIEC)", "ok");
+      } else {
         $("#nombre").val('');
         $("#direccion").val('');
         bloquearCamposFijos();
-        setEstado((resp && (resp.message||resp.msg)) ? (resp.message||resp.msg) : "DNI no encontrado","err");
+        setEstado((resp && (resp.message || resp.msg)) ? (resp.message || resp.msg) : "DNI no encontrado", "err");
       }
     },
-    error: function(xhr){
-      console.error("RENIEC error", xhr.status, xhr.responseText);
+    error: function (xhr) {
       $("#nombre").val('');
       $("#direccion").val('');
       bloquearCamposFijos();
-      setEstado("Error consultando servicio","err");
+      setEstado("Error consultando servicio", "err");
     },
-    complete: function(){
-      if (hadBtn){
+    complete: function () {
+      if (hadBtn) {
         $btn.prop("disabled", false).html(oldHtml);
       }
     }
   });
 }
 
-/* ======================== Run ======================== */
 init();

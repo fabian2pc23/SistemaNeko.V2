@@ -41,6 +41,7 @@ function flag($k){ return !empty($_SESSION[$k]) && (int)$_SESSION[$k] === 1; }
   <link rel="stylesheet" href="../public/css/AdminLTE.min.css">
   <link rel="stylesheet" href="../public/css/_all-skins.min.css">
   <link rel="stylesheet" href="../public/css/neko-corporate.css">
+  <link rel="stylesheet" href="../public/css/neko-responsive.css">
   <link rel="apple-touch-icon" href="../public/img/apple-touch-icon.png">
   <link rel="shortcut icon" href="../public/img/favicon.ico">
 
@@ -86,7 +87,12 @@ function flag($k){ return !empty($_SESSION[$k]) && (int)$_SESSION[$k] === 1; }
       height:calc(100vh - var(--header-h)); overflow-y:auto; overflow-x:hidden;
       background:#0b3a7a;
     }
-    .content-wrapper, .right-side, .main-footer{ margin-left:var(--sidebar-w); }
+    
+    /* Desktop Layout */
+    @media (min-width: 768px) {
+      .content-wrapper, .right-side, .main-footer{ margin-left:var(--sidebar-w); }
+    }
+    
     .content-wrapper{ padding-top:var(--header-h); min-height:calc(100vh - var(--header-h)); }
 
     /* Sidebar colores */
@@ -126,6 +132,56 @@ function flag($k){ return !empty($_SESSION[$k]) && (int)$_SESSION[$k] === 1; }
       .user-identity .role{ font-size:.8rem; max-width:180px; }
     }
     .user-anchor{ display:flex; align-items:center; gap:.55rem; }
+
+    /* ==================== RESPONSIVE MOBILE (AdminLTE Compatible) ==================== */
+    @media (max-width: 768px) {
+      /* Mejoras para touch en sidebar */
+      .sidebar-menu > li > a {
+        padding: 14px 12px;
+        font-size: 0.95rem;
+      }
+      .sidebar-menu .treeview-menu > li > a {
+        padding: 12px 12px 12px 30px;
+      }
+
+      /* Dropdown de usuario más ancho */
+      .skin-neko-blue .main-header .navbar .dropdown-menu {
+        width: calc(100vw - 20px);
+        max-width: 320px;
+        right: 10px;
+        left: auto;
+      }
+
+      /* Botón toggle más grande */
+      .sidebar-toggle {
+        padding: 15px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      /* Usuario compacto */
+      .user-image {
+        width: 28px;
+        height: 28px;
+      }
+      
+      /* Sidebar más ancho en móviles pequeños */
+      .sidebar-collapse .main-sidebar {
+        width: 85vw;
+        max-width: 280px;
+      }
+    }
+  </style>
+  <!-- Custom Styles -->
+  <style>
+    /* Highlighting for modified articles */
+    table.dataTable tbody tr.table-success {
+      background-color: #d1e7dd !important;
+    }
+    table.dataTable tbody tr.table-success > td {
+      background-color: #d1e7dd !important;
+      transition: background-color 0.5s ease;
+    }
   </style>
 </head>
 

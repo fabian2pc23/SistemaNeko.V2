@@ -1,171 +1,24 @@
 var tabla;
 
 /* ==================== Avatar por rol (preview) ==================== */
-function getDefaultAvatarForRole(roleText){
-  const k = (roleText || '').toLowerCase().trim();
-  if (k === 'administrador') return 'administrador.png';
-  if (k === 'almacenero')   return 'almacenero.png';
-  if (k === 'vendedor')     return 'vendedor.png';
-  return 'usuario.png';
-}
-function actualizarPreviewAvatarPorRol(){
-  var $sel = $("#cargo option:selected");
-  var nombreRol = $.trim($sel.text() || "");
-  var file = getDefaultAvatarForRole(nombreRol);
-  var hasFileChosen = ($("#imagen").val() || "").length > 0;
-  if (!hasFileChosen){
-    $("#imagenmuestra").attr("src","../files/usuarios/" + file).show();
-    $("#imagenactual").val(file);
-  }
-}
+function getDefaultAvatarForRole(roleText) {
+	const k = (roleText || '').toLowerCase().trim();
 
-//Función que se ejecuta al inicio
-function init(){
-	mostrarform(false);
-	listar();
-
-	$("#formulario").on("submit",function(e)
-	{
-		guardaryeditar(e);	
-	})
-
-	$("#imagenmuestra").hide();
-	$("#pwd-strength").hide();
-	
-	// Asegurar hidden para modo de permisos (rol | personalizado | "")
-	if (!document.getElementById('modo_permisos')) {
-		$('<input>', {type:'hidden', id:'modo_permisos', name:'modo_permisos', value:''}).appendTo('#formulario');
-	}
-
-	//Mostramos los permisos (solo lectura)
-	$.post("../ajax/usuario.php?op=permisos&id=0", function(r){
-    $("#permisos").html(r);
-
-    // Dejar todos los permisos como SOLO LECTURA
-		$("#permisos input[type='checkbox']")
- 			.prop("disabled", true)
-  			.css("cursor", "not-allowed");
-});
-
-	// ✅ Cargar roles dinámicamente (sin selección inicial)
-	cargarRoles();
-
-	$('#mAcceso').addClass("treeview active");
-    $('#lUsuarios').addClass("active");
-    
-    setTimeout(function() {
-	    setupDocumentValidation();
-	    setupPasswordValidation();
-	    setupEmailValidation();
-	    setupPhoneValidation();
-	    togglePasswordVisibility();
-    }, 300);
-}
-
-/* ============================================================
-   ✅ Cargar roles desde la base de datos con selección
-   - selectedId: (opcional) id_rol a seleccionar
-   - selectedLabel: (opcional) nombre del rol a seleccionar si no hay id
-   ============================================================ */
-function cargarRoles(selectedId, selectedLabel) {
-	$.post("../ajax/usuario.php?op=selectRol", function(r){
-		$("#cargo").html(r);
-
-		// Si recibimos un id_rol, intentamos seleccionarlo
-		if (selectedId) {
-			$("#cargo").val(String(selectedId));
-		} else if (selectedLabel) {
-			// Si no tenemos id, buscamos por el texto (nombre del rol)
-			var found = false;
-			$("#cargo option").each(function(){
-				if ($.trim($(this).text()) === $.trim(selectedLabel)) {
-					$("#cargo").val($(this).val());
-					found = true;
-					return false;
-				}
-			});
-		}
-		$("#cargo").selectpicker('refresh');
-
-		/* ============================================================
-		   ✅ Al CAMBIAR rol manualmente:
-		      1) modo_permisos='rol'
-		      2) pedir permisos del rol y tildar checkboxes
-		      3) preview avatar por rol
-		   ============================================================ */
-		$("#cargo").off("change.autoPermisos").on("change.autoPermisos", function(){
-			var idRolSel = $(this).val();
-			if (idRolSel) {
-				$("#modo_permisos").val('rol');
-				cargarPermisosDeRol(idRolSel);
-			}
-			actualizarPreviewAvatarPorRol();
-		});
-
-		// Preview inicial
-		setTimeout(actualizarPreviewAvatarPorRol, 150);
-
-	}).fail(function(xhr, status, error) {
-		console.error('❌ Error cargando roles:', error);
-		bootbox.alert('Error al cargar los roles. Recarga la página.');
-	});
-}
-
-/* ============================================================
-   ✅ Pedir permisos del rol y tildar checkboxes (name="permiso[]")
-   Endpoint: ../ajax/usuario.php?op=permisos_por_rol&id_rol=#
-   Respuesta esperada: [1,2,3,...] (IDs de permisos)
-   ============================================================ */
-function cargarPermisosDeRol(idRol){
-    if ($("#permisos input[name='permiso[]']").length === 0) {
-        setTimeout(function(){ cargarPermisosDeRol(idRol); }, 150);
-        return;
-    }
-
-    $.getJSON("../ajax/usuario.php?op=permisos_por_rol&id_rol=" + encodeURIComponent(idRol))
-      .done(function(ids){
-          if (!Array.isArray(ids)) {
-              console.warn("⚠ permisos_por_rol no devolvió un array. Respuesta:", ids);
-              return;
-          }
-
-          // Desmarcar todo y marcar solo los del rol
-          $("#permisos input[name='permiso[]']").prop("checked", false);
-          ids.forEach(function(pid){
-              $("#permisos input[name='permiso[]'][value='" + pid + "']").prop("checked", true);
-          });
-
-          // Dejarlos en SOLO LECTURA
-          $("#permisos input[type='checkbox']")
-              .prop("disabled", true)
-              .css("cursor", "not-allowed");
-
-          console.log("✔ Permisos del rol aplicados:", ids);
-      })
-      .fail(function(xhr, status, error){
-          console.error("❌ No se pudieron cargar permisos del rol:", error);
-      });
-}
-
-// ========== VALIDACIÓN DE TELÉFONO ==========
-function setupPhoneValidation() {
-	const telefonoInput = document.getElementById('telefono');
-	
 	if (telefonoInput) {
 		$(telefonoInput).off('input keypress');
-		
-		$(telefonoInput).on('input', function() {
+
+		$(telefonoInput).on('input', function () {
 			this.value = this.value.replace(/[^0-9\s\-+]/g, '');
 		});
-		
-		$(telefonoInput).on('keypress', function(e) {
+
+		$(telefonoInput).on('keypress', function (e) {
 			const char = String.fromCharCode(e.which);
 			if (!/[0-9\s\-+]/.test(char)) {
 				e.preventDefault();
 				return false;
 			}
 		});
-		
+
 		console.log('✓ Validación de teléfono activada');
 	}
 }
@@ -177,12 +30,12 @@ function setupDocumentValidation() {
 	const nombre = document.getElementById("nombre");
 	const hint_tipo = document.getElementById("hint_tipo");
 	const hint_numero = document.getElementById("hint_numero");
-	
+
 	if (!tipo_documento || !num_documento || !nombre) {
 		console.error('❌ Elementos no encontrados para validación de documentos');
 		return;
 	}
-	
+
 	let timer;
 	let inflight;
 	let lastQueried = '';
@@ -192,19 +45,19 @@ function setupDocumentValidation() {
 	$(num_documento).off('input keypress blur');
 	$(tipo_documento).off('change');
 
-	$(num_documento).on('input', function(e) {
+	$(num_documento).on('input', function (e) {
 		const tipoDoc = $(tipo_documento).val();
-		
+
 		if (tipoDoc === 'DNI' || tipoDoc === 'RUC') {
 			this.value = this.value.replace(/\D/g, '');
 		}
-		
+
 		debounceConsulta();
 	});
 
-	$(num_documento).on('keypress', function(e) {
+	$(num_documento).on('keypress', function (e) {
 		const tipoDoc = $(tipo_documento).val();
-		
+
 		if (tipoDoc === 'DNI' || tipoDoc === 'RUC') {
 			const charCode = (e.which) ? e.which : e.keyCode;
 			if (charCode > 31 && (charCode < 48 || charCode > 57)) {
@@ -214,30 +67,30 @@ function setupDocumentValidation() {
 		}
 	});
 
-	$(tipo_documento).on('change', function(){
+	$(tipo_documento).on('change', function () {
 		$(num_documento).val('');
 		$(nombre).val('');
 		$('#direccion').val('');
 		$(nombre).attr('readonly', 'readonly');
 		lastQueried = '';
-		
+
 		const tipoSeleccionado = $(this).val();
-		
-		if(tipoSeleccionado == "DNI"){
+
+		if (tipoSeleccionado == "DNI") {
 			$(num_documento).attr("maxlength", "8");
 			$(num_documento).attr("pattern", "[0-9]{8}");
 			$(hint_numero).text("DNI: 8 dígitos").removeClass().addClass("text-muted");
 			$(hint_tipo).html('<i class="fa fa-check text-success"></i> Se consultará RENIEC automáticamente');
 			console.log('✓ Modo DNI activado');
 		}
-		else if(tipoSeleccionado == "RUC"){
+		else if (tipoSeleccionado == "RUC") {
 			$(num_documento).attr("maxlength", "11");
 			$(num_documento).attr("pattern", "[0-9]{11}");
 			$(hint_numero).text("RUC: 11 dígitos").removeClass().addClass("text-muted");
 			$(hint_tipo).html('<i class="fa fa-check text-success"></i> Se consultará SUNAT automáticamente');
 			console.log('✓ Modo RUC activado');
 		}
-		else if(tipoSeleccionado == "Carnet de Extranjería"){
+		else if (tipoSeleccionado == "Carnet de Extranjería") {
 			$(num_documento).attr("maxlength", "12");
 			$(num_documento).removeAttr("pattern");
 			$(hint_numero).text("Carnet: 9-12 caracteres").removeClass().addClass("text-muted");
@@ -256,23 +109,23 @@ function setupDocumentValidation() {
 	function consultarRENIEC() {
 		const tipoDoc = $(tipo_documento).val();
 		const numDoc = $(num_documento).val();
-		
+
 		if (tipoDoc !== 'DNI' || !/^\d{8}$/.test(numDoc)) {
 			return;
 		}
-		
+
 		if (numDoc === lastQueried) {
 			return;
 		}
-		
+
 		console.log('🔍 Consultando RENIEC para DNI:', numDoc);
-		
+
 		if (inflight) inflight.abort();
 		inflight = new AbortController();
 
 		const prevNombre = $(nombre).val();
 		const prevDireccion = $('#direccion').val();
-		
+
 		$(nombre).val('Consultando RENIEC...').css('background', '#ffffcc');
 		$('#direccion').val('Obteniendo dirección...').css('background', '#ffffcc');
 		$(hint_numero).html('<i class="fa fa-spinner fa-spin text-info"></i> Consultando...').removeClass().addClass('text-info');
@@ -283,31 +136,29 @@ function setupDocumentValidation() {
 			data: { dni: numDoc },
 			dataType: 'json',
 			timeout: 10000,
-			success: function(data) {
+			success: function (data) {
 				console.log('✓ Respuesta RENIEC completa:', data);
-				
+
 				if (data.success === true) {
-					// Asignar nombre
 					const nombreCompleto = ((data.nombres || '') + ' ' + (data.apellidos || '')).trim();
 					$(nombre).val(nombreCompleto).css('background', '#d4edda');
-					
-					// 🔥 Asignar dirección si viene en la respuesta
+
 					if (data.direccion && data.direccion.trim() !== '') {
 						$('#direccion').val(data.direccion).css('background', '#d4edda');
 						console.log('✅ Dirección obtenida:', data.direccion);
-						
-						setTimeout(function() { 
+
+						setTimeout(function () {
 							$('#direccion').css('background', '');
 						}, 3000);
 					} else {
 						$('#direccion').val('').css('background', '');
 						console.warn('⚠️ No se obtuvo dirección desde RENIEC');
 					}
-					
+
 					$(hint_numero).html('<i class="fa fa-check text-success"></i> Datos verificados por RENIEC').removeClass().addClass('text-success');
 					lastQueried = numDoc;
-					
-					setTimeout(function() { 
+
+					setTimeout(function () {
 						$(nombre).css('background', '');
 						$(hint_numero).removeClass().addClass('text-muted');
 					}, 3000);
@@ -315,13 +166,13 @@ function setupDocumentValidation() {
 					throw new Error(data.message || 'Error al consultar RENIEC');
 				}
 			},
-			error: function(xhr, status, error) {
+			error: function (xhr, status, error) {
 				console.error('❌ Error RENIEC:', error, xhr.responseText);
 				$(nombre).val(prevNombre).css('background', '#f8d7da');
 				$('#direccion').val(prevDireccion).css('background', '');
 				$(hint_numero).html('<i class="fa fa-times text-danger"></i> ' + (error || 'Error al consultar RENIEC')).removeClass().addClass('text-danger');
-				
-				setTimeout(function() { 
+
+				setTimeout(function () {
 					$(nombre).css('background', '');
 					$(hint_numero).text('DNI: 8 dígitos').removeClass().addClass('text-muted');
 				}, 4000);
@@ -332,23 +183,23 @@ function setupDocumentValidation() {
 	function consultarSUNAT() {
 		const tipoDoc = $(tipo_documento).val();
 		const numDoc = $(num_documento).val();
-		
+
 		if (tipoDoc !== 'RUC' || !/^\d{11}$/.test(numDoc)) {
 			return;
 		}
-		
+
 		if (numDoc === lastQueried) {
 			return;
 		}
-		
+
 		console.log('🔍 Consultando SUNAT para RUC:', numDoc);
-		
+
 		if (inflight) inflight.abort();
 		inflight = new AbortController();
 
 		const prevNombre = $(nombre).val();
 		const prevDireccion = $('#direccion').val();
-		
+
 		$(nombre).val('Consultando SUNAT...').css('background', '#ffffcc');
 		$('#direccion').val('Obteniendo dirección...').css('background', '#ffffcc');
 		$(hint_numero).html('<i class="fa fa-spinner fa-spin text-info"></i> Consultando...').removeClass().addClass('text-info');
@@ -359,30 +210,28 @@ function setupDocumentValidation() {
 			data: { ruc: numDoc },
 			dataType: 'json',
 			timeout: 10000,
-			success: function(data) {
+			success: function (data) {
 				console.log('✓ Respuesta SUNAT completa:', data);
-				
+
 				if (data.success === true) {
-					// Asignar razón social
 					$(nombre).val(data.razon_social || '').css('background', '#d4edda');
-					
-					// 🔥 Asignar dirección si viene en la respuesta
+
 					if (data.direccion && data.direccion.trim() !== '') {
 						$('#direccion').val(data.direccion).css('background', '#d4edda');
 						console.log('✅ Dirección obtenida:', data.direccion);
-						
-						setTimeout(function() { 
+
+						setTimeout(function () {
 							$('#direccion').css('background', '');
 						}, 3000);
 					} else {
 						$('#direccion').val('').css('background', '');
 						console.warn('⚠️ No se obtuvo dirección desde SUNAT');
 					}
-					
+
 					$(hint_numero).html('<i class="fa fa-check text-success"></i> Datos verificados por SUNAT').removeClass().addClass('text-success');
 					lastQueried = numDoc;
-					
-					setTimeout(function() { 
+
+					setTimeout(function () {
 						$(nombre).css('background', '');
 						$(hint_numero).removeClass().addClass('text-muted');
 					}, 3000);
@@ -390,13 +239,13 @@ function setupDocumentValidation() {
 					throw new Error(data.message || 'Error al consultar SUNAT');
 				}
 			},
-			error: function(xhr, status, error) {
+			error: function (xhr, status, error) {
 				console.error('❌ Error SUNAT:', error, xhr.responseText);
 				$(nombre).val(prevNombre).css('background', '#f8d7da');
 				$('#direccion').val(prevDireccion).css('background', '');
 				$(hint_numero).html('<i class="fa fa-times text-danger"></i> ' + (error || 'Error al consultar SUNAT')).removeClass().addClass('text-danger');
-				
-				setTimeout(function() { 
+
+				setTimeout(function () {
 					$(nombre).css('background', '');
 					$(hint_numero).text('RUC: 11 dígitos').removeClass().addClass('text-muted');
 				}, 4000);
@@ -406,7 +255,7 @@ function setupDocumentValidation() {
 
 	function debounceConsulta() {
 		clearTimeout(timer);
-		timer = setTimeout(function() {
+		timer = setTimeout(function () {
 			const tipoDoc = $(tipo_documento).val();
 			if (tipoDoc === 'DNI') {
 				consultarRENIEC();
@@ -416,7 +265,7 @@ function setupDocumentValidation() {
 		}, 1000);
 	}
 
-	$(num_documento).on('blur', function() {
+	$(num_documento).on('blur', function () {
 		const tipoDoc = $(tipo_documento).val();
 		if (tipoDoc === 'DNI') {
 			consultarRENIEC();
@@ -431,14 +280,14 @@ function setupEmailValidation() {
 	const emailInput = document.getElementById('email');
 	const emailHint = document.getElementById('email-hint');
 	const emailStatus = document.getElementById('email-status');
-	
+
 	if (!emailInput) {
 		console.error('❌ Campo email no encontrado');
 		return;
 	}
-	
+
 	console.log('✓ Validación de email iniciada');
-	
+
 	let timer;
 	let lastChecked = '';
 
@@ -450,7 +299,7 @@ function setupEmailValidation() {
 
 	function validateEmail() {
 		const email = $(emailInput).val().trim();
-		
+
 		if (!email) {
 			$(emailStatus).text('');
 			$(emailHint).text('Se usará como usuario de acceso al sistema').removeClass().addClass('text-muted');
@@ -480,9 +329,9 @@ function setupEmailValidation() {
 			data: { email: email },
 			dataType: 'json',
 			timeout: 10000,
-			success: function(data) {
+			success: function (data) {
 				console.log('✓ Respuesta validación email:', data);
-				
+
 				if (data.success && data.valid) {
 					$(emailStatus).text('✅');
 					$(emailHint).text('Correo válido y verificado').removeClass().addClass('text-success');
@@ -494,7 +343,7 @@ function setupEmailValidation() {
 					emailInput.setCustomValidity(data.message || 'Email inválido');
 				}
 			},
-			error: function(xhr, status, error) {
+			error: function (xhr, status, error) {
 				console.warn('⚠️ Error validación email:', error);
 				$(emailStatus).text('⚠️');
 				$(emailHint).text('No se pudo verificar. Asegúrate que sea un correo real.').removeClass().addClass('text-warning');
@@ -521,7 +370,7 @@ function setupPasswordValidation() {
 		console.error('❌ Elementos de contraseña no encontrados');
 		return;
 	}
-	
+
 	console.log('✓ Validación de contraseña iniciada');
 
 	$(pwd).off('input focus');
@@ -529,7 +378,7 @@ function setupPasswordValidation() {
 	function mark(id, ok) {
 		const el = document.getElementById(id);
 		if (!el) return;
-		
+
 		const icon = $(el).find('i');
 		if (ok) {
 			icon.removeClass('fa-times text-danger').addClass('fa-check text-success');
@@ -543,7 +392,7 @@ function setupPasswordValidation() {
 			$(strengthDiv).hide();
 			return false;
 		}
-		
+
 		$(strengthDiv).show();
 
 		const len = v.length >= 10 && v.length <= 64;
@@ -561,11 +410,11 @@ function setupPasswordValidation() {
 		return len && up && low && num && spe;
 	}
 
-	$(pwd).on('input', function() {
+	$(pwd).on('input', function () {
 		checkStrength($(this).val());
 	});
 
-	$(pwd).on('focus', function() {
+	$(pwd).on('focus', function () {
 		if ($(this).val()) {
 			$(strengthDiv).show();
 		}
@@ -576,17 +425,17 @@ function setupPasswordValidation() {
 function togglePasswordVisibility() {
 	const toggleBtn = document.getElementById('toggleClave');
 	const pwdInput = document.getElementById('clave');
-	
+
 	if (!toggleBtn || !pwdInput) {
 		console.error('❌ Botón toggle contraseña no encontrado');
 		return;
 	}
-	
+
 	console.log('✓ Toggle contraseña activado');
-	
+
 	$(toggleBtn).off('click');
-	
-	$(toggleBtn).on('click', function() {
+
+	$(toggleBtn).on('click', function () {
 		if ($(pwdInput).attr('type') === 'password') {
 			$(pwdInput).attr('type', 'text');
 			$(this).text('👁️');
@@ -599,8 +448,7 @@ function togglePasswordVisibility() {
 
 // ========== FUNCIONES ORIGINALES ==========
 
-function limpiar()
-{
+function limpiar() {
 	$("#nombre").val("");
 	$("#tipo_documento").val("");
 	$("#num_documento").val("");
@@ -609,7 +457,7 @@ function limpiar()
 	$("#email").val("");
 	$("#cargo").val("");
 	$("#clave").val("");
-	$("#imagenmuestra").attr("src","");
+	$("#imagenmuestra").attr("src", "");
 	$("#imagenactual").val("");
 	$("#idusuario").val("");
 	$("#imagenmuestra").hide();
@@ -618,97 +466,85 @@ function limpiar()
 	$("#email-hint").text("Se usará como usuario de acceso al sistema").removeClass().addClass("text-muted");
 	$("#hint_numero").text("Ingresa el número de documento").removeClass().addClass("text-muted");
 	$("#hint_tipo").text("Selecciona el tipo de documento").removeClass().addClass("text-muted");
-	
-	if(document.getElementById('email')) {
+
+	if (document.getElementById('email')) {
 		document.getElementById('email').setCustomValidity('');
 	}
 	$("#nombre").attr('readonly', 'readonly');
 
-	// ✅ Contraseña requerida solo al crear (placeholder informativo)
 	$("#clave").prop("required", true);
-	$("#clave").attr("placeholder","Mínimo 10 caracteres");
 
-	// Reset de modo permisos (nuevo registro)
-	$("#modo_permisos").val('');
-	
-	// ✅ Recargar roles al limpiar (sin selección)
+	// Limpiar múltiples roles
+	$("#cargo").selectpicker('val', []);
+	if (typeof lastSelectedRoles !== 'undefined') {
+		lastSelectedRoles = [];
+	}
+	$("#permisos input[type='checkbox']").prop("checked", false);
+
 	cargarRoles();
-	setTimeout(actualizarPreviewAvatarPorRol, 200);
-
-	// 🔄 Quitar banner de pendiente si existiera
-	$("#pendiente-msg").remove();
 }
 
-function mostrarform(flag)
-{
+function mostrarform(flag) {
 	limpiar();
-	if (flag)
-	{
+	if (flag) {
 		$("#listadoregistros").hide();
 		$("#formularioregistros").show();
-		$("#btnGuardar").prop("disabled",false);
+		$("#btnGuardar").prop("disabled", false);
 		$("#btnagregar").hide();
 	}
-	else
-	{
+	else {
 		$("#listadoregistros").show();
 		$("#formularioregistros").hide();
 		$("#btnagregar").show();
 	}
 }
 
-function cancelarform()
-{
+function cancelarform() {
 	limpiar();
 	mostrarform(false);
 }
 
-function listar()
-{
-	tabla=$('#tbllistado').dataTable(
-	{
-		"lengthMenu": [ 5, 10, 25, 75, 100],
-		"aProcessing": true,
-	    "aServerSide": true,
-	    dom: '<Bl<f>rtip>',
-	    buttons: [		          
-		            'copyHtml5',
-		            'excelHtml5',
-		            'csvHtml5',
-		            'pdf'
-		        ],
-		"ajax":
-				{
-					url: '../ajax/usuario.php?op=listar',
-					type : "get",
-					dataType : "json",						
-					error: function(e){
-						console.log(e.responseText);	
+function listar() {
+	tabla = $('#tbllistado').DataTable(
+		{
+			"aProcessing": true,
+			"aServerSide": true,
+			dom: 'Brtip',
+			buttons: [
+				{ extend: 'copyHtml5', className: 'buttons-copy' },
+				{ extend: 'excelHtml5', className: 'buttons-excel' },
+				{ extend: 'csvHtml5', className: 'buttons-csv' },
+				{ extend: 'pdf', className: 'buttons-pdf' }
+			],
+			"ajax":
+			{
+				url: '../ajax/usuario.php?op=listar',
+				type: "get",
+				dataType: "json",
+				error: function (e) {
+					console.log(e.responseText);
+				}
+			},
+			"language": {
+				"lengthMenu": "Mostrar : _MENU_ registros",
+				"buttons": {
+					"copyTitle": "Tabla Copiada",
+					"copySuccess": {
+						_: '%d líneas copiadas',
+						1: '1 línea copiada'
 					}
-				},
-		"language": {
-            "lengthMenu": "Mostrar : _MENU_ registros",
-            "buttons": {
-            "copyTitle": "Tabla Copiada",
-            "copySuccess": {
-                    _: '%d líneas copiadas',
-                    1: '1 línea copiada'
-                }
-            }
-        },
-		"bDestroy": true,
-		"iDisplayLength": 5,
-	    "order": [[ 0, "desc" ]]
-	}).DataTable();
+				}
+			},
+			"bDestroy": true,
+			"iDisplayLength": 10,
+			"order": [[0, "desc"]]
+		});
 }
 
-function guardaryeditar(e)
-{
+function guardaryeditar(e) {
 	e.preventDefault();
 
-	// ========== VALIDACIONES OBLIGATORIAS ==========
-	
-	// 1️⃣ Validar Tipo de Documento
+	// Validaciones...
 	var tipoDocumento = $("#tipo_documento").val();
 	if (!tipoDocumento || tipoDocumento === '') {
 		bootbox.alert({
@@ -719,7 +555,6 @@ function guardaryeditar(e)
 		return;
 	}
 
-	// 2️⃣ Validar Número de Documento
 	var numDocumento = $("#num_documento").val().trim();
 	if (!numDocumento || numDocumento === '') {
 		bootbox.alert({
@@ -730,7 +565,6 @@ function guardaryeditar(e)
 		return;
 	}
 
-	// Validar formato según tipo de documento
 	if (tipoDocumento === 'DNI' && !/^\d{8}$/.test(numDocumento)) {
 		bootbox.alert({
 			message: "⚠️ El <strong>DNI</strong> debe tener exactamente <strong>8 dígitos</strong>.",
@@ -739,7 +573,7 @@ function guardaryeditar(e)
 		$("#num_documento").focus();
 		return;
 	}
-	
+
 	if (tipoDocumento === 'RUC' && !/^\d{11}$/.test(numDocumento)) {
 		bootbox.alert({
 			message: "⚠️ El <strong>RUC</strong> debe tener exactamente <strong>11 dígitos</strong>.",
@@ -758,7 +592,6 @@ function guardaryeditar(e)
 		return;
 	}
 
-	// 3️⃣ Validar Nombre (debe estar completado)
 	var nombre = $("#nombre").val().trim();
 	if (!nombre || nombre === '' || nombre === 'Consultando RENIEC...' || nombre === 'Consultando SUNAT...') {
 		bootbox.alert({
@@ -769,7 +602,6 @@ function guardaryeditar(e)
 		return;
 	}
 
-	// 4️⃣ Validar Email (formato y verificación)
 	var email = $("#email").val().trim();
 	if (!email || email === '') {
 		bootbox.alert({
@@ -780,7 +612,6 @@ function guardaryeditar(e)
 		return;
 	}
 
-	// Validar formato de email
 	if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
 		bootbox.alert({
 			message: "⚠️ El formato del <strong>EMAIL</strong> no es válido.<br><br><strong>Ejemplo:</strong> usuario@dominio.com",
@@ -790,7 +621,6 @@ function guardaryeditar(e)
 		return;
 	}
 
-	// Verificar que el email fue validado (no mostrar error, ni warning)
 	var emailStatus = $("#email-status").text().trim();
 	if (emailStatus === '❌') {
 		bootbox.alert({
@@ -801,21 +631,19 @@ function guardaryeditar(e)
 		return;
 	}
 
-	// 5️⃣ Validar Rol
-	var rolSeleccionado = $("#cargo").val();
-	if (!rolSeleccionado || rolSeleccionado === '' || rolSeleccionado === '0') {
+	// ✅ VALIDAR MÚLTIPLES ROLES (SELECTPICKER)
+	var roles = $("#cargo").val();
+	if (!roles || roles.length === 0) {
 		bootbox.alert({
-			message: "⚠️ Debes seleccionar un <strong>ROL</strong> antes de guardar el usuario.",
+			message: "⚠️ Debes agregar al menos <strong>UN ROL</strong> antes de guardar el usuario.",
 			className: 'bootbox-warning'
 		});
-		$("#cargo").focus();
 		return;
 	}
 
-	// 6️⃣ Validar Contraseña (solo si es un nuevo usuario O si se ingresó una contraseña)
 	var clave = $("#clave").val().trim();
 	var esNuevoUsuario = !$("#idusuario").val() || $("#idusuario").val() === '';
-	
+
 	if (esNuevoUsuario && (!clave || clave === '')) {
 		bootbox.alert({
 			message: "⚠️ Debes ingresar una <strong>CONTRASEÑA</strong> para el nuevo usuario.",
@@ -825,9 +653,7 @@ function guardaryeditar(e)
 		return;
 	}
 
-	// Si se ingresó contraseña (nuevo o edición), validar requisitos
 	if (clave && clave !== '') {
-		// Longitud
 		if (clave.length < 10 || clave.length > 64) {
 			bootbox.alert({
 				message: "⚠️ La <strong>CONTRASEÑA</strong> debe tener entre <strong>10 y 64 caracteres</strong>.",
@@ -837,7 +663,6 @@ function guardaryeditar(e)
 			return;
 		}
 
-		// Mayúscula
 		if (!/[A-Z]/.test(clave)) {
 			bootbox.alert({
 				message: "⚠️ La <strong>CONTRASEÑA</strong> debe contener al menos <strong>1 letra MAYÚSCULA</strong>.",
@@ -847,7 +672,6 @@ function guardaryeditar(e)
 			return;
 		}
 
-		// Minúscula
 		if (!/[a-z]/.test(clave)) {
 			bootbox.alert({
 				message: "⚠️ La <strong>CONTRASEÑA</strong> debe contener al menos <strong>1 letra MINÚSCULA</strong>.",
@@ -857,7 +681,6 @@ function guardaryeditar(e)
 			return;
 		}
 
-		// Número
 		if (!/[0-9]/.test(clave)) {
 			bootbox.alert({
 				message: "⚠️ La <strong>CONTRASEÑA</strong> debe contener al menos <strong>1 NÚMERO</strong>.",
@@ -867,7 +690,6 @@ function guardaryeditar(e)
 			return;
 		}
 
-		// Carácter especial
 		if (!/[!@#$%^&*()_\+\=\-\[\]{};:,.?]/.test(clave)) {
 			bootbox.alert({
 				message: "⚠️ La <strong>CONTRASEÑA</strong> debe contener al menos <strong>1 carácter ESPECIAL</strong> (!@#$%^&*...).",
@@ -878,130 +700,267 @@ function guardaryeditar(e)
 		}
 	}
 
-	// ========== SI TODAS LAS VALIDACIONES PASAN, PROCEDER ==========
 	console.log("✅ Todas las validaciones pasaron correctamente");
 
-	$("#btnGuardar").prop("disabled",true);
+	$("#btnGuardar").prop("disabled", true);
 	var formData = new FormData($("#formulario")[0]);
 
-	// ✅ Lógica clave: si la contraseña está vacía, mantén la actual
 	var _claveActual = ($("#clave").val() || "").trim();
-	if(!_claveActual){
+	if (!_claveActual) {
 		formData.delete('clave');
-		formData.append('mantener_clave','1');
-	}else{
-		formData.append('mantener_clave','0');
+		formData.append('mantener_clave', '1');
+	} else {
+		formData.append('mantener_clave', '0');
 	}
 
-	var $sel = $("#cargo option:selected");
-	var rolId = $sel.val() || "";
-	var rolNombre = $.trim($sel.text() || "");
+	// ✅ Enviar roles como JSON
+	// Asumimos que el primer rol seleccionado es el principal
+	var rolesData = roles.map(function (id, index) {
+		return {
+			id_rol: id,
+			es_principal: (index === 0) ? 1 : 0
+		};
+	});
+	formData.append('roles_data', JSON.stringify(rolesData));
 
-	if (rolNombre) {
-		formData.set('cargo', rolNombre);
-	}
-	formData.set('id_rol', rolId);
+	// Enviar cargo principal como texto (para compatibilidad)
+	var nombreRolPrincipal = $("#cargo option[value='" + roles[0] + "']").text();
+	formData.set('cargo', nombreRolPrincipal);
 
 	$.ajax({
 		url: "../ajax/usuario.php?op=guardaryeditar",
-	    type: "POST",
-	    data: formData,
-	    contentType: false,
-	    processData: false,
+		type: "POST",
+		data: formData,
+		contentType: false,
+		processData: false,
 
-	    success: function(datos)
-	    {                    
-	          bootbox.alert(datos);	          
-	          mostrarform(false);
-	          tabla.ajax.reload();
-	    },
-	    error: function(xhr, status, error) {
-	    	bootbox.alert("Error al guardar: " + error);
-	    	$("#btnGuardar").prop("disabled",false);
-	    }
+		success: function (datos) {
+			bootbox.alert(datos);
+			mostrarform(false);
+			tabla.ajax.reload();
+		},
+		error: function (xhr, status, error) {
+			bootbox.alert("Error al guardar: " + error);
+			$("#btnGuardar").prop("disabled", false);
+		}
 
 	});
 	limpiar();
 }
 
-function mostrar(idusuario)
-{
-	$.post("../ajax/usuario.php?op=mostrar",{idusuario : idusuario}, function(data, status)
-	{
-		data = JSON.parse(data);		
+function mostrar(idusuario) {
+	$.post("../ajax/usuario.php?op=mostrar", { idusuario: idusuario }, function (data, status) {
+		data = JSON.parse(data);
 		mostrarform(true);
 
 		$("#tipo_documento").val(data.tipo_documento);
 		$("#tipo_documento").selectpicker('refresh');
 		$("#tipo_documento").trigger('change');
-		
+
 		$("#num_documento").val(data.num_documento);
 		$("#nombre").val(data.nombre);
 		$("#nombre").removeAttr('readonly');
-		
+
 		$("#direccion").val(data.direccion);
 		$("#telefono").val(data.telefono);
 		$("#email").val(data.email);
 
-		var idRolDelUsuario = (typeof data.id_rol !== "undefined" && data.id_rol !== null) ? String(data.id_rol) : "";
-		var nombreRolDelUsuario = data.cargo || "";
+		// ✅ CARGAR ROLES MÚLTIPLES
+		$.getJSON("../ajax/usuario.php?op=obtener_roles_usuario&idusuario=" + idusuario, function (roles) {
+			var rolesIds = roles.map(r => r.id_rol);
+			$("#cargo").selectpicker('val', rolesIds);
+			lastSelectedRoles = rolesIds;
+			cargarPermisosAcumulativos(rolesIds);
+		});
 
-		// Cargar roles y seleccionar el que corresponda
-		cargarRoles(idRolDelUsuario, nombreRolDelUsuario);
-
-		$("#cargo").selectpicker('refresh');
-
-		// Contraseña
 		$("#clave").val("");
 		$("#clave").prop("required", false);
-		$("#clave").attr("placeholder","Dejar en blanco para mantener la contraseña");
+		$("#clave").attr("placeholder", "Dejar en blanco para mantener la contraseña");
 		$("#toggleClave").text('👁️');
-		$("#clave").attr('type','password');
-		
+		$("#clave").attr('type', 'password');
+
 		$("#imagenmuestra").show();
-		$("#imagenmuestra").attr("src","../files/usuarios/"+data.imagen);
+		$("#imagenmuestra").attr("src", "../files/usuarios/" + data.imagen);
 		$("#imagenactual").val(data.imagen);
 		$("#idusuario").val(data.idusuario);
 
-		// Si avatar es default, ajusta preview al rol
-		var defaults = ['administrador.png','almacenero.png','vendedor.png','usuario.png'];
-		if (!data.imagen || defaults.indexOf(String(data.imagen)) >= 0){
-			setTimeout(actualizarPreviewAvatarPorRol, 250);
+	});
+}
+
+function desactivar(idusuario) {
+	bootbox.confirm("¿Está Seguro de desactivar el usuario?", function (result) {
+		if (result) {
+			$.post("../ajax/usuario.php?op=desactivar", { idusuario: idusuario }, function (e) {
+				bootbox.alert(e);
+				tabla.ajax.reload();
+			});
+		}
+	})
+}
+
+function activar(idusuario) {
+	bootbox.confirm("¿Está Seguro de activar el Usuario?", function (result) {
+		if (result) {
+			$.post("../ajax/usuario.php?op=activar", { idusuario: idusuario }, function (e) {
+				bootbox.alert(e);
+				tabla.ajax.reload();
+			});
+		}
+	})
+}
+
+function cargarRoles() {
+	$.post("../ajax/usuario.php?op=selectRol", function (r) {
+		$("#cargo").html(r);
+		$("#cargo").selectpicker('refresh');
+	}).fail(function (xhr, status, error) {
+		console.error('❌ Error cargando roles:', error);
+		bootbox.alert('Error al cargar los roles. Recarga la página.');
+	});
+}
+
+/* ==================== NUEVAS FUNCIONES FILTROS ==================== */
+function filtrarEstado(estado) {
+	// Reset botones
+	$('.status-btn').removeClass('active');
+
+	// Columna 8 es Estado
+	var colEstado = tabla.column(8);
+
+	if (estado === 'todos') {
+		$('#filter-todos').addClass('active');
+		colEstado.search('').draw();
+	} else if (estado === 'activos') {
+		$('#filter-activos').addClass('active');
+		// Buscamos "Activado" (clase .bg-green)
+		colEstado.search('Activado', true, false).draw();
+	} else if (estado === 'bloqueados') {
+		$('#filter-bloqueados').addClass('active');
+		// Buscamos "Desactivado" (clase .bg-red)
+		colEstado.search('Desactivado', true, false).draw();
+	}
+}
+
+function setupSearchInput() {
+	$('#search-input').on('keyup', function () {
+		tabla.search(this.value).draw();
+	});
+}
+
+function cambiarLongitud(len) {
+	tabla.page.len(len).draw();
+}
+
+function exportarTabla(type) {
+	if (type === 'copy') tabla.button('.buttons-copy').trigger();
+	if (type === 'excel') tabla.button('.buttons-excel').trigger();
+	if (type === 'csv') tabla.button('.buttons-csv').trigger();
+	if (type === 'pdf') tabla.button('.buttons-pdf').trigger();
+}
+
+function setupRoleLogic() {
+	$("#cargo").on("change", function () {
+		var selectedValues = $(this).val();
+		if (!selectedValues) selectedValues = [];
+
+		// Ensure it's an array
+		if (!Array.isArray(selectedValues)) selectedValues = [selectedValues];
+
+		// Check for Admin
+		var adminOption = $("#cargo option").filter(function () {
+			return $(this).text().trim().toLowerCase() === 'administrador' || $(this).text().trim().toLowerCase() === 'admin';
+		});
+		var adminVal = adminOption.val();
+		var isAdminSelected = selectedValues.includes(adminVal);
+
+		// Exclusivity Logic
+		if (isAdminSelected) {
+			if (selectedValues.length > 1) {
+				var wasAdmin = lastSelectedRoles.includes(adminVal);
+
+				if (!wasAdmin) {
+					// Just clicked Admin -> Clear others
+					$("#cargo").selectpicker('val', [adminVal]);
+					selectedValues = [adminVal];
+					bootbox.alert("⚠️ El rol <strong>Administrador</strong> es exclusivo y no puede combinarse con otros roles.");
+				} else {
+					// Admin was there, clicked others -> Remove Admin
+					var others = selectedValues.filter(v => v !== adminVal);
+					$("#cargo").selectpicker('val', others);
+					selectedValues = others;
+				}
+			}
 		}
 
- 	});
- 	$.post("../ajax/usuario.php?op=permisos&id="+idusuario,function(r){
-	    $("#permisos").html(r);
-		$("#permisos").off('change.modo').on('change.modo', "input[name='permiso[]']", function(){
-			$("#modo_permisos").val('personalizado');
+		lastSelectedRoles = selectedValues;
+		cargarPermisosAcumulativos(selectedValues);
+	});
+}
+
+function cargarPermisosAcumulativos(rolesIds) {
+	if (!rolesIds || rolesIds.length === 0) {
+		$("#permisos input[type='checkbox']").prop("checked", false);
+		return;
+	}
+
+	var permisosUnicos = new Set();
+	var promesas = [];
+
+	rolesIds.forEach(function (idRol) {
+		var p = $.getJSON("../ajax/usuario.php?op=permisos_por_rol&id_rol=" + idRol)
+			.done(function (ids) {
+				if (Array.isArray(ids)) {
+					ids.forEach(id => permisosUnicos.add(id));
+				}
+			});
+		promesas.push(p);
+	});
+
+	$.when.apply($, promesas).done(function () {
+		$("#permisos input[name='permiso[]']").prop("checked", false);
+		permisosUnicos.forEach(function (pid) {
+			$("#permisos input[name='permiso[]'][value='" + pid + "']").prop("checked", true);
 		});
 	});
 }
 
-function desactivar(idusuario)
-{
-	bootbox.confirm("¿Está Seguro de desactivar el usuario?", function(result){
-		if(result)
-        {
-        	$.post("../ajax/usuario.php?op=desactivar", {idusuario : idusuario}, function(e){
-        		bootbox.alert(e);
-	            tabla.ajax.reload();
-        	});	
-        }
-	})
-}
+//Función que se ejecuta al inicio
+function init() {
+	mostrarform(false);
+	listar();
+	setupSearchInput();
+	setupRoleLogic(); // ✅ Activar lógica de roles
 
-function activar(idusuario)
-{
-	bootbox.confirm("¿Está Seguro de activar el Usuario?", function(result){
-		if(result)
-        {
-        	$.post("../ajax/usuario.php?op=activar", {idusuario : idusuario}, function(e){
-        		bootbox.alert(e);
-	            tabla.ajax.reload();
-        	});	
-        }
+	$("#formulario").on("submit", function (e) {
+		guardaryeditar(e);
 	})
+
+	$("#imagenmuestra").hide();
+	$("#pwd-strength").hide();
+
+	if (!document.getElementById('modo_permisos')) {
+		$('<input>', { type: 'hidden', id: 'modo_permisos', name: 'modo_permisos', value: '' }).appendTo('#formulario');
+	}
+
+	$.post("../ajax/usuario.php?op=permisos&id=0", function (r) {
+		$("#permisos").html(r);
+		$("#permisos input[type='checkbox']")
+			.prop("disabled", true)
+			.css("cursor", "not-allowed");
+	});
+
+	cargarRoles();
+
+	$('#mAcceso').addClass("treeview active");
+	$('#lUsuarios').addClass("active");
+
+	setTimeout(function () {
+		setupDocumentValidation();
+		setupPasswordValidation();
+		setupEmailValidation();
+		setupPhoneValidation();
+		togglePasswordVisibility();
+	}, 300);
 }
 
 init();
