@@ -38,14 +38,23 @@ function limpiar() {
   $("#idrol").val("");
   $("#nombre").val("");
 
-  // Desmarcar todos los permisos
+  // Resetear estados de edición (por si se bloqueó por ser Admin)
+  $("#nombre").prop('disabled', false);
+  $("#btnGuardar").show();
+  $("#btnGuardar").prop("disabled", false);
+
+  // Desmarcar todos los permisos y habilitarlos
   $("#permisos_rol input[type='checkbox']").prop("checked", false);
+  $("#permisos_rol input[type='checkbox']").prop("disabled", false);
 }
 
 // ========== CARGAR PERMISOS (nuevo rol o editar) ==========
-function cargarPermisos(idrol = 0) {
+function cargarPermisos(idrol = 0, esReadOnly = false) {
   $.post("../ajax/rol.php?op=permisos&id=" + idrol + "&t=" + new Date().getTime(), function (r) {
     $("#permisos_rol").html(r);
+    if (esReadOnly) {
+      $("#permisos_rol input[type='checkbox']").prop("disabled", true);
+    }
   }).fail(function () {
     bootbox.alert("❌ Error al cargar los permisos.");
   });
@@ -110,21 +119,36 @@ function listar() {
     "order": [[1, "asc"]]   // Ordenar por Nombre (la 2da columna visible)
   });
 }
-// =========================================
 
 function guardaryeditar(e) {
   e.preventDefault();
   $("#btnGuardar").prop("disabled", true);
 
-  const nom = $("#nombre").val().trim();
-  if (!esNombreValido(nom)) {
-    bootbox.alert("⚠️ Elija un nombre válido. Evite letras repetidas o nombres muy cortos.");
+  // --- VALIDACIONES FRONTEND (Igual que Marcas) ---
+  var nombreInput = $("#nombre").val();
+
+  // 1. Trim y Normalización de espacios
+  var nombre = nombreInput.trim().replace(/\s+/g, ' ');
+  $("#nombre").val(nombre); // Actualizar el input con el valor limpio
+
+  // 2. Longitud mínima
+  if (nombre.length < 2) {
+    bootbox.alert("⚠️ El nombre del rol debe tener al menos 2 caracteres.");
     $("#nombre").focus();
     $("#btnGuardar").prop("disabled", false);
     return;
   }
 
-  // === VALIDACIÓN: al menos un permiso marcado ===
+  // 3. Caracteres permitidos (Alfanuméricos y espacios)
+  var regex = /^[a-zA-Z0-9\u00C0-\u00FF\s]+$/;
+  if (!regex.test(nombre)) {
+    bootbox.alert("⚠️ El nombre contiene caracteres no válidos (solo letras, números y espacios).");
+    $("#nombre").focus();
+    $("#btnGuardar").prop("disabled", false);
+    return;
+  }
+
+  // 4. Validación de permisos
   if ($("#permisos_rol input[type='checkbox']:checked").length === 0) {
     bootbox.alert("⚠️ Debe seleccionar al menos un permiso para el rol.");
     $("#btnGuardar").prop("disabled", false);
@@ -141,9 +165,19 @@ function guardaryeditar(e) {
     contentType: false,
     processData: false,
     success: function (datos) {
-      bootbox.alert(datos);
-      mostrarform(false);
-      tabla.ajax.reload();
+      // Detectar si es error o advertencia
+      if (datos.includes("❌") || datos.includes("⚠️") || datos.includes("⛔")) {
+        bootbox.alert(datos); // Mostrar como alerta
+      } else {
+        bootbox.alert(datos); // Mostrar éxito
+        mostrarform(false);
+        tabla.ajax.reload();
+      }
+      $("#btnGuardar").prop("disabled", false);
+    },
+    error: function () {
+      bootbox.alert("❌ Error de comunicación con el servidor.");
+      $("#btnGuardar").prop("disabled", false);
     }
   });
 
@@ -158,8 +192,20 @@ function mostrar(idrol) {
     $("#idrol").val(data.id_rol);
     $("#nombre").val(data.nombre);
 
-    // ✅ CARGAR PERMISOS DEL ROL EXISTENTE
-    cargarPermisos(idrol);
+    // Verificar si es Admin para bloquear edición
+    var esAdmin = (data.nombre.toLowerCase() === 'administrador' || data.nombre.toLowerCase() === 'admin');
+
+    if (esAdmin) {
+      $("#nombre").prop('disabled', true);
+      $("#btnGuardar").hide();
+      bootbox.alert("🔒 El rol de Administrador es fundamental para el sistema y no puede ser modificado.");
+    } else {
+      $("#nombre").prop('disabled', false);
+      $("#btnGuardar").show();
+    }
+
+    // ✅ CARGAR PERMISOS DEL ROL EXISTENTE (con flag de solo lectura si es admin)
+    cargarPermisos(idrol, esAdmin);
   });
 }
 
@@ -168,8 +214,13 @@ function desactivar(idrol) {
   bootbox.confirm("¿Está seguro de desactivar el rol?", function (result) {
     if (result) {
       $.post("../ajax/rol.php?op=desactivar", { idrol: idrol }, function (e) {
-        bootbox.alert(e);
-        tabla.ajax.reload();
+        // Detectar si es error
+        if (e.includes("❌") || e.includes("⛔")) {
+          bootbox.alert(e);
+        } else {
+          bootbox.alert(e);
+          tabla.ajax.reload();
+        }
       });
     }
   });

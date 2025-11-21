@@ -11,7 +11,7 @@ if (!isset($_SESSION["nombre"])) {
   if ($_SESSION['acceso']==1){
 
     require_once "../modelos/Rol.php";
-    require_once "../config/Conexion.php"; // ✅ AGREGADO: necesario para ejecutarConsulta()
+    require_once "../config/Conexion.php"; 
     
     $rol = new Rol();
 
@@ -27,14 +27,16 @@ if (!isset($_SESSION["nombre"])) {
         if (empty($idrol)) {
 
           // 1) Insertar el rol
-          $rspta = $rol->insertar($nombre); // <-- debe devolver el ID del rol
+          $rspta = $rol->insertar($nombre); 
 
-          if ($rspta > 0) {
+          // Si es numérico, es el ID insertado (Éxito)
+          if (is_numeric($rspta) && $rspta > 0) {
             // 2) Insertar permisos del nuevo rol
             $rol->insertarPermisos($rspta, $permisos);
             echo "✅ Rol registrado con permisos exitosamente";
           } else {
-            echo "❌ No se pudo registrar el rol (¿nombre duplicado?)";
+            // Si devuelve string, es un mensaje de error
+            echo !empty($rspta) ? $rspta : "❌ No se pudo registrar el rol.";
           }
 
         } else {
@@ -42,7 +44,8 @@ if (!isset($_SESSION["nombre"])) {
           // 1) Editar rol
           $rspta = $rol->editar($idrol,$nombre);
 
-          if ($rspta) {
+          // Si es true, es éxito. Si es string, es error.
+          if ($rspta === true || $rspta === 1) {
             // 2) Borrar permisos actuales
             $rol->borrarPermisos($idrol);
 
@@ -51,7 +54,8 @@ if (!isset($_SESSION["nombre"])) {
 
             echo "✅ Rol actualizado con permisos exitosamente";
           } else {
-            echo "❌ No se pudo actualizar el rol (¿nombre duplicado?)";
+             // Si devuelve string, es un mensaje de error
+            echo !empty($rspta) ? $rspta : "❌ No se pudo actualizar el rol.";
           }
         }
       break;
@@ -88,7 +92,12 @@ if (!isset($_SESSION["nombre"])) {
 
       case 'desactivar':
         $rspta = $rol->desactivar($idrol);
-        echo $rspta ? "✅ Rol desactivado exitosamente" : "❌ No se pudo desactivar el rol";
+        // Si es string, es error. Si es true, éxito.
+        if (is_string($rspta)) {
+            echo $rspta;
+        } else {
+            echo $rspta ? "✅ Rol desactivado exitosamente" : "❌ No se pudo desactivar el rol";
+        }
       break;
 
       case 'activar':

@@ -330,7 +330,7 @@ case 'selectRol':
   if ($_SESSION['acceso'] != 1) { echo '<option value="">Sin acceso</option>'; break; }
   $sql = "SELECT id_rol, nombre FROM rol_usuarios WHERE estado = 1 OR estado IS NULL ORDER BY nombre ASC";
   $rspta = ejecutarConsulta($sql);
-  echo '<option value="">Seleccione...</option>';
+
   while ($reg = $rspta->fetch_object()) { echo '<option value="'.$reg->id_rol.'">'.$reg->nombre.'</option>'; }
 break;
 

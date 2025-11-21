@@ -99,6 +99,206 @@ if ($canAcceso) {
     gap:16px; 
     margin-bottom:20px;
   }
+
+  /* ==================== MODERN ROLE SELECTOR ==================== */
+  /* Contenedor de badges */
+  #roles-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+    min-height: 38px; /* Evita saltos de layout */
+    padding: 5px;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+    border: 1px dashed #ced4da;
+    transition: all 0.3s ease;
+  }
+
+  #roles-badges:empty {
+    display: none; /* Ocultar si no hay roles */
+  }
+
+  /* Estilo Chip/Badge */
+  .role-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    border-radius: 50px; /* Pill shape */
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #fff;
+    background: linear-gradient(135deg, var(--neko-primary), var(--neko-primary-dark));
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+    user-select: none;
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  .role-badge:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  }
+
+  /* Badge Admin (Diferente color) */
+  .role-badge.admin {
+    background: linear-gradient(135deg, var(--neko-danger), #b91c1c);
+  }
+
+  /* Icono de Rol Principal */
+  .role-badge .principal-icon {
+    margin-right: 6px;
+    color: #fcd34d; /* Amarillo dorado */
+    font-size: 1rem;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  }
+
+  /* Botón de eliminar (x) */
+  .role-badge .remove-role {
+    margin-left: 8px;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+  }
+
+  .role-badge .remove-role:hover {
+    opacity: 1;
+    background: rgba(255,255,255,0.4);
+  }
+
+  /* Animación de entrada */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  /* Mejoras Selectpicker */
+  .bootstrap-select .dropdown-toggle {
+    border-radius: 8px;
+    border: 1px solid #ced4da;
+    background-color: #fff;
+    padding: 6px 12px; /* Reduced padding */
+    font-size: 0.9rem; /* Smaller font */
+    transition: all 0.2s;
+  }
+  
+  .bootstrap-select .dropdown-toggle:focus,
+  .bootstrap-select .dropdown-toggle:hover {
+    outline: none !important;
+    border-color: var(--neko-primary) !important;
+    box-shadow: 0 0 0 0.2rem rgba(21, 101, 192, 0.15) !important;
+  }
+
+  /* Dropdown Menu */
+  .bootstrap-select .dropdown-menu {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+    padding: 5px; /* Reduced padding */
+    margin-top: 5px;
+    animation: slideDown 0.2s ease-out;
+  }
+
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Items de la lista */
+  .bootstrap-select .dropdown-menu li a {
+    padding: 8px 12px; /* Reduced padding for compact look */
+    border-radius: 6px;
+    margin-bottom: 2px;
+    transition: background-color 0.2s; /* Only animate background */
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: auto;
+  }
+
+  .bootstrap-select .dropdown-menu li a:hover {
+    background-color: #f1f5f9;
+    color: var(--neko-primary-dark);
+    /* Removed transform to stop blinking */
+  }
+
+  /* Item seleccionado */
+  .bootstrap-select .dropdown-menu li.selected a {
+    background: linear-gradient(135deg, var(--neko-primary-dark), var(--neko-primary));
+    color: #fff !important;
+    box-shadow: 0 4px 10px rgba(21, 101, 192, 0.3);
+  }
+
+  /* Checkmark personalizado - HIDE DEFAULT */
+  .bootstrap-select .dropdown-menu li a span.check-mark,
+  .bootstrap-select .dropdown-menu li a span.glyphicon {
+    display: none !important;
+  }
+
+  .bootstrap-select .dropdown-menu li a::after {
+    content: '\f111'; /* fa-circle-thin */
+    font-family: 'FontAwesome';
+    font-size: 1.1rem;
+    color: #cbd5e1;
+    transition: all 0.2s;
+  }
+
+  .bootstrap-select .dropdown-menu li.selected a::after {
+    content: '\f058'; /* fa-check-circle */
+    color: #fff;
+    transform: scale(1.1);
+  }
+
+  /* Buscador dentro del select */
+  .bs-searchbox .form-control {
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+    padding: 8px 12px;
+  }
+
+  /* Botones de acción (Select All / Deselect All) */
+  .bs-actionsbox .btn-group {
+    display: flex !important;
+    width: 100% !important;
+  }
+
+  .bs-actionsbox .btn-group button {
+    flex: 1;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    color: #64748b;
+    font-size: 0.85rem;
+    padding: 8px 12px;
+    border-radius: 0;
+    margin: 0;
+    transition: all 0.2s;
+  }
+  
+  .bs-actionsbox .btn-group button:first-child {
+    border-top-left-radius: 6px;
+    border-bottom-left-radius: 6px;
+    margin-right: -1px;
+  }
+  
+  .bs-actionsbox .btn-group button:last-child {
+    border-top-right-radius: 6px;
+    border-bottom-right-radius: 6px;
+  }
+
+  .bs-actionsbox .btn-group button:hover {
+    background: #f1f5f9;
+    color: var(--neko-primary);
+    border-color: var(--neko-primary);
+    z-index: 1;
+  }
   .kpi-card{
     background:#fff; border-radius:14px; padding:18px; 
     box-shadow:0 2px 8px rgba(0,0,0,.08);
@@ -194,6 +394,29 @@ if ($canAcceso) {
   .nk-avatar { border:2px solid #e5e7eb; border-radius:10px; object-fit:cover; }
   .input-eye { position:absolute; right:12px; top:50%; transform:translateY(-50%); cursor:pointer; opacity:.75; user-select:none; font-size:1.2rem; }
   .input-eye:hover { opacity:1; }
+
+  /* Password Requirements */
+  .pwd-req { font-size: 0.85rem; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; color: #64748b; transition: color 0.2s; }
+  .pwd-req i { width: 16px; text-align: center; font-size: 0.9rem; }
+  .pwd-req.valid { color: var(--neko-success); }
+  .pwd-req.invalid { color: var(--neko-danger); }
+
+  /* Role Badges */
+  #roles-badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; min-height: 28px; align-items: center; }
+  .role-badge { 
+    background: #f1f5f9; color: #475569; padding: 5px 12px; border-radius: 50px; 
+    font-size: 0.85rem; font-weight: 600; display: inline-flex; align-items: center; gap: 8px;
+    border: 1px solid #e2e8f0; transition: all 0.2s;
+    width: auto; /* Force auto width */
+    max-width: 100%;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  }
+  .role-badge:hover { background: #e2e8f0; transform: translateY(-1px); }
+  .role-badge.admin { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
+  .role-badge.admin:hover { background: #fecaca; }
+  .role-badge i { cursor: pointer; opacity: 0.6; font-size: 0.9rem; transition: opacity 0.2s; }
+  .role-badge i:hover { opacity: 1; color: #ef4444; }
+  .role-badge .principal-icon { color: #f59e0b; opacity: 1; cursor: default; }
 
   @media (max-width: 992px) {
     .filter-bar { flex-direction: column; align-items: stretch; }
@@ -388,8 +611,9 @@ if ($canAcceso) {
                 </div>
                 <div class="form-group col-lg-6 col-md-6 col-sm-6 col-xs-12">
                   <label>Roles (*):</label>
-                  <select class="form-control selectpicker" name="cargo[]" id="cargo" data-live-search="true" multiple title="Seleccione roles..." required>
-
+                  <select class="form-control selectpicker" name="cargo[]" id="cargo" data-live-search="true" multiple data-selected-text-format="count > 2" data-count-selected-text="{0} roles seleccionados" data-actions-box="true" data-width="100%" title="Seleccione roles..." data-select-all-text="Seleccionar Todo" data-deselect-all-text="Deseleccionar Todo" required>
+                  </select>
+                  <div id="roles-badges"></div>
                   <small class="text-muted">Rol del usuario en el sistema</small>
                 </div>
               </div>

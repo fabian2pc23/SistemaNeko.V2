@@ -382,6 +382,30 @@ function obtenerFechaHora() {
 function guardaryeditar(e) {
 	e.preventDefault();
 	$("#btnGuardar").prop("disabled", true);
+
+	// Validaciones Frontend
+	var nombreInput = $("#nombre").val();
+
+	// 1. Trim y Normalización de espacios
+	var nombre = nombreInput.trim().replace(/\s+/g, ' ');
+	$("#nombre").val(nombre); // Actualizar el input con el valor limpio
+
+	// 2. Longitud mínima
+	if (nombre.length < 2) {
+		mostrarNotificacion('⚠️ El nombre debe tener al menos 2 caracteres', 'warning');
+		$("#btnGuardar").prop("disabled", false);
+		return;
+	}
+
+	// 3. Caracteres permitidos (Alfanuméricos y espacios, sin símbolos extraños)
+	// Permite letras (incluyendo tildes/ñ), números y espacios.
+	var regex = /^[a-zA-Z0-9\u00C0-\u00FF\s]+$/;
+	if (!regex.test(nombre)) {
+		mostrarNotificacion('⚠️ El nombre contiene caracteres no válidos', 'warning');
+		$("#btnGuardar").prop("disabled", false);
+		return;
+	}
+
 	var formData = new FormData($("#formulario")[0]);
 
 	$.ajax({
@@ -399,6 +423,11 @@ function guardaryeditar(e) {
 					mostrarNotificacion('Marca registrada exitosamente', 'success');
 				} else if (datos.indexOf("actualizada") > -1) {
 					mostrarNotificacion('Marca actualizada exitosamente', 'success');
+				} else if (datos.indexOf("similar") > -1 || datos.indexOf("existe") > -1) {
+					// Mensaje de validación estricta del backend
+					mostrarNotificacion('⚠️ ' + datos, 'warning');
+					$("#btnGuardar").prop("disabled", false);
+					return;
 				} else {
 					mostrarNotificacion('❌ ' + datos, 'error');
 				}

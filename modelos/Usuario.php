@@ -291,7 +291,7 @@ class Usuario
                 u.imagen,
                 u.condicion,
                 (SELECT GROUP_CONCAT(
-                    CONCAT(r.nombre, IF(ur.es_principal=1, ' 👑', ''))
+                    CONCAT(r.nombre, IF(ur.es_principal=1, ' (Principal)', ''))
                     ORDER BY ur.es_principal DESC, r.nombre ASC
                     SEPARATOR ', '
                 )

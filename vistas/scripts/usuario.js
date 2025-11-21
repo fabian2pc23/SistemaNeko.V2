@@ -3,7 +3,14 @@ var tabla;
 /* ==================== Avatar por rol (preview) ==================== */
 function getDefaultAvatarForRole(roleText) {
 	const k = (roleText || '').toLowerCase().trim();
+	if (k === 'administrador' || k === 'admin') return 'administrador.png';
+	if (k === 'almacenero') return 'almacenero.png';
+	if (k === 'vendedor') return 'vendedor.png';
+	return 'usuario.png';
+}
 
+function setupPhoneValidation() {
+	const telefonoInput = document.getElementById('telefono');
 	if (telefonoInput) {
 		$(telefonoInput).off('input keypress');
 
@@ -541,6 +548,8 @@ function listar() {
 		});
 }
 
+
+
 function guardaryeditar(e) {
 	e.preventDefault();
 
@@ -714,13 +723,21 @@ function guardaryeditar(e) {
 	}
 
 	// ✅ Enviar roles como JSON
-	// Asumimos que el primer rol seleccionado es el principal
-	var rolesData = roles.map(function (id, index) {
-		return {
-			id_rol: id,
-			es_principal: (index === 0) ? 1 : 0
-		};
+	// Construir array de roles con el principal marcado
+	var rolesData = [];
+	roles.forEach(function (rId) {
+		rolesData.push({
+			id_rol: rId,
+			es_principal: (principalRoleId && rId.toString() === principalRoleId.toString()) ? 1 : 0
+		});
 	});
+
+	// Si no hay principal marcado pero hay roles, marcar el primero
+	var tienePrincipal = rolesData.some(r => r.es_principal === 1);
+	if (!tienePrincipal && rolesData.length > 0) {
+		rolesData[0].es_principal = 1;
+	}
+
 	formData.append('roles_data', JSON.stringify(rolesData));
 
 	// Enviar cargo principal como texto (para compatibilidad)
@@ -768,8 +785,18 @@ function mostrar(idusuario) {
 		// ✅ CARGAR ROLES MÚLTIPLES
 		$.getJSON("../ajax/usuario.php?op=obtener_roles_usuario&idusuario=" + idusuario, function (roles) {
 			var rolesIds = roles.map(r => r.id_rol);
+
+			// Encontrar el rol principal
+			var principal = roles.find(r => r.es_principal == 1);
+			if (principal) {
+				principalRoleId = principal.id_rol;
+			} else if (roles.length > 0) {
+				principalRoleId = roles[0].id_rol;
+			}
+
 			$("#cargo").selectpicker('val', rolesIds);
 			lastSelectedRoles = rolesIds;
+			renderRoleBadges(rolesIds);
 			cargarPermisosAcumulativos(rolesIds);
 		});
 
@@ -858,92 +885,195 @@ function exportarTabla(type) {
 	if (type === 'pdf') tabla.button('.buttons-pdf').trigger();
 }
 
+/* ==================== LÓGICA DE ROLES MÚLTIPLES ==================== */
+var lastSelectedRoles = [];
+var principalRoleId = null;
+
 function setupRoleLogic() {
-	$("#cargo").on("change", function () {
-		var selectedValues = $(this).val();
-		if (!selectedValues) selectedValues = [];
+	// Usar evento 'change' estándar que bootstrap-select también dispara
+	$('#cargo').on('change', function () {
+		var selectedIds = $(this).val();
 
-		// Ensure it's an array
-		if (!Array.isArray(selectedValues)) selectedValues = [selectedValues];
+		// Convertir a array si es null (cuando no hay selección)
+		if (!selectedIds) selectedIds = [];
 
-		// Check for Admin
-		var adminOption = $("#cargo option").filter(function () {
-			return $(this).text().trim().toLowerCase() === 'administrador' || $(this).text().trim().toLowerCase() === 'admin';
+		// Asegurar que sea un array de strings
+		if (!Array.isArray(selectedIds)) {
+			selectedIds = [selectedIds];
+		}
+
+		console.log("Event: change detected. Selected IDs:", selectedIds);
+
+		// Lógica de exclusividad de Admin
+		var selectedOptions = $(this).find('option:selected');
+		var isAdminSelected = false;
+		var adminVal = "";
+
+		selectedOptions.each(function () {
+			var txt = $(this).text().trim().toLowerCase();
+			if (txt === 'administrador' || txt === 'admin') {
+				isAdminSelected = true;
+				adminVal = $(this).val();
+			}
 		});
-		var adminVal = adminOption.val();
-		var isAdminSelected = selectedValues.includes(adminVal);
 
-		// Exclusivity Logic
-		if (isAdminSelected) {
-			if (selectedValues.length > 1) {
-				var wasAdmin = lastSelectedRoles.includes(adminVal);
+		// Si se selecciona Admin, limpiar otros (pero evitar bucle infinito)
+		if (isAdminSelected && selectedIds.length > 1) {
+			// Solo actualizar si realmente hay cambio para evitar bucles
+			var currentVal = $(this).val();
+			// Asegurar que currentVal sea array para la comparación
+			if (!Array.isArray(currentVal)) currentVal = [currentVal];
 
-				if (!wasAdmin) {
-					// Just clicked Admin -> Clear others
-					$("#cargo").selectpicker('val', [adminVal]);
-					selectedValues = [adminVal];
-					bootbox.alert("⚠️ El rol <strong>Administrador</strong> es exclusivo y no puede combinarse con otros roles.");
-				} else {
-					// Admin was there, clicked others -> Remove Admin
-					var others = selectedValues.filter(v => v !== adminVal);
-					$("#cargo").selectpicker('val', others);
-					selectedValues = others;
-				}
+			if (currentVal.length !== 1 || currentVal[0] !== adminVal) {
+				$('#cargo').selectpicker('val', [adminVal]);
+				// Forzar el evento change para que se re-rendericen los badges
+				$('#cargo').trigger('change');
+				return;
 			}
 		}
 
-		lastSelectedRoles = selectedValues;
-		cargarPermisosAcumulativos(selectedValues);
+		lastSelectedRoles = selectedIds;
+		renderRoleBadges(selectedIds);
+		cargarPermisosAcumulativos(selectedIds);
 	});
 }
 
-function cargarPermisosAcumulativos(rolesIds) {
-	if (!rolesIds || rolesIds.length === 0) {
-		$("#permisos input[type='checkbox']").prop("checked", false);
-		return;
+function renderRoleBadges(selectedIds) {
+	console.log("renderRoleBadges called with:", selectedIds);
+	var container = $("#roles-badges");
+
+	// Ensure container exists
+	if (container.length === 0) {
+		console.error("❌ Error: #roles-badges container not found! Creating it.");
+		container = $("<div id='roles-badges'></div>");
 	}
 
-	var permisosUnicos = new Set();
-	var promesas = [];
+	// Move container to the correct place: after the bootstrap-select div
+	var bsContainer = $("#cargo").parent('.bootstrap-select');
+	if (bsContainer.length > 0) {
+		container.insertAfter(bsContainer);
+	} else {
+		container.insertAfter("#cargo");
+	}
 
-	rolesIds.forEach(function (idRol) {
-		var p = $.getJSON("../ajax/usuario.php?op=permisos_por_rol&id_rol=" + idRol)
-			.done(function (ids) {
-				if (Array.isArray(ids)) {
-					ids.forEach(id => permisosUnicos.add(id));
-				}
-			});
-		promesas.push(p);
+	// DEBUG: Añadir borde para verificar visibilidad (Temporal)
+	// container.css('border', '2px dashed #ccc'); 
+	// (User's image showed a dashed box, maybe they added it or it's from previous CSS? 
+	//  I will force it to be visible with a background color to be sure)
+	container.css('display', 'flex');
+
+	container.empty();
+
+	if (!selectedIds || selectedIds.length === 0) {
+		console.log("No roles selected, hiding container");
+		container.hide();
+		return;
+	}
+	container.show();
+
+	// Si no hay rol principal seleccionado o el seleccionado ya no está en la lista,
+	// asignar el primero como principal por defecto.
+	if (!principalRoleId || !selectedIds.includes(principalRoleId.toString())) {
+		principalRoleId = selectedIds[0];
+	}
+
+	selectedIds.forEach(function (id) {
+		// Intentar obtener el texto de la opción
+		var option = $("#cargo option[value='" + id + "']");
+		var text = option.text();
+
+		// Fallback si el texto está vacío (no debería pasar si el select está cargado)
+		if (!text) {
+			console.warn("Texto no encontrado para ID:", id);
+			text = "Rol " + id;
+		}
+
+		var isPrincipal = (id.toString() === principalRoleId.toString());
+
+		var badgeClass = "role-badge";
+		if (text.toLowerCase().includes("admin")) badgeClass += " admin";
+
+		var starIcon = isPrincipal ? "fa-star principal-icon" : "fa-star-o";
+		var starTitle = isPrincipal ? "Rol Principal" : "Hacer Principal";
+
+		var badgeHtml = `
+            <div class="${badgeClass}" data-role-id="${id}">
+                <i class="fa ${starIcon} role-star" title="${starTitle}" style="cursor: pointer;"></i>
+                <span>${text}</span>
+                <span class="remove-role" title="Quitar rol" style="cursor: pointer;">
+                    <i class="fa fa-times"></i>
+                </span>
+            </div>
+        `;
+
+		container.append(badgeHtml);
 	});
+}
 
-	$.when.apply($, promesas).done(function () {
-		$("#permisos input[name='permiso[]']").prop("checked", false);
-		permisosUnicos.forEach(function (pid) {
-			$("#permisos input[name='permiso[]'][value='" + pid + "']").prop("checked", true);
+function setPrincipalRole(roleId) {
+	principalRoleId = roleId;
+	var selectedRoles = $("#cargo").val();
+	renderRoleBadges(selectedRoles);
+}
+
+function removeRole(id) {
+	var current = $("#cargo").val() || [];
+	var newRoles = current.filter(r => r != id);
+	$("#cargo").selectpicker('val', newRoles);
+	// Trigger change para actualizar todo
+	$("#cargo").trigger('changed.bs.select');
+}
+
+function cargarPermisosAcumulativos(rolesIds) {
+	// Primero desmarcar todos
+	$("#permisos input[type='checkbox']").prop("checked", false);
+
+	if (!rolesIds || rolesIds.length === 0) return;
+
+	rolesIds.forEach(function (rolId) {
+		$.getJSON("../ajax/usuario.php?op=permisos_por_rol&id_rol=" + rolId, function (permisos) {
+			if (permisos && permisos.length > 0) {
+				permisos.forEach(function (pId) {
+					$("#permisos input[value='" + pId + "']").prop("checked", true);
+				});
+			}
 		});
 	});
 }
 
-//Función que se ejecuta al inicio
 function init() {
 	mostrarform(false);
 	listar();
 	setupSearchInput();
-	setupRoleLogic(); // ✅ Activar lógica de roles
+	setupRoleLogic();
+
+	// Event delegation for role badges
+	$(document).on('click', '.role-star', function () {
+		var roleId = $(this).closest('.role-badge').data('role-id');
+		setPrincipalRole(roleId);
+	});
+
+	$(document).on('click', '.remove-role', function () {
+		var roleId = $(this).closest('.role-badge').data('role-id');
+		removeRole(roleId);
+	});
 
 	$("#formulario").on("submit", function (e) {
 		guardaryeditar(e);
-	})
+	});
 
 	$("#imagenmuestra").hide();
 	$("#pwd-strength").hide();
 
+	// Campo oculto para modo permisos
 	if (!document.getElementById('modo_permisos')) {
 		$('<input>', { type: 'hidden', id: 'modo_permisos', name: 'modo_permisos', value: '' }).appendTo('#formulario');
 	}
 
+	// Cargar permisos iniciales (todos desmarcados)
 	$.post("../ajax/usuario.php?op=permisos&id=0", function (r) {
 		$("#permisos").html(r);
+		// Deshabilitar checkboxes porque son automáticos por rol
 		$("#permisos input[type='checkbox']")
 			.prop("disabled", true)
 			.css("cursor", "not-allowed");
@@ -954,6 +1084,7 @@ function init() {
 	$('#mAcceso').addClass("treeview active");
 	$('#lUsuarios').addClass("active");
 
+	// Inicializar validaciones
 	setTimeout(function () {
 		setupDocumentValidation();
 		setupPasswordValidation();

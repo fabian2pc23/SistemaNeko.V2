@@ -64,23 +64,6 @@ function init() {
     tabla.column(3).search(this.value).draw();
   });
 
-  // Validaciones y cálculos de precio
-  $("#precio_compra").on("input", function () {
-    const ok = esPrecioValido(this.value);
-    setValidity(this, ok, "Precio inválido");
-    actualizarSugerido();
-
-    // Habilitar precio venta solo si hay precio compra
-    if (parseFloat(this.value) > 0) {
-      $("#precio_venta").prop("disabled", false);
-    } else {
-      $("#precio_venta").prop("disabled", true).val("");
-    }
-  });
-  $("#precio_venta").on("change", function () {
-    precioVentaEditadoManualmente = true;
-    validarPrecioVenta(this);
-  });
 
   $("#nombre").on("input", function () {
     const ok = esNombreValido(this.value);
@@ -90,6 +73,11 @@ function init() {
   $("#codigo").on("input", function () {
     const ok = esCodigoValido(this.value);
     setValidity(this, ok, "Código inválido (solo números)");
+  });
+
+  // Validar precio de venta al perder el foco
+  $("#precio_venta").on("blur", function () {
+    validarPrecioVenta(this);
   });
 
   // Eventos de botones en la tabla (Delegación)
@@ -184,15 +172,18 @@ function validarPrecioVenta(input) {
 
   if (!isNaN(pv) && !isNaN(sug) && sug > 0) {
     if (pv < sug) {
-      mostrarNotificacion("El precio de venta NO puede ser menor al sugerido (S/ " + sug + ")", "error");
+      mostrarNotificacion("⚠️ El precio de venta NO puede ser menor al sugerido (S/ " + sug + ")", "error");
       input.value = sug.toFixed(2);
       $(input).addClass("is-invalid");
       setTimeout(() => $(input).removeClass("is-invalid"), 2000);
+      return false;
     } else {
       setValidity(input, true, "");
+      return true;
     }
   } else {
     setValidity(input, true, "");
+    return true;
   }
 }
 
@@ -210,8 +201,14 @@ function limpiar() {
   $(".form-control").removeClass("is-valid is-invalid");
 
   // Resetear estados de campos de precio
-  $("#precio_compra").prop("readonly", false);
-  $("#precio_venta").prop("disabled", false);
+  $("#precio_compra").prop("readonly", true);
+  $("#precio_venta").prop("disabled", true);
+
+  // Ocultar campos de precio al agregar (se muestran solo en editar)
+  $("#precio_compra").closest(".form-group").hide();
+  $("#precio_venta").closest(".form-group").hide();
+  $("#precio_compra").prop("required", false);
+  $("#precio_venta").prop("required", false);
 }
 
 function mostrarform(flag) {
@@ -293,6 +290,26 @@ function listar() {
 function guardaryeditar(e) {
   e.preventDefault();
   $("#btnGuardar").prop("disabled", true);
+
+  // --- VALIDACIÓN ESTRICTA DE PRECIO DE VENTA ---
+  // Solo si estamos en modo edición (donde el precio venta es visible/editable)
+  if ($("#idarticulo").val() !== "") {
+    const pv = parseFloat($("#precio_venta").val());
+    const pc = $("#precio_compra").val();
+    const sug = parseFloat(calcularPV(pc));
+
+    if (!isNaN(pv) && !isNaN(sug) && sug > 0) {
+      if (pv < sug) {
+        mostrarNotificacion("⛔ ERROR: El precio de venta (S/ " + pv.toFixed(2) + ") NO puede ser menor al sugerido (S/ " + sug.toFixed(2) + ").", "error");
+        $("#precio_venta").val(sug.toFixed(2)); // Corregir automáticamente
+        $("#precio_venta").addClass("is-invalid");
+        $("#btnGuardar").prop("disabled", false);
+        return; // DETENER GUARDADO
+      }
+    }
+  }
+  // ----------------------------------------------
+
   var formData = new FormData($("#formulario")[0]);
 
   $.ajax({
@@ -360,8 +377,14 @@ function mostrar(idarticulo) {
       $("#imagenactual").val(data.imagen);
 
       // Permitir editar precio compra
-      $("#precio_compra").prop("readonly", false);
-      $("#precio_venta").prop("disabled", false);
+      $("#precio_compra").prop("readonly", true);
+
+      // Habilitar precio venta solo si el precio de compra es mayor a 0
+      if (parseFloat(data.precio_compra) > 0) {
+        $("#precio_venta").prop("disabled", false);
+      } else {
+        $("#precio_venta").prop("disabled", true);
+      }
 
       try { generarbarcode(); } catch (e) { console.log("Error barcode", e); }
       try { actualizarSugerido(); } catch (e) { console.log("Error sugerido", e); }

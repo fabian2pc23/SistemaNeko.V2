@@ -35,46 +35,57 @@ Class Marca
 		return ejecutarConsulta($sql);
 	}
 
-	//Validar duplicados (Exacto y Singular/Plural)
+	//Validar duplicados (Ultra Estricto: Alpha-only y Levenshtein)
 	public function validarDuplicado($nombre, $idmarca = 0)
 	{
-		// Normalizar nombre (eliminar espacios extra y convertir a minúsculas para comparación)
+		// 1. Normalización y Limpieza
 		$nombre = trim($nombre);
+		$nombreNorm = mb_strtolower($nombre, 'UTF-8');
 		
-		// Generar variaciones (Singular/Plural básico)
-		// Si termina en 's', quitamos la 's' para buscar el singular
-		// Si no termina en 's', agregamos 's' y 'es' para buscar plurales
-		
-		$variaciones = array();
-		$variaciones[] = $nombre; // El nombre exacto
+		// Extraer solo letras (Alpha-only). Elimina números, espacios y símbolos.
+		// Ejemplo: "Bosch 123" -> "bosch"
+		// Ejemplo: "Bosch-2" -> "bosch"
+		$nombreAlpha = preg_replace('/[^a-z\x{00C0}-\x{00FF}]/u', '', $nombreNorm);
 
-		if (substr($nombre, -1) == 's' || substr($nombre, -1) == 'S') {
-			$variaciones[] = substr($nombre, 0, -1); // Posible singular
-			if (substr($nombre, -2) == 'es' || substr($nombre, -2) == 'ES') {
-				$variaciones[] = substr($nombre, 0, -2); // Posible singular de 'es'
-			}
-		} else {
-			$variaciones[] = $nombre . 's'; // Posible plural simple
-			$variaciones[] = $nombre . 'es'; // Posible plural con 'es'
-		}
+		// Si el nombre es solo números/símbolos (ej. "123"), usamos el normalizado
+		$usarAlpha = ($nombreAlpha !== '');
 
-		// Construir la consulta SQL
-		// Buscamos cualquiera de las variaciones
-		$sql = "SELECT * FROM marca WHERE (";
-		$first = true;
-		foreach ($variaciones as $val) {
-			if (!$first) $sql .= " OR ";
-			$sql .= "nombre LIKE '$val'";
-			$first = false;
-		}
-		$sql .= ") AND idmarca != '$idmarca'";
-
+		$sql = "SELECT idmarca, nombre FROM marca WHERE idmarca != '$idmarca'";
 		$resultado = ejecutarConsulta($sql);
-		
-		// Si hay resultados, es un duplicado
-		if ($resultado->num_rows > 0) {
-			return true;
+
+		while ($reg = $resultado->fetch_object()) {
+			$dbNombre = $reg->nombre;
+			$dbNombreNorm = mb_strtolower($dbNombre, 'UTF-8');
+			$dbNombreAlpha = preg_replace('/[^a-z\x{00C0}-\x{00FF}]/u', '', $dbNombreNorm);
+
+			// Regla 1: Comparación "Alpha-only" (Detecta variaciones numéricas/simbólicas)
+			// Si "Bosch" ya existe, "Bosch 123", "1. Bosch", "Bosch!" serán rechazados.
+			if ($usarAlpha && $nombreAlpha === $dbNombreAlpha) {
+				return "La marca '$nombre' es demasiado similar a '$dbNombre' (variación numérica o de símbolos).";
+			}
+
+			// Regla 2: Comparación Directa (para marcas numéricas como "3M" vs "3M")
+			if (!$usarAlpha && $nombreNorm === $dbNombreNorm) {
+				return "La marca '$dbNombre' ya existe.";
+			}
+
+			// Regla 3: Levenshtein sobre la parte Alpha (Detecta typos en la parte de texto)
+			// Ejemplo: "Bosch" vs "Bosc123" -> Alpha: "bosch" vs "bosc" -> Distancia 1 -> Rechazado
+			if ($usarAlpha && $dbNombreAlpha !== '') {
+				$lev = levenshtein($nombreAlpha, $dbNombreAlpha);
+				$largo = strlen($nombreAlpha);
+				
+				// Tolerancia muy estricta
+				// Palabras cortas (<= 4 letras): 0 tolerancia (debe ser exacto)
+				// Palabras largas (> 4 letras): 1 tolerancia (máximo 1 letra de diferencia)
+				$tolerancia = ($largo <= 4) ? 0 : 1;
+
+				if ($lev <= $tolerancia) {
+					return "La marca '$nombre' es muy similar a '$dbNombre'.";
+				}
+			}
 		}
+
 		return false;
 	}
 

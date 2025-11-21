@@ -9,6 +9,12 @@ Class Rol {
 
   // ==================== INSERTAR ROL ====================
   public function insertar($nombre) {
+    // Validar duplicados antes de insertar
+    $errorDuplicado = $this->validarDuplicado($nombre);
+    if ($errorDuplicado) {
+      return $errorDuplicado; // Retorna el mensaje de error
+    }
+
     $sql = "INSERT INTO rol_usuarios (nombre, estado, creado_en)
             VALUES ('$nombre', 1, NOW())";
     $idarticulo = ejecutarConsulta_retornarID($sql);
@@ -17,6 +23,12 @@ Class Rol {
 
   // ==================== EDITAR ROL ====================
   public function editar($idrol, $nombre) {
+    // Validar duplicados antes de editar
+    $errorDuplicado = $this->validarDuplicado($nombre, $idrol);
+    if ($errorDuplicado) {
+      return $errorDuplicado; // Retorna el mensaje de error
+    }
+
     $sql = "UPDATE rol_usuarios 
             SET nombre='$nombre' 
             WHERE id_rol='$idrol'";
@@ -25,6 +37,13 @@ Class Rol {
 
   // ==================== DESACTIVAR ROL ====================
   public function desactivar($idrol) {
+    // Verificar si es Administrador
+    $sqlCheck = "SELECT nombre FROM rol_usuarios WHERE id_rol='$idrol'";
+    $res = ejecutarConsultaSimpleFila($sqlCheck);
+    if ($res && (strcasecmp($res['nombre'], 'Administrador') === 0 || strcasecmp($res['nombre'], 'Admin') === 0)) {
+      return "⛔ No puedes desactivar el rol de Administrador.";
+    }
+
     $sql = "UPDATE rol_usuarios SET estado='0' WHERE id_rol='$idrol'";
     return ejecutarConsulta($sql);
   }
@@ -117,6 +136,52 @@ Class Rol {
     }
     $resultado = ejecutarConsulta($sql);
     return $resultado->num_rows > 0;
+  }
+
+  // ==================== VALIDAR DUPLICADOS (Estricto) ====================
+  public function validarDuplicado($nombre, $idrol = 0)
+  {
+    // 1. Normalización y Limpieza
+    $nombre = trim($nombre);
+    $nombreNorm = mb_strtolower($nombre, 'UTF-8');
+    
+    // Extraer solo letras (Alpha-only)
+    $nombreAlpha = preg_replace('/[^a-z\x{00C0}-\x{00FF}]/u', '', $nombreNorm);
+    $usarAlpha = ($nombreAlpha !== '');
+
+    $sql = "SELECT id_rol, nombre FROM rol_usuarios WHERE id_rol != '$idrol'";
+    $resultado = ejecutarConsulta($sql);
+
+    while ($reg = $resultado->fetch_object()) {
+      $dbNombre = $reg->nombre;
+      $dbNombreNorm = mb_strtolower($dbNombre, 'UTF-8');
+      $dbNombreAlpha = preg_replace('/[^a-z\x{00C0}-\x{00FF}]/u', '', $dbNombreNorm);
+
+      // Regla 1: Comparación "Alpha-only"
+      if ($usarAlpha && $nombreAlpha === $dbNombreAlpha) {
+        return "⚠️ El rol '$nombre' es demasiado similar a '$dbNombre' (variación numérica o de símbolos).";
+      }
+
+      // Regla 2: Comparación Directa
+      if (!$usarAlpha && $nombreNorm === $dbNombreNorm) {
+        return "⚠️ El rol '$dbNombre' ya existe.";
+      }
+
+      // Regla 3: Levenshtein sobre la parte Alpha
+      if ($usarAlpha && $dbNombreAlpha !== '') {
+        $lev = levenshtein($nombreAlpha, $dbNombreAlpha);
+        $largo = strlen($nombreAlpha);
+        
+        // Tolerancia estricta
+        $tolerancia = ($largo <= 4) ? 0 : 1;
+
+        if ($lev <= $tolerancia) {
+          return "⚠️ El rol '$nombre' es muy similar a '$dbNombre'.";
+        }
+      }
+    }
+
+    return false;
   }
 }
 ?>

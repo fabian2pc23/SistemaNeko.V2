@@ -574,6 +574,7 @@ $nekoPrimaryDark = '#0d47a1';
           <div class="neko-card__body panel-body" id="formularioregistros" style="display:none;">
             <form name="formulario" id="formulario" method="POST" enctype="multipart/form-data" autocomplete="off">
               <input type="hidden" name="idarticulo" id="idarticulo">
+              <input type="hidden" name="stock" id="stock" value="0">
 
               <h4 class="section-title"><span class="dot"></span> Datos del artículo</h4>
 
