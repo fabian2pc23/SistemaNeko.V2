@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 19-11-2025 a las 19:08:58
+-- Tiempo de generación: 21-11-2025 a las 20:42:45
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -49,22 +49,29 @@ CREATE TABLE `articulo` (
 --
 
 INSERT INTO `articulo` (`idarticulo`, `idcategoria`, `idmarca`, `codigo`, `nombre`, `stock`, `precio_compra`, `precio_venta`, `descripcion`, `imagen`, `condicion`, `costo_promedio`, `ultimo_costo`, `ultima_compra`) VALUES
-(5, 8, NULL, '21321355677', 'Tambores de freno', 17, 32.00, 0.00, 'Tambores de Freno Descripción', '1760920283.jpg', 1, 0.00, 0.00, NULL),
-(6, 8, NULL, '09227222', 'Pastillas de frenos', 22, 54.00, 0.00, 'Pastilla de frenos', '1760920293.jpg', 1, 0.00, 0.00, NULL),
-(10, 8, NULL, '21321355672', 'Discos de embrague', 11, 42.00, 0.00, 'pieza fundamental del sistema de transmisión de un vehículo', '1761714848.jpg', 1, 0.00, 0.00, NULL),
+(5, 8, NULL, '21321355677', 'Tambores de freno', 16, 32.00, 0.00, 'Tambores de Freno Descripción', '1760920283.jpg', 1, 0.00, 0.00, NULL),
+(6, 8, NULL, '09227222', 'Pastillas de frenos', 0, 42.00, 64.43, 'Pastilla de frenos', '1760920293.jpg', 1, 0.00, 0.00, NULL),
+(10, 8, NULL, '21321355672', 'Discos de embrague', 0, 42.00, 70.00, 'pieza fundamental del sistema de transmisión de un vehículo', '1761714848.jpg', 1, 0.00, 0.00, NULL),
 (11, 8, NULL, '274584727348', 'Zapatas de freno', 2, 52.00, 0.00, 'componentes de metal con forma curva que se usan en los frenos de tambor', '', 1, 0.00, 0.00, NULL),
 (13, 12, NULL, '5758575758758', 'Escaleras dos metros', 15, 50.00, 0.00, 'tec', '', 0, 0.00, 0.00, NULL),
 (15, 11, NULL, '7762181681524', 'zapata', 6, 220.00, 0.00, 'zapata posterior 4664D Frenosa', '', 1, 0.00, 0.00, NULL),
 (17, 11, NULL, '5787858585524', 'Tambores de frenos', 2, 10.00, 0.00, '.', '', 1, 0.00, 0.00, NULL),
 (24, 11, NULL, '7728583006594', 'liquido de frenos', 5, 10.00, 0.00, '.', '', 0, 0.00, 0.00, NULL),
-(25, 7, NULL, '7753446676164', 'cilindro dos tiempos moto', 0, 14.00, 21.48, 'wanxin', '', 1, 0.00, 0.00, NULL),
+(25, 7, NULL, '7753446676164', 'cilindro dos tiempos moto', 1, 14.00, 21.48, 'wanxin', '', 1, 0.00, 0.00, NULL),
 (26, 8, NULL, '42752752542', 'llantas tractor', 10, 15.00, 23.01, 'fsdfsdf', '', 1, 0.00, 0.00, NULL),
 (27, 11, NULL, '527827212752', 'liquido de frenos moto', 25, 15.00, 23.01, '.', '', 1, 0.00, 0.00, NULL),
 (28, 11, NULL, '5727275287', 'llantas para carro', 14, 14.00, 21.48, 'klkl', '', 1, 0.00, 0.00, NULL),
-(29, 12, NULL, '7727662020292', 'Aviones', 0, 11.00, 16.87, 'AAA', 'art_20251114_122832_6967.jpg', 1, 0.00, 0.00, NULL),
-(30, 12, NULL, '', 'Avion', 0, 11.00, 16.87, 'Asa', 'art_20251114_122855_5304.jpg', 1, 0.00, 0.00, NULL),
-(31, 12, NULL, '7760464142137', 'Cajas', 0, 22.00, 33.75, 'Cajas', 'art_20251114_122921_9659.jpg', 1, 0.00, 0.00, NULL),
-(32, 14, NULL, '7738731991832', 'SERGIO', 0, 22.00, 33.75, '', '', 1, 0.00, 0.00, NULL);
+(29, 12, NULL, '7727662020292', 'Aviones', 0, 11.00, 40.00, 'AAA', 'art_20251114_122832_6967.jpg', 1, 0.00, 0.00, NULL),
+(30, 12, NULL, '3595261442353', 'Avion', 0, 32.00, 50.00, 'Asa', 'art_20251114_122855_5304.jpg', 1, 0.00, 0.00, NULL),
+(31, 12, NULL, '7760464142137', 'Cajas', 9, 70.00, 60.00, 'Cajas', 'art_20251114_122921_9659.jpg', 1, 0.00, 0.00, NULL),
+(32, 14, NULL, '7738731991832', 'SERGIO', 0, 22.00, 33.75, '', '', 1, 0.00, 0.00, NULL),
+(33, 8, NULL, '7750410814041', 'Pedro el gruillo', 0, 12.00, 32.00, '1', '', 1, 0.00, 0.00, NULL),
+(34, 13, 4, '8629132889976', 'Remaches', 0, 32.00, 90.00, '', '', 1, 0.00, 0.00, NULL),
+(35, 8, 1, '3239646047813', 'Manijas', 7, 32.00, 49.09, '', '', 1, 0.00, 0.00, NULL),
+(36, 8, 1, '', 'Frenos', 10, 38.00, 0.00, '', '', 1, 0.00, 0.00, NULL),
+(37, 11, 1, '8332008886939', 'Remaches 3', 0, 0.00, 0.00, '', '', 1, 0.00, 0.00, NULL),
+(38, 8, 1, '9968882601032', 'Frenos 3', 3, 0.00, 10.00, '', '', 1, 0.00, 0.00, NULL),
+(39, 8, 4, '6652240501256', 'Frenos moto', 0, 0.00, 0.00, '', '', 1, 0.00, 0.00, NULL);
 
 -- --------------------------------------------------------
 
@@ -113,7 +120,7 @@ CREATE TABLE `comprobante_serie` (
 --
 
 INSERT INTO `comprobante_serie` (`idcomprobante`, `tipo`, `serie`, `correlativo`, `impuesto`, `estado`) VALUES
-(1, 'Boleta', 'B001', 13, 18.00, 1),
+(1, 'Boleta', 'B001', 18, 18.00, 1),
 (2, 'Factura', 'F001', 5, 18.00, 1),
 (3, 'Ticket', 'T001', 2, 18.00, 1),
 (4, 'Boleta', 'B001', 10, 18.00, 1),
@@ -155,7 +162,26 @@ INSERT INTO `detalle_ingreso` (`iddetalle_ingreso`, `idingreso`, `idarticulo`, `
 (24, 15, 10, 2, 42.00, 0.00, 0.00),
 (25, 16, 10, 2, 42.00, 0.00, 0.00),
 (26, 17, 27, 15, 15.00, 0.00, 23.01),
-(27, 18, 28, 5, 14.00, 0.00, 21.48);
+(27, 18, 28, 5, 14.00, 0.00, 21.48),
+(29, 21, 30, 4, 11.00, 44.00, 16.87),
+(30, 22, 30, 3, 11.00, 33.00, 16.87),
+(31, 23, 29, 3, 11.00, 33.00, 16.87),
+(32, 24, 31, 3, 22.00, 66.00, 33.75),
+(33, 25, 25, 3, 14.00, 42.00, 21.48),
+(34, 26, 10, 3, 42.00, 126.00, 0.00),
+(35, 27, 29, 2, 11.00, 22.00, 16.87),
+(36, 28, 38, 1, 32.00, 32.00, 0.00),
+(37, 29, 38, 2, 32.00, 64.00, 0.00),
+(38, 30, 29, 2, 31.00, 62.00, 16.87),
+(39, 31, 30, 2, 32.00, 64.00, 16.87),
+(40, 32, 31, 2, 32.00, 64.00, 33.75),
+(41, 33, 35, 4, 32.00, 128.00, 0.00),
+(42, 34, 35, 3, 32.00, 96.00, 0.00),
+(43, 35, 36, 10, 38.00, 380.00, 0.00),
+(44, 36, 30, 15, 32.00, 480.00, 49.09),
+(45, 37, 31, 3, 40.00, 120.00, 60.00),
+(46, 38, 31, 3, 30.00, 90.00, 60.00),
+(47, 39, 31, 3, 70.00, 210.00, 60.00);
 
 --
 -- Disparadores `detalle_ingreso`
@@ -228,7 +254,12 @@ INSERT INTO `detalle_venta` (`iddetalle_venta`, `idventa`, `idarticulo`, `cantid
 (63, 28, 30, 3, 16.87, 0.00),
 (64, 29, 25, 6, 21.48, 0.00),
 (65, 30, 30, 20, 16.87, 0.00),
-(66, 31, 31, 16, 33.75, 0.00);
+(66, 31, 31, 16, 33.75, 0.00),
+(67, 32, 5, 1, 10.00, 0.00),
+(68, 33, 25, 2, 21.48, 0.00),
+(69, 34, 30, 3, 16.87, 0.00),
+(70, 35, 29, 3, 16.87, 0.00),
+(71, 36, 30, 5, 49.09, 0.00);
 
 --
 -- Disparadores `detalle_venta`
@@ -278,7 +309,48 @@ INSERT INTO `historial_precios` (`id_historial`, `idarticulo`, `precio_anterior`
 (12, 6, 82.84, 90.00, 'alza de dolar', 'manual', NULL, 20, '2025-10-31 20:33:36'),
 (13, 10, 94.00, 96.00, 'ajuste de precio', 'manual', NULL, 19, '2025-10-31 22:20:02'),
 (14, 10, 96.00, 98.00, 'nadjnajsdm', 'manual', NULL, 19, '2025-10-31 22:20:48'),
-(15, 10, 98.00, 99.00, 'jhhuh', 'manual', NULL, 19, '2025-10-31 22:21:21');
+(15, 10, 98.00, 99.00, 'jhhuh', 'manual', NULL, 19, '2025-10-31 22:21:21'),
+(16, 5, 0.00, 49.09, 'Actualización en módulo Artículos', 'manual', NULL, 19, '2025-11-20 20:58:02'),
+(17, 5, 0.00, 49.09, 'Actualización en módulo Artículos', 'manual', NULL, 19, '2025-11-20 20:58:04'),
+(18, 5, 0.00, 49.09, 'Actualización en módulo Artículos', 'manual', NULL, 19, '2025-11-20 20:58:05'),
+(19, 5, 0.00, 62.89, 'Actualización en módulo Artículos', 'manual', NULL, 19, '2025-11-20 20:58:14'),
+(20, 5, 0.00, 62.89, 'Actualización en módulo Artículos', 'manual', NULL, 19, '2025-11-20 20:58:14'),
+(21, 5, 0.00, 49.09, 'Actualización en módulo Artículos', 'manual', NULL, 19, '2025-11-20 20:58:19'),
+(22, 6, 82.84, 33.75, 'Actualización en módulo Artículos', 'manual', NULL, 19, '2025-11-20 20:59:38'),
+(23, 6, 33.75, 49.09, 'Actualización en módulo Artículos', 'manual', NULL, 19, '2025-11-20 20:59:43'),
+(24, 33, 18.41, 32.00, 'Actualización en módulo Artículos', 'manual', NULL, 19, '2025-11-20 21:02:56'),
+(25, 6, 49.09, 64.43, 'Actualización en módulo Artículos', 'manual', NULL, 19, '2025-11-20 21:05:16'),
+(26, 5, 0.00, 49.09, 'Actualización en módulo Artículos', 'manual', NULL, 19, '2025-11-20 21:05:38'),
+(27, 5, 0.00, 51.00, 'Actualización en módulo Artículos', 'manual', NULL, 19, '2025-11-20 21:05:43'),
+(28, 5, 0.00, 51.00, 'Actualización en módulo Artículos', 'manual', NULL, 19, '2025-11-20 21:05:44'),
+(29, 5, 0.00, 51.00, 'Actualización en módulo Artículos', 'manual', NULL, 19, '2025-11-20 21:05:44'),
+(30, 5, 0.00, 51.00, 'Actualización en módulo Artículos', 'manual', NULL, 19, '2025-11-20 21:05:44'),
+(31, 6, 64.43, 80.00, 'Actualización en módulo Artículos', 'manual', NULL, 19, '2025-11-20 21:16:51'),
+(32, 6, 80.00, 92.00, 'Actualización en módulo Artículos', 'manual', NULL, 19, '2025-11-20 21:17:23'),
+(33, 6, 92.00, 100.00, 'Actualización en módulo Artículos', 'manual', NULL, 19, '2025-11-20 22:22:31'),
+(34, 5, 0.00, 111.00, 'Actualización en módulo Artículos', 'manual', NULL, 19, '2025-11-20 22:33:51'),
+(35, 6, 100.00, 64.43, 'Actualización en módulo Artículos', 'manual', NULL, 19, '2025-11-21 00:32:09'),
+(36, 34, 49.09, 80.00, 'Actualización en módulo Artículos', 'manual', NULL, 19, '2025-11-21 01:48:28'),
+(37, 30, 16.87, 49.09, 'Actualización en módulo Artículos', 'manual', NULL, 19, '2025-11-21 11:53:50'),
+(38, 29, 16.87, 40.00, 'Actualización en módulo Artículos', 'manual', NULL, 19, '2025-11-21 11:55:37'),
+(39, 30, 49.09, 50.00, 'Actualización en módulo Artículos', 'manual', NULL, 19, '2025-11-21 11:57:33'),
+(40, 31, 33.75, 60.00, 'Actualización en módulo Artículos', 'manual', NULL, 19, '2025-11-21 11:58:40'),
+(41, 10, 0.00, 70.00, 'Actualización en módulo Artículos', 'manual', NULL, 19, '2025-11-21 11:59:16'),
+(42, 5, 0.00, 50.00, 'Actualización en módulo Artículos', 'manual', NULL, 19, '2025-11-21 14:37:15'),
+(43, 5, 0.00, 50.00, 'Actualización en módulo Artículos', 'manual', NULL, 19, '2025-11-21 14:37:16'),
+(44, 5, 0.00, 50.00, 'Actualización en módulo Artículos', 'manual', NULL, 19, '2025-11-21 14:37:17'),
+(45, 5, 0.00, 50.00, 'Actualización en módulo Artículos', 'manual', NULL, 19, '2025-11-21 14:37:17'),
+(46, 5, 0.00, 51.00, 'Actualización en módulo Artículos', 'manual', NULL, 19, '2025-11-21 14:37:19'),
+(47, 5, 0.00, 51.00, 'Actualización en módulo Artículos', 'manual', NULL, 19, '2025-11-21 14:37:19'),
+(48, 5, 0.00, 51.00, 'Actualización en módulo Artículos', 'manual', NULL, 19, '2025-11-21 14:37:20'),
+(49, 38, 0.00, 10.00, 'Actualización en módulo Artículos', 'manual', NULL, 19, '2025-11-21 14:37:26'),
+(50, 5, 0.00, 50.00, 'Actualización en módulo Artículos', 'manual', NULL, 19, '2025-11-21 14:37:36'),
+(51, 34, 80.00, 90.00, 'Actualización en módulo Artículos', 'manual', NULL, 19, '2025-11-21 14:37:53'),
+(52, 35, 0.00, 49.09, 'Actualización en módulo Artículos', 'manual', NULL, 19, '2025-11-21 14:38:02'),
+(53, 5, 0.00, 49.09, 'Actualización en módulo Artículos', 'manual', NULL, 19, '2025-11-21 14:38:19'),
+(54, 5, 0.00, 49.09, 'Actualización en módulo Artículos', 'manual', NULL, 19, '2025-11-21 14:38:20'),
+(55, 5, 0.00, 100.00, 'Actualización en módulo Artículos', 'manual', NULL, 19, '2025-11-21 14:38:24'),
+(56, 5, 0.00, 100.00, 'Actualización en módulo Artículos', 'manual', NULL, 19, '2025-11-21 14:38:27');
 
 -- --------------------------------------------------------
 
@@ -315,7 +387,26 @@ INSERT INTO `ingreso` (`idingreso`, `idproveedor`, `idusuario`, `tipo_comprobant
 (15, 20, 20, 'Boleta', '', '747', '2025-11-12 00:00:00', 0.00, 0.00, 18.00, 84.00, 'compra', 'Aceptado'),
 (16, 21, 20, 'Boleta', '', '5484', '2025-11-12 00:00:00', 0.00, 0.00, 0.00, 84.00, 'compra', 'Aceptado'),
 (17, 13, 20, 'Boleta', '', '2262', '2025-11-12 00:00:00', 0.00, 0.00, 0.00, 225.00, 'compra', 'Aceptado'),
-(18, 21, 20, 'Boleta', '', '42', '2025-11-12 00:00:00', 0.00, 0.00, 0.00, 70.00, 'compra', 'Aceptado');
+(18, 21, 20, 'Boleta', '', '42', '2025-11-12 00:00:00', 0.00, 0.00, 0.00, 70.00, 'compra', 'Aceptado'),
+(21, 13, 19, 'Boleta', '', '0000000043', '2025-11-21 09:55:23', 44.00, 7.92, 18.00, 51.92, 'compra', 'Aceptado'),
+(22, 13, 19, 'Boleta', '', '0000000044', '2025-11-21 10:25:07', 33.00, 5.94, 18.00, 38.94, 'compra', 'Aceptado'),
+(23, 13, 19, 'Boleta', '', '0000000045', '2025-11-21 10:31:21', 33.00, 5.94, 18.00, 38.94, 'compra', 'Aceptado'),
+(24, 13, 19, 'Boleta', '', '0000000046', '2025-11-21 10:31:42', 66.00, 11.88, 18.00, 77.88, 'compra', 'Aceptado'),
+(25, 13, 19, 'Boleta', '', '0000000047', '2025-11-21 10:37:20', 42.00, 7.56, 18.00, 49.56, 'compra', 'Aceptado'),
+(26, 13, 19, 'Boleta', '', '0000000048', '2025-11-21 10:37:56', 126.00, 22.68, 18.00, 148.68, 'compra', 'Aceptado'),
+(27, 13, 19, 'Boleta', '', '0000000049', '2025-11-21 10:49:05', 22.00, 3.96, 18.00, 25.96, 'compra', 'Aceptado'),
+(28, 13, 19, 'Boleta', '', '0000000050', '2025-11-21 11:03:55', 32.00, 5.76, 18.00, 37.76, 'compra', 'Aceptado'),
+(29, 13, 19, 'Boleta', '', '0000000051', '2025-11-21 11:15:32', 64.00, 11.52, 18.00, 75.52, 'compra', 'Aceptado'),
+(30, 13, 19, 'Boleta', '', '0000000052', '2025-11-21 11:16:35', 62.00, 11.16, 18.00, 73.16, 'compra', 'Aceptado'),
+(31, 13, 19, 'Boleta', '', '0000000053', '2025-11-21 11:21:05', 64.00, 11.52, 18.00, 75.52, 'compra', 'Aceptado'),
+(32, 13, 19, 'Factura', '005', '0000000006', '2025-11-21 11:22:24', 64.00, 11.52, 18.00, 75.52, 'compra', 'Aceptado'),
+(33, 13, 19, 'Boleta', '', '0000000054', '2025-11-21 11:44:16', 128.00, 23.04, 18.00, 151.04, 'compra', 'Aceptado'),
+(34, 20, 19, 'Boleta', '', '0000000055', '2025-11-21 11:45:04', 96.00, 17.28, 18.00, 113.28, 'compra', 'Aceptado'),
+(35, 41, 19, 'Boleta', '', '0000000056', '2025-11-21 11:50:35', 380.00, 68.40, 18.00, 448.40, 'compra', 'Aceptado'),
+(36, 41, 19, 'Boleta', '', '0000000057', '2025-11-21 11:56:09', 480.00, 86.40, 18.00, 566.40, 'compra', 'Aceptado'),
+(37, 41, 19, 'Boleta', '', '0000000058', '2025-11-21 12:01:05', 120.00, 21.60, 18.00, 141.60, 'compra', 'Aceptado'),
+(38, 41, 19, 'Boleta', '', '0000000059', '2025-11-21 12:01:43', 90.00, 16.20, 18.00, 106.20, 'compra', 'Aceptado'),
+(39, 41, 19, 'Boleta', '', '0000000060', '2025-11-21 12:02:19', 210.00, 37.80, 18.00, 247.80, 'compra', 'Aceptado');
 
 --
 -- Disparadores `ingreso`
@@ -349,7 +440,10 @@ CREATE TABLE `marca` (
 --
 
 INSERT INTO `marca` (`idmarca`, `nombre`, `descripcion`, `condicion`) VALUES
-(1, 'Real Hasta la Muerte', '', 1);
+(1, 'Bosch', '', 1),
+(2, 'Toyota', '', 1),
+(3, 'bosc', '', 1),
+(4, 'Nissan', '', 1);
 
 -- --------------------------------------------------------
 
@@ -426,7 +520,10 @@ INSERT INTO `persona` (`idpersona`, `tipo_persona`, `nombre`, `tipo_documento`, 
 (18, 'Cliente', 'JHON LENNYN MIJAHUANCA QUINTOS', 'DNI', '74702048', 'LIBERTAD C-10', '', '', 1),
 (20, 'Proveedor', 'TIENDAS DEL MEJORAMIENTO DEL HOGAR S.A.', 'RUC', '20112273922', 'AV. ANGAMOS ESTE NRO. 1805 INT. 2', '932049468', 'sodimacperu@gmail.com', 1),
 (21, 'Proveedor', 'FERRETERIA ESPINOZA E.I.R.L', 'RUC', '20613509870', 'JR. RAMON CASTILLA NRO. 301 URB. LAS PALMERAS', '959284023', 'ferreespinoza@gmail.com', 1),
-(22, 'Proveedor', 'EMPRESA DEMO S.A.C.', 'RUC', '20479801275', 'Av. Siempre Viva 123, SAN BORJA - LIMA - LIMA', '999999999', '', 1);
+(22, 'Proveedor', 'EMPRESA DEMO S.A.C.', 'RUC', '20479801275', 'Av. Siempre Viva 123, SAN BORJA - LIMA - LIMA', '999999999', '', 0),
+(38, 'Cliente', 'JUAN CARLOS ANTONIO COLLAZOS QUIROZ', 'DNI', '16617372', 'AV.LOS TAMBOS 813', '985421212', '', 1),
+(40, 'Cliente', 'LIDIA GONZALES DIAZ', 'DNI', '40029513', 'CALLE CAHUIDE 144', '985421212', '', 1),
+(41, 'Proveedor', 'EMPRESA DEMO S.A.C.', 'RUC', '10202929292', 'Av. Siempre Viva 123, SAN BORJA - LIMA - LIMA', '966666666', '', 1);
 
 -- --------------------------------------------------------
 
@@ -810,7 +907,12 @@ INSERT INTO `venta` (`idventa`, `idcliente`, `idusuario`, `tipo_comprobante`, `s
 (28, 14, 19, 'Factura', 'F001', '00000004', '2025-11-19 00:00:00', 18.00, 50.61, 'Aceptado'),
 (29, 14, 19, 'Boleta', 'B001', '00000010', '2025-11-19 00:00:00', 18.00, 128.88, 'Aceptado'),
 (30, 14, 19, 'Boleta', 'B001', '00000012', '2025-11-19 00:00:00', 18.00, 337.40, 'Aceptado'),
-(31, 14, 19, 'Boleta', 'B001', '00000013', '2025-11-19 00:00:00', 18.00, 540.00, 'Aceptado');
+(31, 14, 19, 'Boleta', 'B001', '00000013', '2025-11-19 00:00:00', 18.00, 540.00, 'Aceptado'),
+(32, 14, 19, 'Boleta', 'B001', '00000014', '2025-11-20 00:00:00', 18.00, 10.00, 'Aceptado'),
+(33, 14, 19, 'Boleta', 'B001', '00000015', '2025-11-21 00:00:00', 18.00, 42.96, 'Aceptado'),
+(34, 14, 19, 'Boleta', 'B001', '00000016', '2025-11-21 00:00:00', 18.00, 50.61, 'Aceptado'),
+(35, 14, 19, 'Boleta', 'B001', '00000017', '2025-11-21 00:00:00', 18.00, 50.61, 'Aceptado'),
+(36, 14, 19, 'Boleta', 'B001', '00000018', '2025-11-21 00:00:00', 18.00, 245.45, 'Aceptado');
 
 -- --------------------------------------------------------
 
@@ -1109,7 +1211,7 @@ ALTER TABLE `venta`
 -- AUTO_INCREMENT de la tabla `articulo`
 --
 ALTER TABLE `articulo`
-  MODIFY `idarticulo` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
+  MODIFY `idarticulo` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=40;
 
 --
 -- AUTO_INCREMENT de la tabla `categoria`
@@ -1127,31 +1229,31 @@ ALTER TABLE `comprobante_serie`
 -- AUTO_INCREMENT de la tabla `detalle_ingreso`
 --
 ALTER TABLE `detalle_ingreso`
-  MODIFY `iddetalle_ingreso` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
+  MODIFY `iddetalle_ingreso` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=48;
 
 --
 -- AUTO_INCREMENT de la tabla `detalle_venta`
 --
 ALTER TABLE `detalle_venta`
-  MODIFY `iddetalle_venta` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=67;
+  MODIFY `iddetalle_venta` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=72;
 
 --
 -- AUTO_INCREMENT de la tabla `historial_precios`
 --
 ALTER TABLE `historial_precios`
-  MODIFY `id_historial` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `id_historial` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=57;
 
 --
 -- AUTO_INCREMENT de la tabla `ingreso`
 --
 ALTER TABLE `ingreso`
-  MODIFY `idingreso` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
+  MODIFY `idingreso` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=40;
 
 --
 -- AUTO_INCREMENT de la tabla `marca`
 --
 ALTER TABLE `marca`
-  MODIFY `idmarca` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `idmarca` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT de la tabla `password_reset`
@@ -1169,7 +1271,7 @@ ALTER TABLE `permiso`
 -- AUTO_INCREMENT de la tabla `persona`
 --
 ALTER TABLE `persona`
-  MODIFY `idpersona` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=35;
+  MODIFY `idpersona` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=42;
 
 --
 -- AUTO_INCREMENT de la tabla `rol_permiso`
@@ -1187,7 +1289,7 @@ ALTER TABLE `rol_usuarios`
 -- AUTO_INCREMENT de la tabla `user_otp`
 --
 ALTER TABLE `user_otp`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=107;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=115;
 
 --
 -- AUTO_INCREMENT de la tabla `usuario`
@@ -1217,7 +1319,7 @@ ALTER TABLE `usuario_roles_new`
 -- AUTO_INCREMENT de la tabla `venta`
 --
 ALTER TABLE `venta`
-  MODIFY `idventa` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
+  MODIFY `idventa` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
 
 --
 -- Restricciones para tablas volcadas
