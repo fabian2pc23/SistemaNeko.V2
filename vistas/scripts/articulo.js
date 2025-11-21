@@ -291,7 +291,24 @@ function guardaryeditar(e) {
   e.preventDefault();
   $("#btnGuardar").prop("disabled", true);
 
-  // --- VALIDACIÓN ESTRICTA DE PRECIO DE VENTA ---
+  // --- 1. VALIDACIÓN DE CAMPOS OBLIGATORIOS ---
+  var nombre = $("#nombre").val().trim();
+  var idcategoria = $("#idcategoria").val();
+  var idmarca = $("#idmarca").val();
+  var codigo = $("#codigo").val().trim();
+
+  if (nombre.length == 0 || idcategoria == "" || idcategoria == null || idmarca == "" || idmarca == null || codigo.length == 0) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Campos incompletos',
+      text: 'Por favor, complete todos los campos obligatorios: Nombre, Categoría, Marca y Código.',
+      confirmButtonColor: '#f39c12'
+    });
+    $("#btnGuardar").prop("disabled", false);
+    return;
+  }
+
+  // --- 2. VALIDACIÓN ESTRICTA DE PRECIO DE VENTA ---
   // Solo si estamos en modo edición (donde el precio venta es visible/editable)
   if ($("#idarticulo").val() !== "") {
     const pv = parseFloat($("#precio_venta").val());
@@ -300,7 +317,13 @@ function guardaryeditar(e) {
 
     if (!isNaN(pv) && !isNaN(sug) && sug > 0) {
       if (pv < sug) {
-        mostrarNotificacion("⛔ ERROR: El precio de venta (S/ " + pv.toFixed(2) + ") NO puede ser menor al sugerido (S/ " + sug.toFixed(2) + ").", "error");
+        Swal.fire({
+          icon: 'error',
+          title: 'Precio de Venta Inválido',
+          html: `El precio de venta (<b>S/ ${pv.toFixed(2)}</b>) no puede ser menor al sugerido (<b>S/ ${sug.toFixed(2)}</b>).<br>Se ha restablecido al valor sugerido.`,
+          confirmButtonColor: '#d33'
+        });
+
         $("#precio_venta").val(sug.toFixed(2)); // Corregir automáticamente
         $("#precio_venta").addClass("is-invalid");
         $("#btnGuardar").prop("disabled", false);
@@ -327,16 +350,32 @@ function guardaryeditar(e) {
       }
 
       if (resp.success) {
-        mostrarNotificacion(resp.message, "success");
+        Swal.fire({
+          icon: 'success',
+          title: '¡Éxito!',
+          text: resp.message,
+          timer: 2000,
+          showConfirmButton: false
+        });
         mostrarform(false);
         tabla.ajax.reload();
       } else {
-        mostrarNotificacion(resp.message || "Error al guardar", "error");
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: resp.message || "Error al guardar",
+          confirmButtonColor: '#d33'
+        });
       }
       $("#btnGuardar").prop("disabled", false);
     },
     error: function () {
-      mostrarNotificacion("Error de comunicación con el servidor", "error");
+      Swal.fire({
+        icon: 'error',
+        title: 'Error de conexión',
+        text: 'No se pudo comunicar con el servidor.',
+        confirmButtonColor: '#d33'
+      });
       $("#btnGuardar").prop("disabled", false);
     }
   });
