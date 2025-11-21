@@ -5,7 +5,7 @@
 -- Servidor: 127.0.0.1
 -- Tiempo de generación: 21-11-2025 a las 20:42:45
 -- Versión del servidor: 10.4.32-MariaDB
--- Versión de PHP: 8.2.12
+-- Versión de PHP: 8.2.12 
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -1008,7 +1008,7 @@ CREATE ALGORITHM=UNDEFINED DEFINER=`admin`@`localhost` SQL SECURITY DEFINER VIEW
 --
 DROP TABLE IF EXISTS `v_roles_estadisticas`;
 
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `v_roles_estadisticas`  AS SELECT `r`.`id_rol` AS `id_rol`, `r`.`nombre` AS `rol_nombre`, `r`.`estado` AS `rol_activo`, count(distinct `ur`.`idusuario`) AS `total_usuarios`, count(distinct case when `ur`.`es_principal` = 1 then `ur`.`idusuario` end) AS `usuarios_principal`, count(distinct case when `ur`.`es_principal` = 0 then `ur`.`idusuario` end) AS `usuarios_secundario`, group_concat(distinct `p`.`nombre` order by `p`.`nombre` ASC separator ', ') AS `permisos` FROM (((`rol_usuarios` `r` left join `usuario_rol` `ur` on(`r`.`id_rol` = `ur`.`id_rol` and `ur`.`activo` = 1)) left join `rol_permiso` `rp` on(`r`.`id_rol` = `rp`.`id_rol`)) left join `permiso` `p` on(`rp`.`idpermiso` = `p`.`idpermiso`)) GROUP BY `r`.`id_rol`, `r`.`nombre`, `r`.`estado` ORDER BY `r`.`nombre` ASC ;
+CREATE ALGORITHM=UNDEFINED DEFINER=CURRENT_USER SQL SECURITY DEFINER VIEW `v_roles_estadisticas`  AS SELECT `r`.`id_rol` AS `id_rol`, `r`.`nombre` AS `rol_nombre`, `r`.`estado` AS `rol_activo`, count(distinct `ur`.`idusuario`) AS `total_usuarios`, count(distinct case when `ur`.`es_principal` = 1 then `ur`.`idusuario` end) AS `usuarios_principal`, count(distinct case when `ur`.`es_principal` = 0 then `ur`.`idusuario` end) AS `usuarios_secundario`, group_concat(distinct `p`.`nombre` order by `p`.`nombre` ASC separator ', ') AS `permisos` FROM (((`rol_usuarios` `r` left join `usuario_rol` `ur` on(`r`.`id_rol` = `ur`.`id_rol` and `ur`.`activo` = 1)) left join `rol_permiso` `rp` on(`r`.`id_rol` = `rp`.`id_rol`)) left join `permiso` `p` on(`rp`.`idpermiso` = `p`.`idpermiso`)) GROUP BY `r`.`id_rol`, `r`.`nombre`, `r`.`estado` ORDER BY `r`.`nombre` ASC ;
 
 -- --------------------------------------------------------
 
@@ -1017,7 +1017,7 @@ CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW 
 --
 DROP TABLE IF EXISTS `v_usuario_permisos_acumulados`;
 
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `v_usuario_permisos_acumulados`  AS SELECT DISTINCT `u`.`idusuario` AS `idusuario`, `u`.`nombre` AS `usuario_nombre`, `p`.`idpermiso` AS `idpermiso`, `p`.`nombre` AS `permiso_nombre` FROM (((`usuario` `u` join `usuario_rol` `ur` on(`u`.`idusuario` = `ur`.`idusuario`)) join `rol_permiso` `rp` on(`ur`.`id_rol` = `rp`.`id_rol`)) join `permiso` `p` on(`rp`.`idpermiso` = `p`.`idpermiso`)) WHERE `ur`.`activo` = 1 AND `u`.`condicion` = 1 ORDER BY `u`.`nombre` ASC, `p`.`nombre` ASC ;
+CREATE ALGORITHM=UNDEFINED DEFINER=CURRENT_USER SQL SECURITY DEFINER VIEW `v_usuario_permisos_acumulados`  AS SELECT DISTINCT `u`.`idusuario` AS `idusuario`, `u`.`nombre` AS `usuario_nombre`, `p`.`idpermiso` AS `idpermiso`, `p`.`nombre` AS `permiso_nombre` FROM (((`usuario` `u` join `usuario_rol` `ur` on(`u`.`idusuario` = `ur`.`idusuario`)) join `rol_permiso` `rp` on(`ur`.`id_rol` = `rp`.`id_rol`)) join `permiso` `p` on(`rp`.`idpermiso` = `p`.`idpermiso`)) WHERE `ur`.`activo` = 1 AND `u`.`condicion` = 1 ORDER BY `u`.`nombre` ASC, `p`.`nombre` ASC ;
 
 -- --------------------------------------------------------
 
@@ -1026,7 +1026,7 @@ CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW 
 --
 DROP TABLE IF EXISTS `v_usuario_resumen_roles`;
 
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `v_usuario_resumen_roles`  AS SELECT `u`.`idusuario` AS `idusuario`, `u`.`nombre` AS `usuario_nombre`, `u`.`email` AS `email`, `u`.`condicion` AS `condicion`, count(`ur`.`id_rol`) AS `total_roles`, group_concat(concat(case when `ur`.`es_principal` = 1 then '⭐ ' else '• ' end,`r`.`nombre`) order by `ur`.`es_principal` DESC,`r`.`nombre` ASC separator ', ') AS `roles_texto`, max(case when `ur`.`es_principal` = 1 then `r`.`nombre` end) AS `rol_principal`, max(case when `ur`.`es_principal` = 1 then `r`.`id_rol` end) AS `id_rol_principal` FROM ((`usuario` `u` left join `usuario_rol` `ur` on(`u`.`idusuario` = `ur`.`idusuario` and `ur`.`activo` = 1)) left join `rol_usuarios` `r` on(`ur`.`id_rol` = `r`.`id_rol`)) GROUP BY `u`.`idusuario`, `u`.`nombre`, `u`.`email`, `u`.`condicion` ORDER BY `u`.`nombre` ASC ;
+CREATE ALGORITHM=UNDEFINED DEFINER=CURRENT_USER SQL SECURITY DEFINER VIEW `v_usuario_resumen_roles`  AS SELECT `u`.`idusuario` AS `idusuario`, `u`.`nombre` AS `usuario_nombre`, `u`.`email` AS `email`, `u`.`condicion` AS `condicion`, count(`ur`.`id_rol`) AS `total_roles`, group_concat(concat(case when `ur`.`es_principal` = 1 then '⭐ ' else '• ' end,`r`.`nombre`) order by `ur`.`es_principal` DESC,`r`.`nombre` ASC separator ', ') AS `roles_texto`, max(case when `ur`.`es_principal` = 1 then `r`.`nombre` end) AS `rol_principal`, max(case when `ur`.`es_principal` = 1 then `r`.`id_rol` end) AS `id_rol_principal` FROM ((`usuario` `u` left join `usuario_rol` `ur` on(`u`.`idusuario` = `ur`.`idusuario` and `ur`.`activo` = 1)) left join `rol_usuarios` `r` on(`ur`.`id_rol` = `r`.`id_rol`)) GROUP BY `u`.`idusuario`, `u`.`nombre`, `u`.`email`, `u`.`condicion` ORDER BY `u`.`nombre` ASC ;
 
 -- --------------------------------------------------------
 
