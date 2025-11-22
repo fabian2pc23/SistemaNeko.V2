@@ -68,7 +68,7 @@ if (!function_exists('curl_init')) {
 
 /* ---------- Token del proveedor (usa variable de entorno si es posible) ---------- */
 $TOKEN = getenv('MIAPI_CLOUD_TOKEN')
-  ?: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1NzEsImV4cCI6MTc2MzYzNTAxMH0.4dFEej8wDT4vvuMqgLeECVvEB0ZTMA_IuzKR3Sh4UBw';
+  ?: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1OTQsImV4cCI6MTc2NDM3MTI5Nn0.S77Gbw2fasSyyw-Awri_PazhpnXKyKcPUvACV5KkNoo';
 
 /* ---------- Llamada al proveedor ---------- */
 $url = "https://miapi.cloud/v1/ruc/{$ruc}";

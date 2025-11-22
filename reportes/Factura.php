@@ -116,7 +116,7 @@ class PDF_Invoice extends FPDF
         $r2 = $r1 + 68;
         $y1 = 6;
         $y2 = $y1 + 2;
-        $texte = $libelle . $num;
+        $texte = $libelle . " " . $num;
         $szfont = 12;
         do {
             $this->SetFont("Arial", "B", $szfont);

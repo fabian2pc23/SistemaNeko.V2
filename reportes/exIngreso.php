@@ -16,8 +16,8 @@ if ($_SESSION['compras']==1)
 require('Ingreso.php');
 
 //Establecemos los datos de la empresa
-$logo = "logo.jpg";
-$ext_logo = "jpg";
+$logo = "../assets/logo.png";
+$ext_logo = "png";
 $empresa = "Ferretería neko";
 $documento = "10406980788";
 $direccion = "Carretera a lambayeque";
@@ -42,7 +42,7 @@ $pdf->addSociete(utf8_decode($empresa),
                   utf8_decode("Dirección: ").utf8_decode($direccion)."\n".
                   utf8_decode("Teléfono: ").$telefono."\n" .
                   "Email : ".$email,$logo,$ext_logo);
-$pdf->fact_dev( "$regv->tipo_comprobante ", "$regv->serie_comprobante-$regv->num_comprobante" );
+$pdf->fact_dev( utf8_decode("Constancia de Adquisición "), "$regv->serie_comprobante-$regv->num_comprobante" );
 $pdf->temporaire( "" );
 $pdf->addDate( $regv->fecha);
 
@@ -50,18 +50,12 @@ $pdf->addDate( $regv->fecha);
 $pdf->addClientAdresse(utf8_decode($regv->proveedor),"Domicilio: ".utf8_decode($regv->direccion),$regv->tipo_documento.": ".$regv->num_documento,"Email: ".$regv->email,"Telefono: ".$regv->telefono);
 
 //Establecemos las columnas que va a tener la sección donde mostramos los detalles de la venta
-$cols=array( "CODIGO"=>23,
-             "DESCRIPCION"=>78,
+$cols=array( "DESCRIPCION"=>146,
              "CANTIDAD"=>22,
-             "P.C."=>25,
-             "P.V."=>20,
              "SUBTOTAL"=>22);
 $pdf->addCols( $cols);
-$cols=array( "CODIGO"=>"L",
-             "DESCRIPCION"=>"L",
+$cols=array( "DESCRIPCION"=>"L",
              "CANTIDAD"=>"C",
-             "P.C."=>"R",
-             "P.V." =>"R",
              "SUBTOTAL"=>"C");
 $pdf->addLineFormat( $cols);
 $pdf->addLineFormat($cols);
@@ -72,11 +66,8 @@ $y= 89;
 $rsptad = $ingreso->ingresodetalle($_GET["id"]);
 
 while ($regd = $rsptad->fetch_object()) {
-  $line = array( "CODIGO"=> "$regd->codigo",
-                "DESCRIPCION"=> utf8_decode("$regd->articulo"),
+  $line = array( "DESCRIPCION"=> utf8_decode("$regd->articulo"),
                 "CANTIDAD"=> "$regd->cantidad",
-                "P.C."=> "$regd->precio_compra",
-                "P.V." => "$regd->precio_venta",
                 "SUBTOTAL"=> "$regd->subtotal");
             $size = $pdf->addLine( $y, $line );
             $y   += $size + 2;

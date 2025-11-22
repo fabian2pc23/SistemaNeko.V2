@@ -266,7 +266,7 @@ class Ingreso
                     DATE(i.fecha_hora) AS fecha,
                     i.subtotal,
                     i.impuesto_total,
-                    i.impuesto AS impuesto_porcentaje,
+                    i.impuesto,
                     i.total_compra,
                     i.tipo_ingreso
                 FROM ingreso i
@@ -285,6 +285,7 @@ class Ingreso
                     a.codigo,
                     d.cantidad,
                     d.precio_compra,
+                    d.precio_venta,
                     (d.cantidad * d.precio_compra) AS subtotal
                 FROM detalle_ingreso d
                 INNER JOIN articulo a ON d.idarticulo = a.idarticulo

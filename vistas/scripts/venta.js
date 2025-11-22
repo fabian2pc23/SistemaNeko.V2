@@ -155,6 +155,11 @@ function init() {
     // Event listeners de cantidad movidos a oninput en HTML dinámico
 }
 
+// 7. Filtro de Producto
+function filtrarProducto(idarticulo) {
+    tabla.ajax.url('../ajax/venta.php?op=listar&idarticulo=' + idarticulo).load();
+}
+
 function initFilters() {
     // Cargar Categorías
     $.post("../ajax/articulo.php?op=selectCategoria", function (r) {
@@ -166,6 +171,12 @@ function initFilters() {
     $.post("../ajax/marca.php?op=select", function (r) {
         $("#filtro_marca").html('<option value="">Todas</option>' + r);
         $('#filtro_marca').selectpicker('refresh');
+    });
+
+    // Cargar Productos para el filtro
+    $.post("../ajax/articulo.php?op=selectArticulos", function (r) {
+        $("#idarticulo_filter").html('<option value="">Todos los productos</option>' + r);
+        $('#idarticulo_filter').selectpicker('refresh');
     });
 
     // Eventos de cambio
@@ -233,13 +244,14 @@ function cancelarform() {
 }
 
 function listar() {
+    var idarticulo = $("#idarticulo_filter").val();
     tabla = $('#tbllistado').dataTable({
         "aProcessing": true,
         "aServerSide": true,
         dom: 'Bfrtip',
         buttons: ['copyHtml5', 'excelHtml5', 'csvHtml5', 'pdf'],
         "ajax": {
-            url: '../ajax/venta.php?op=listar',
+            url: '../ajax/venta.php?op=listar&idarticulo=' + idarticulo,
             type: "get",
             dataType: "json",
             error: function (e) { console.log(e.responseText); }

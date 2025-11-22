@@ -389,6 +389,10 @@ $nekoPrimaryDark = '#0d47a1';
               <a href="../reportes/rptarticulos.php" target="_blank" class="btn btn-light" style="background:#e3f2fd;border:0;color:#0d47a1;">
                 <i class="fa fa-clipboard"></i> Reporte
               </a>
+              <!-- BOTÓN REGISTRAR INGRESO RESTAURADO -->
+              <a href="ingreso.php" class="btn btn-info" style="background:#0ea5e9;border:0;color:#fff;">
+                <i class="fa fa-sign-in"></i> Registrar Ingreso
+              </a>
               <button class="btn btn-success" id="btnagregar" onclick="mostrarform(true)">
                 <i class="fa fa-plus-circle"></i> Agregar
               </button>
@@ -612,8 +616,15 @@ $nekoPrimaryDark = '#0d47a1';
 
                 <div class="form-group col-lg-6">
                   <label>Precio venta(*):</label>
-                  <input type="text" class="form-control" name="precio_venta" id="precio_venta"
-                         placeholder="0.00" inputmode="decimal" required>
+                  <div class="input-group">
+                    <input type="text" class="form-control" name="precio_venta" id="precio_venta"
+                           placeholder="0.00" inputmode="decimal" required>
+                    <span class="input-group-btn">
+                      <button class="btn btn-info" type="button" onclick="mostrarHistorial()" title="Ver Historial de Precios">
+                        <i class="fa fa-history"></i>
+                      </button>
+                    </span>
+                  </div>
                   <div class="help-hint" id="pv_sugerido_hint">Sugerido: —</div>
                 </div>
               </div>
@@ -676,6 +687,37 @@ $nekoPrimaryDark = '#0d47a1';
       </div>
     </div>
   </section>
+</div>
+
+<!-- Modal Historial -->
+<div class="modal fade" id="modalHistorial" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header" style="background:#3c8dbc; color:white;">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <h4 class="modal-title"><i class="fa fa-history"></i> Historial de Precios</h4>
+      </div>
+      <div class="modal-body">
+        <table id="tblhistorial" class="table table-striped table-bordered table-condensed table-hover" style="width:100%">
+          <thead>
+            <th>ID</th>
+            <th>Artículo</th>
+            <th>Código</th>
+            <th>Precio Ant.</th>
+            <th>Precio Nuevo</th>
+            <th>Motivo</th>
+            <th>Fuente</th>
+            <th>Usuario</th>
+            <th>Fecha</th>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <?php

@@ -304,6 +304,16 @@ if ($canVentas) {
                 <option value="Ticket">Ticket</option>
               </select>
 
+              <!-- Filtro por Producto -->
+              <select id="idarticulo_filter" class="filter-select selectpicker" data-live-search="true" onchange="filtrarProducto(this.value)">
+                <option value="">Todos los productos</option>
+              </select>
+
+              <!-- Historial Precios -->
+              <a href="historial_precios.php" class="btn btn-info" style="background:#0ea5e9;border:0;color:#fff; border-radius: 8px; padding: 6px 12px; font-size: 0.85rem; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                <i class="fa fa-history"></i> Historial Precios
+              </a>
+
               <!-- Buscador -->
               <div class="search-container">
                 <i class="fa fa-search"></i>

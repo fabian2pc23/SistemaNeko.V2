@@ -13,8 +13,8 @@ if (!isset($_SESSION["nombre"])) {
     require_once "Letras.php";
 
     // ==== DATOS DE LA EMPRESA ====
-    $logo = "logo.jpg";
-    $ext_logo = "jpg";
+    $logo = "../assets/logo.png";
+    $ext_logo = "png";
     $empresa = "Ferretería neko";
     $documento = "10406980788";
     $direccion = "Carretera a lambayeque";
@@ -53,14 +53,14 @@ if (!isset($_SESSION["nombre"])) {
     $pdf->Cell(0, 6, "Domicilio: " . utf8_decode($regv->direccion), 0, 1);
     $pdf->Cell(0, 6, "Documento: " . $regv->tipo_documento . ": " . $regv->num_documento, 0, 1);
     if (!empty($regv->email)) $pdf->Cell(0, 6, "Email: " . $regv->email, 0, 1);
-    if (!empty($regv->telefono)) $pdf->Cell(0, 6, "Teléfono: " . $regv->telefono, 0, 1);
+    if (!empty($regv->telefono)) $pdf->Cell(0, 6, "Telefono: " . $regv->telefono, 0, 1);
 
     $pdf->Ln(5);
 
     // ==== ENCABEZADO DE TABLA ====
     $pdf->SetFont('Arial', 'B', 10);
-    $pdf->Cell(20, 8, "CODIGO", 1, 0, 'C');
-    $pdf->Cell(80, 8, "DESCRIPCION", 1, 0, 'C');
+    $pdf->Cell(25, 8, "CODIGO", 1, 0, 'C');
+    $pdf->Cell(75, 8, "DESCRIPCION", 1, 0, 'C');
     $pdf->Cell(20, 8, "CANT.", 1, 0, 'C');
     $pdf->Cell(25, 8, "P.U.", 1, 0, 'C');
     $pdf->Cell(20, 8, "DSCTO", 1, 0, 'C');
@@ -76,11 +76,11 @@ if (!isset($_SESSION["nombre"])) {
 
       // CODIGO
       $pdf->SetXY($xInicio, $yInicio);
-      $pdf->Cell(20, 8, $regd->codigo, 1, 0, 'C');
+      $pdf->Cell(25, 8, $regd->codigo, 1, 0, 'C');
 
       // DESCRIPCION (MULTILÍNEA)
-      $pdf->SetXY($xInicio + 20, $yInicio);
-      $pdf->MultiCell(80, 8, utf8_decode($regd->articulo), 1, 'L');
+      $pdf->SetXY($xInicio + 25, $yInicio);
+      $pdf->MultiCell(75, 8, utf8_decode($regd->articulo), 1, 'L');
 
       // Reajustar altura por si hay varias líneas
       $yFinal = $pdf->GetY();

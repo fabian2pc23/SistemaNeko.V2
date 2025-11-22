@@ -262,7 +262,8 @@ else
              * LISTAR CABECERA
              * =========================================================*/
             case 'listar':
-                $rspta = $venta->listar();
+                $idarticulo = isset($_GET['idarticulo']) ? limpiarCadena($_GET['idarticulo']) : "";
+                $rspta = $venta->listar($idarticulo);
                 $data  = Array();
 
                 while ($reg=$rspta->fetch_object()){

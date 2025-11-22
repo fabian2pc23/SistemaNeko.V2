@@ -603,4 +603,45 @@ function mostrarSinStock() {
   });
 }
 
+function mostrarHistorial() {
+  var idarticulo = $("#idarticulo").val();
+  if (!idarticulo) {
+    mostrarNotificacion("Guarde el artículo antes de ver su historial", "info");
+    return;
+  }
+
+  $("#modalHistorial").modal("show");
+
+  // Initialize or reload DataTable
+  if ($.fn.DataTable.isDataTable('#tblhistorial')) {
+    $('#tblhistorial').DataTable().ajax.url('../ajax/historial_precios.php?op=listar_movimientos&idarticulo=' + idarticulo).load();
+  } else {
+    $('#tblhistorial').DataTable({
+      "aProcessing": true,
+      "aServerSide": true,
+      "dom": 'Bfrtip',
+      "buttons": [
+        'copyHtml5',
+        'excelHtml5',
+        'csvHtml5',
+        'pdf'
+      ],
+      "ajax": {
+        url: '../ajax/historial_precios.php?op=listar_movimientos&idarticulo=' + idarticulo,
+        type: "get",
+        dataType: "json",
+        error: function (e) {
+          console.log(e.responseText);
+        }
+      },
+      "bDestroy": true,
+      "iDisplayLength": 10,
+      "order": [[8, "desc"]], // Order by date (column 8)
+      "language": {
+        "url": "//cdn.datatables.net/plug-ins/1.13.4/i18n/es-ES.json"
+      }
+    });
+  }
+}
+
 init();

@@ -31,14 +31,12 @@ $rspta = $venta->ventacabecera($_GET["id"]);
 $reg = $rspta->fetch_object();
 
 //Establecemos los datos de la empresa
-$logo = "logo.jpg";
-$ext_logo = "jpg";
+$logo = "../assets/logo.png";
 $empresa = "Ferretería neko";
 $documento = "10406980788";
 $direccion = "Carretera a lambayeque";
 $telefono = "921263349";
 $email = "nekosaccix@gmail.com";
-
 
 ?>
 <div class="zona_impresion">
@@ -48,27 +46,34 @@ $email = "nekosaccix@gmail.com";
     <tr>
         <td align="center">
         <!-- Mostramos los datos de la empresa en el documento HTML -->
-        .::<strong> <?php echo $empresa; ?></strong>::.<br>
-        <?php echo $documento; ?><br>
-        <?php echo $direccion .' - '.$telefono; ?><br>
+        <img src="<?php echo $logo; ?>" width="100" style="margin-bottom: 10px;"><br>
+        <strong><?php echo $empresa; ?></strong><br>
+        RUC: <?php echo $documento; ?><br>
+        <?php echo $direccion; ?><br>
+        Telf: <?php echo $telefono; ?><br>
         </td>
     </tr>
     <tr>
-        <td align="center"><?php echo $reg->fecha; ?></td>
+        <td align="center">-------------------------------------------------------</td>
     </tr>
     <tr>
-      <td align="center"></td>
+        <td align="center">
+            <strong><?php echo strtoupper($reg->tipo_comprobante); ?> ELECTRÓNICA</strong><br>
+            <?php echo $reg->serie_comprobante." - ".$reg->num_comprobante ; ?><br>
+            Fecha: <?php echo $reg->fecha; ?>
+        </td>
+    </tr>
+    <tr>
+        <td align="center">-------------------------------------------------------</td>
     </tr>
     <tr>
         <!-- Mostramos los datos del cliente en el documento HTML -->
-        <td>Cliente: <?php echo $reg->cliente; ?></td>
+        <td>
+            Cliente: <?php echo $reg->cliente; ?><br>
+            <?php echo $reg->tipo_documento; ?>: <?php echo $reg->num_documento; ?><br>
+            Dirección: <?php echo $reg->direccion; ?>
+        </td>
     </tr>
-    <tr>
-        <td><?php echo $reg->tipo_documento.": ".$reg->num_documento; ?></td>
-    </tr>
-    <tr>
-        <td>Nº de venta: <?php echo $reg->serie_comprobante." - ".$reg->num_comprobante ; ?></td>
-    </tr>    
 </table>
 <br>
 <!-- Mostramos los detalles de la venta en el documento HTML -->
@@ -79,28 +84,55 @@ $email = "nekosaccix@gmail.com";
         <td align="right">IMPORTE</td>
     </tr>
     <tr>
-      <td colspan="3">==========================================</td>
+      <td colspan="3">-------------------------------------------------------</td>
     </tr>
     <?php
     $rsptad = $venta->ventadetalle($_GET["id"]);
     $cantidad=0;
     while ($regd = $rsptad->fetch_object()) {
         echo "<tr>";
-        echo "<td>".$regd->cantidad."</td>";
-        echo "<td>".$regd->articulo;
-        echo "<td align='right'>S/ ".$regd->subtotal."</td>";
+        echo "<td valign='top'>".$regd->cantidad."</td>";
+        echo "<td valign='top'>".strtolower($regd->articulo)."</td>";
+        echo "<td valign='top' align='right'>S/ ".number_format($regd->subtotal, 2)."</td>";
         echo "</tr>";
         $cantidad+=$regd->cantidad;
     }
     ?>
+    <tr>
+      <td colspan="3">-------------------------------------------------------</td>
+    </tr>
     <!-- Mostramos los totales de la venta en el documento HTML -->
+    <?php
+    $igv = ($reg->total_venta * $reg->impuesto) / 100;
+    $subtotal = $reg->total_venta - $igv;
+    ?>
+    <tr>
+    <td>&nbsp;</td>
+    <td align="right">Op. Gravada:</td>
+    <td align="right">S/ <?php echo number_format($subtotal, 2); ?></td>
+    </tr>
+    <tr>
+    <td>&nbsp;</td>
+    <td align="right">IGV (<?php echo $reg->impuesto; ?>%):</td>
+    <td align="right">S/ <?php echo number_format($igv, 2); ?></td>
+    </tr>
     <tr>
     <td>&nbsp;</td>
     <td align="right"><b>TOTAL:</b></td>
-    <td align="right"><b>S/  <?php echo $reg->total_venta;  ?></b></td>
+    <td align="right"><b>S/ <?php echo number_format($reg->total_venta, 2); ?></b></td>
     </tr>
     <tr>
-      <td colspan="3">Nº de artículos: <?php echo $cantidad; ?></td>
+      <td colspan="3">&nbsp;</td>
+    </tr>
+    <tr>
+      <td colspan="3" align="center">
+        <?php 
+        require_once "Letras.php";
+        $V=new EnLetras(); 
+        $con_letra=strtoupper($V->ValorEnLetras($reg->total_venta,"NUEVOS SOLES"));
+        echo "SON: ".$con_letra;
+        ?>
+      </td>
     </tr>
     <tr>
       <td colspan="3">&nbsp;</td>
@@ -109,10 +141,7 @@ $email = "nekosaccix@gmail.com";
       <td colspan="3" align="center">¡Gracias por su compra!</td>
     </tr>
     <tr>
-      <td colspan="3" align="center">CrisdavaIT</td>
-    </tr>
-    <tr>
-      <td colspan="3" align="center">Chiclayo - Perú</td>
+      <td colspan="3" align="center">Ferretería Neko</td>
     </tr>
     
 </table>

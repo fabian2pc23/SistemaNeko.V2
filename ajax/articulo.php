@@ -203,6 +203,15 @@ try {
       }
       exit;
 
+    case 'selectArticulos':
+      $rspta = $articulo->listarActivosVenta();
+      header('Content-Type: text/html; charset=utf-8');
+      while ($reg = $rspta->fetch_object()) {
+        $text = htmlspecialchars(($reg->nombre ?? ''), ENT_QUOTES, 'UTF-8');
+        echo '<option value="'.$reg->idarticulo.'">'.$text.'</option>';
+      }
+      exit;
+
     case 'articulos_stock_bajo':
       header('Content-Type: application/json; charset=utf-8');
       
