@@ -103,6 +103,86 @@ function cambiarLongitud(len) {
     tabla.page.len(len).draw();
 }
 
+// ==================== FUNCIÓN MOSTRAR DETALLE KPI ====================
+function mostrarDetalleKPI(tipo) {
+    Swal.fire({
+        title: 'Cargando información...',
+        html: '<div style="padding: 20px;"><i class="fa fa-spinner fa-spin fa-3x" style="color: #1565c0;"></i></div>',
+        showConfirmButton: false,
+        allowOutsideClick: false
+    });
+
+    $.ajax({
+        url: '../ajax/venta.php?op=kpi_detalle&tipo=' + tipo,
+        type: 'GET',
+        dataType: 'json',
+        success: function (resp) {
+            Swal.close();
+
+            if (resp.success && resp.datos.length > 0) {
+                var tablaHtml = '<div style="max-height: 400px; overflow-y: auto;">';
+                tablaHtml += '<p style="color: #64748b; margin-bottom: 12px; font-size: 0.9rem;">' + resp.descripcion + '</p>';
+                tablaHtml += '<table class="table table-striped table-bordered" style="font-size: 0.85rem; width: 100%;">';
+
+                tablaHtml += '<thead style="background: #1e293b; color: white;"><tr>';
+                resp.columnas.forEach(function (col) {
+                    tablaHtml += '<th style="padding: 8px; text-align: center;">' + col + '</th>';
+                });
+                tablaHtml += '</tr></thead>';
+
+                tablaHtml += '<tbody>';
+                resp.datos.forEach(function (row, idx) {
+                    var bgColor = idx % 2 === 0 ? '#fff' : '#f8fafc';
+                    tablaHtml += '<tr style="background: ' + bgColor + ';">';
+                    Object.values(row).forEach(function (val) {
+                        tablaHtml += '<td style="padding: 6px 8px;">' + (val !== null ? val : '-') + '</td>';
+                    });
+                    tablaHtml += '</tr>';
+                });
+                tablaHtml += '</tbody></table></div>';
+
+                if (resp.datos.length >= 50) {
+                    tablaHtml += '<p style="color: #94a3b8; font-size: 0.8rem; margin-top: 10px; text-align: center;">Mostrando los primeros 50 registros</p>';
+                }
+
+                Swal.fire({
+                    title: '<i class="fa fa-shopping-cart" style="color: #1565c0; margin-right: 8px;"></i>' + resp.titulo,
+                    html: tablaHtml,
+                    width: '850px',
+                    showCloseButton: true,
+                    showConfirmButton: false
+                });
+            } else if (resp.success && resp.datos.length === 0) {
+                Swal.fire({
+                    icon: 'info',
+                    title: resp.titulo,
+                    text: 'No hay datos para mostrar en este indicador',
+                    timer: 3000,
+                    showConfirmButton: false
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'No se pudo cargar la información',
+                    timer: 3000,
+                    showConfirmButton: false
+                });
+            }
+        },
+        error: function () {
+            Swal.close();
+            Swal.fire({
+                icon: 'error',
+                title: 'Error de conexión',
+                text: 'No se pudo conectar con el servidor',
+                timer: 3000,
+                showConfirmButton: false
+            });
+        }
+    });
+}
+
 // ==================== CORRELATIVO ====================
 function actualizarSerieNumeroImpuesto() {
     var tipo = $("#tipo_comprobante").val();
@@ -311,6 +391,16 @@ function guardaryeditar(e) {
     e.preventDefault();
     var formData = new FormData($("#formulario")[0]);
 
+    // Mostrar loader
+    Swal.fire({
+        title: 'Procesando Venta...',
+        html: 'Enviando comprobante a SUNAT. Por favor espere.',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading()
+        }
+    });
+
     $.ajax({
         url: "../ajax/venta.php?op=guardaryeditar",
         type: "POST",
@@ -318,24 +408,144 @@ function guardaryeditar(e) {
         contentType: false,
         processData: false,
         success: function (resp) {
+            Swal.close(); // Cerrar loader
             try {
                 var data = (typeof resp === 'string') ? JSON.parse(resp) : resp;
                 if (data.success) {
-                    mostrarToast(data.message || 'Venta registrada correctamente.', 'success');
-                    mostrarform(false);
-                    tabla.ajax.reload();
+
+                    // Si hay respuesta SUNAT exitosa
+                    if (data.sunat_response && data.sunat_response.exito) {
+                        var mensajeSunat = data.sunat_response.mensaje;
+                        var pdfLocalUrl = data.sunat_response.pdf_local;
+
+                        // Obtener datos de cada proveedor
+                        var greenter = data.sunat_response.greenter || null;
+                        var nubefact = data.sunat_response.nubefact || null;
+
+                        // Construir HTML de botones organizados por proveedor
+                        var botonesHtml = '<div style="margin-top:20px;">';
+
+                        // ===== SECCIÓN GREENTER (SUNAT DIRECTO) =====
+                        if (greenter && greenter.exito) {
+                            botonesHtml += '<div style="margin-bottom:15px;padding:12px;background:#f0fdf4;border-radius:10px;border:1px solid #86efac;">';
+                            botonesHtml += '<p style="margin:0 0 10px 0;font-weight:600;color:#166534;font-size:0.9rem;"><i class="fa fa-check-circle"></i> Greenter (SUNAT Directo)</p>';
+                            botonesHtml += '<div style="display:flex; flex-wrap:wrap; justify-content:center; gap:8px;">';
+
+                            if (greenter.xml) {
+                                botonesHtml += '<a href="' + greenter.xml + '" target="_blank" class="btn" style="background:#2563eb;color:#fff;border-radius:6px;padding:8px 14px;font-size:0.85rem;"><i class="fa fa-file-code-o"></i> XML</a>';
+                            }
+                            if (greenter.cdr) {
+                                botonesHtml += '<a href="' + greenter.cdr + '" download class="btn" style="background:#059669;color:#fff;border-radius:6px;padding:8px 14px;font-size:0.85rem;"><i class="fa fa-file-archive-o"></i> CDR</a>';
+                            }
+
+                            botonesHtml += '</div></div>';
+                        }
+
+                        // ===== SECCIÓN NUBEFACT =====
+                        if (nubefact && nubefact.exito) {
+                            botonesHtml += '<div style="margin-bottom:15px;padding:12px;background:#eff6ff;border-radius:10px;border:1px solid #93c5fd;">';
+                            botonesHtml += '<p style="margin:0 0 10px 0;font-weight:600;color:#1e40af;font-size:0.9rem;"><i class="fa fa-cloud"></i> NubeFact</p>';
+                            botonesHtml += '<div style="display:flex; flex-wrap:wrap; justify-content:center; gap:8px;">';
+
+                            if (nubefact.pdf) {
+                                botonesHtml += '<a href="' + nubefact.pdf + '" target="_blank" class="btn" style="background:#dc2626;color:#fff;border-radius:6px;padding:8px 14px;font-size:0.85rem;"><i class="fa fa-file-pdf-o"></i> PDF</a>';
+                            }
+                            if (nubefact.xml) {
+                                botonesHtml += '<a href="' + nubefact.xml + '" target="_blank" class="btn" style="background:#2563eb;color:#fff;border-radius:6px;padding:8px 14px;font-size:0.85rem;"><i class="fa fa-file-code-o"></i> XML</a>';
+                            }
+                            if (nubefact.cdr) {
+                                botonesHtml += '<a href="' + nubefact.cdr + '" download class="btn" style="background:#059669;color:#fff;border-radius:6px;padding:8px 14px;font-size:0.85rem;"><i class="fa fa-file-archive-o"></i> CDR</a>';
+                            }
+
+                            botonesHtml += '</div></div>';
+                        }
+
+                        // ===== PDF LOCAL (SIEMPRE DISPONIBLE) =====
+                        botonesHtml += '<div style="padding:10px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;">';
+                        botonesHtml += '<p style="margin:0 0 10px 0;font-weight:600;color:#475569;font-size:0.9rem;"><i class="fa fa-print"></i> Comprobante Local</p>';
+                        botonesHtml += '<div style="display:flex; justify-content:center;">';
+                        if (pdfLocalUrl) {
+                            botonesHtml += '<a href="' + pdfLocalUrl + '" target="_blank" class="btn" style="background:#6b7280;color:#fff;border-radius:6px;padding:8px 14px;font-size:0.85rem;"><i class="fa fa-file-text-o"></i> Ver PDF Local</a>';
+                        }
+                        botonesHtml += '</div></div>';
+
+                        botonesHtml += '</div>';
+
+                        Swal.fire({
+                            title: '<span style="color:#059669"><i class="fa fa-check-circle"></i></span> ¡Venta Registrada y Facturada!',
+                            html: '<div style="text-align:center;"><p style="color:#475569;font-size:1rem;">' + mensajeSunat + '</p>' +
+                                '<p style="color:#94a3b8;font-size:0.85rem;margin-top:8px;">Los documentos electrónicos han sido generados</p>' +
+                                botonesHtml + '</div>',
+                            icon: 'success',
+                            showConfirmButton: true,
+                            confirmButtonText: 'Cerrar',
+                            confirmButtonColor: '#1565c0',
+                            width: '600px'
+                        }).then((result) => {
+                            mostrarform(false);
+                            tabla.ajax.reload();
+                            limpiar();
+                        });
+
+                    } else if (data.sunat_response && !data.sunat_response.exito) {
+                        // Venta guardada pero error SUNAT (Falló API)
+                        var htmlError = '<p>' + data.sunat_response.mensaje + '</p>';
+                        var titulo = 'Venta Guardada, Error SUNAT';
+
+                        // Si hay PDF local de respaldo (Fallback)
+                        if (data.sunat_response.pdf_local) {
+                            titulo = 'Venta Guardada (Interna)';
+                            htmlError += '<br><small>Se generó un comprobante interno debido al error de conexión con SUNAT/OSE.</small><br><br>' +
+                                '<div style="text-align:center">' +
+                                '<a href="' + data.sunat_response.pdf_local + '" target="_blank" class="btn btn-info shadow"><i class="fa fa-file-pdf-o"></i> Ver Comprobante Interno</a>' +
+                                '</div>';
+                        }
+
+                        Swal.fire({
+                            title: titulo,
+                            html: htmlError,
+                            icon: 'warning',
+                            confirmButtonText: 'Entendido'
+                        }).then(() => {
+                            mostrarform(false);
+                            tabla.ajax.reload();
+                            limpiar();
+                        });
+                    } else {
+                        // Venta normal (Ticket u otro)
+                        mostrarToast(data.message || 'Venta registrada correctamente.', 'success');
+                        mostrarform(false);
+                        tabla.ajax.reload();
+                        limpiar();
+                    }
+
                 } else {
-                    mostrarToast(data.message || 'No se pudo registrar la venta.', 'error');
+                    // Manejo de errores de validación backend
+                    var errorMsg = data.message || 'Error al registrar.';
+                    if (data.errors) {
+                        errorMsg += '<br><ul style="text-align:left;">';
+                        for (var k in data.errors) {
+                            errorMsg += '<li>' + data.errors[k] + '</li>';
+                        }
+                        errorMsg += '</ul>';
+                    }
+
+                    Swal.fire({
+                        title: 'Error de Validación',
+                        html: errorMsg,
+                        icon: 'error'
+                    });
                 }
             } catch (err) {
+                console.error(err);
                 mostrarToast('Error inesperado al registrar la venta.', 'error');
             }
         },
         error: function (xhr) {
+            Swal.close();
             mostrarToast('Error de comunicación con el servidor.', 'error');
         }
     });
-    limpiar();
 }
 
 function mostrar(idventa) {

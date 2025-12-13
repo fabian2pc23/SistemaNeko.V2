@@ -1,0 +1,47 @@
+# Ignorar archivos de entorno con secretos
+.env
+.env.local
+.env.*.local
+*.env
+
+# Configuración de secretos
+neko_sac_store/config/.env
+config/.env
+
+# Archivos de log
+*.log
+logs/
+
+# Archivos de cache
+cache/
+tmp/
+
+# Archivos de IDE
+.idea/
+.vscode/
+*.sublime-*
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Archivos de dependencias (si deseas ignorar vendor)
+# vendor/
+
+# Archivos de respaldo
+*.bak
+*.backup
+*.old
+
+# Archivos temporales de PHP
+*.tmp
+
+# Archivos de certificados y claves privadas
+*.pem
+*.key
+*.crt
+
+# Archivos de configuración locales
+local.php
+config.local.php

@@ -284,6 +284,12 @@ function flag($k){ return !empty($_SESSION[$k]) && (int)$_SESSION[$k] === 1; }
         </li>
       <?php endif; ?>
 
+      <?php if (flag('ventas')): ?>
+        <li id="mCaja">
+          <a href="caja.php"><i class="fa fa-money"></i> <span>Caja</span></a>
+        </li>
+      <?php endif; ?>
+
       <?php if (flag('acceso')): ?>
         <li id="mAcceso" class="treeview">
           <a href="#"><i class="fa fa-folder"></i> <span>Acceso</span><i class="fa fa-angle-left pull-right"></i></a>

@@ -9,14 +9,15 @@ header('Content-Type: application/json; charset=utf-8');
  * Construye una dirección legible a partir de string u objeto con partes.
  * Acepta claves como: direccion, domicilio_fiscal, domiciliado, via, calle, nro, distrito, provincia, departamento, etc.
  */
-function build_address($dom): string {
+function build_address($dom): string
+{
   if (is_string($dom)) {
     return trim($dom);
   }
   if (!is_array($dom)) return '';
 
   // Intento directo por claves comunes
-  foreach (['direccion','domicilio_fiscal','domicilio','calle','via'] as $k) {
+  foreach (['direccion', 'domicilio_fiscal', 'domicilio', 'calle', 'via'] as $k) {
     if (!empty($dom[$k]) && is_string($dom[$k])) {
       return trim((string)$dom[$k]);
     }
@@ -24,17 +25,32 @@ function build_address($dom): string {
 
   // Componer por partes cuando viene desglosado
   $parts = [];
-  foreach ([
-    'via','tipo_via','nombre_via','calle','jr','avenida',
-    'mz','lote','numero','nro','km','interior','dpto','piso','referencia'
-  ] as $k) {
+  foreach (
+    [
+      'via',
+      'tipo_via',
+      'nombre_via',
+      'calle',
+      'jr',
+      'avenida',
+      'mz',
+      'lote',
+      'numero',
+      'nro',
+      'km',
+      'interior',
+      'dpto',
+      'piso',
+      'referencia'
+    ] as $k
+  ) {
     if (!empty($dom[$k])) $parts[] = trim((string)$dom[$k]);
   }
   $base = trim(implode(' ', $parts));
 
   // Agregar zona geográfica si está presente
   $geo = [];
-  foreach (['distrito','provincia','departamento'] as $k) {
+  foreach (['distrito', 'provincia', 'departamento'] as $k) {
     if (!empty($dom[$k])) $geo[] = trim((string)$dom[$k]);
   }
   if ($geo) {
@@ -49,7 +65,8 @@ $ruc     = preg_replace('/\D+/', '', $ruc_raw);
 
 if (strlen($ruc) !== 11) {
   http_response_code(400);
-  echo json_encode(['success'=>false,'message'=>'RUC inválido (11 dígitos).']); exit;
+  echo json_encode(['success' => false, 'message' => 'RUC inválido (11 dígitos).']);
+  exit;
 }
 
 /* ---------- Modo DEMO si no hay cURL (o para pruebas locales) ---------- */
@@ -67,6 +84,7 @@ if (!function_exists('curl_init')) {
 }
 
 /* ---------- Token del proveedor (usa variable de entorno si es posible) ---------- */
+/* ---------- Token del proveedor (miapi.cloud) ---------- */
 $TOKEN = getenv('MIAPI_CLOUD_TOKEN')
   ?: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1OTQsImV4cCI6MTc2NDM3MTI5Nn0.S77Gbw2fasSyyw-Awri_PazhpnXKyKcPUvACV5KkNoo';
 
@@ -108,37 +126,37 @@ if ($errn || $code < 200 || $code >= 300 || !$body) {
 $j = json_decode($body, true);
 if (!is_array($j)) {
   http_response_code(502);
-  echo json_encode(['success'=>false,'message'=>'Respuesta inválida del proveedor.']); exit;
+  echo json_encode(['success' => false, 'message' => 'Respuesta inválida del proveedor.']);
+  exit;
 }
 
-/*
-Formato típico (miapi.cloud):
-{
-  "success": true,
-  "datos": {
-    "ruc": "20xxxxxxxx",
-    "razon_social": "EMPRESA S.A.C.",
-    "estado": "ACTIVO",
-    "condicion": "HABIDO",
-    "direccion": "CAL ...",         // a veces string
-    "domicilio_fiscal": {...},      // a veces objeto
-    "domiciliado": {                // también puede venir aquí
-      "direccion": "...",
-      "distrito": "...",
-      "provincia": "...",
-      "departamento": "...",
-      "ubigeo": "..."
-    },
-    "ubigeo": "150130"
-  }
+/* ---------- Parseo flexible de la respuesta ---------- */
+$j = json_decode($body, true);
+
+if (!is_array($j)) {
+  http_response_code(502);
+  echo json_encode(['success' => false, 'message' => 'Respuesta inválida del proveedor.']);
+  exit;
 }
-*/
-if (!($j['success'] ?? false) || empty($j['datos']) || !is_array($j['datos'])) {
+
+// Intentar detectar dónde están los datos
+$d = [];
+if (isset($j['razonSocial']) || isset($j['ruc'])) {
+  $d = $j; // Estructura plana (ApisPeru v1 a veces)
+} elseif (isset($j['data']) && is_array($j['data'])) {
+  $d = $j['data']; // Estructura con 'data'
+} elseif (isset($j['datos']) && is_array($j['datos'])) {
+  $d = $j['datos']; // Estructura con 'datos' (miapi.cloud)
+}
+
+if (empty($d) || empty($d['ruc'])) {
+  // Si no se encontró RUC válido en la respuesta
   http_response_code(404);
-  echo json_encode(['success'=>false,'message'=>$j['message'] ?? 'RUC no encontrado.']); exit;
+  // Mensaje de error si la API devolvió uno
+  $msg = $j['message'] ?? $j['error'] ?? 'RUC no encontrado.';
+  echo json_encode(['success' => false, 'message' => $msg]);
+  exit;
 }
-
-$d = $j['datos'];
 
 /* ---------- Normalización de la razón social ---------- */
 $razon = trim((string)($d['razon_social'] ?? $d['razonSocial'] ?? $d['name'] ?? ''));

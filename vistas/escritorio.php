@@ -14,28 +14,31 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
   /* ============================================================
      SISTEMA DE FILTROS AVANZADOS
      ============================================================ */
-  
+
   // Calcular trimestre actual por defecto
   $mesActual = (int)date('m');
   $anioActual = (int)date('Y');
   $primerMesTrimestre = floor(($mesActual - 1) / 3) * 3 + 1;
   $fechaInicioTrimestreDefault = date('Y-m-01', mktime(0, 0, 0, $primerMesTrimestre, 1, $anioActual));
   $fechaFinTrimestreDefault = date('Y-m-t', mktime(0, 0, 0, $primerMesTrimestre + 2, 1, $anioActual));
-  
-  // Obtener parÃ¡metros de filtro
+
+  // Obtener parámetros de filtro
   $filtroFechaInicio = isset($_GET['fecha_inicio']) ? $_GET['fecha_inicio'] : $fechaInicioTrimestreDefault;
   $filtroFechaFin = isset($_GET['fecha_fin']) ? $_GET['fecha_fin'] : $fechaFinTrimestreDefault;
-  
-  // Filtros eliminados (hardcoded a 0)
-  $filtroCategoria = 0; 
-  $filtroComparativo = 0; 
+
+  // Filtros adicionales para gráficos
+  $filtroRangoMeses = isset($_GET['rango_meses']) ? (int)$_GET['rango_meses'] : 6; // 3, 6, 12, 24 meses
+  $filtroTopProductos = isset($_GET['top_productos']) ? (int)$_GET['top_productos'] : 10; // 5, 10, 15, 20
+  $filtroTopClientes = isset($_GET['top_clientes']) ? (int)$_GET['top_clientes'] : 5; // 5, 10, 15
+  $filtroCategoria = isset($_GET['categoria']) ? (int)$_GET['categoria'] : 0;
+  $filtroComparativo = 0;
   // 0=no, 1=mes anterior, 2=año anterior
-  
+
   // Calcular periodo comparativo si está activado
   $fechaInicioComp = '';
   $fechaFinComp = '';
   $labelComparativo = '';
-  
+
   if ($filtroComparativo == 1) {
     // Mes anterior
     $fechaInicioComp = date('Y-m-01', strtotime($filtroFechaInicio . ' -1 month'));
@@ -47,23 +50,23 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
     $fechaFinComp = date('Y-m-d', strtotime($filtroFechaFin . ' -1 year'));
     $labelComparativo = 'vs Año Anterior';
   }
-  
+
   // Construcción de WHERE clauses para filtros
   $whereVentasFiltro = "v.estado = 'Aceptado' 
     AND DATE(v.fecha_hora) BETWEEN '$filtroFechaInicio' AND '$filtroFechaFin'";
-  
+
   $whereComprasFiltro = "i.estado = 'Aceptado' 
     AND DATE(i.fecha_hora) BETWEEN '$filtroFechaInicio' AND '$filtroFechaFin'";
-  
+
   if ($filtroCategoria > 0) {
     $whereVentasFiltro .= " AND a.idcategoria = $filtroCategoria";
     $whereComprasFiltro .= " AND a.idcategoria = $filtroCategoria";
   }
-  
+
   // WHERE para periodo comparativo
   $whereVentasComp = "v.estado = 'Aceptado' 
     AND DATE(v.fecha_hora) BETWEEN '$fechaInicioComp' AND '$fechaFinComp'";
-  
+
   if ($filtroCategoria > 0) {
     $whereVentasComp .= " AND a.idcategoria = $filtroCategoria";
   }
@@ -117,12 +120,12 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
   $margenBrutoPeriodo = $ingresosPeriodo - $costosPeriodo;
   $porcentajeMargen = $ingresosPeriodo > 0 ? (($margenBrutoPeriodo / $ingresosPeriodo) * 100) : 0;
 
-  // 2. ROTACIÃ“N DE INVENTARIO
+  // 2. ROTACIÓN DE INVENTARIO
   $whereInventario = "a.condicion = 1";
   if ($filtroCategoria > 0) {
     $whereInventario .= " AND a.idcategoria = $filtroCategoria";
   }
-  
+
   $sql = "SELECT 
             COUNT(DISTINCT a.idarticulo) AS total_productos,
             IFNULL(SUM(a.stock), 0) AS stock_total,
@@ -134,7 +137,7 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
   $totalProductos = $row ? (int)$row->total_productos : 0;
   $stockTotal = $row ? (int)$row->stock_total : 0;
   $valorInventario = $row ? (float)$row->valor_inventario : 0;
-  
+
   // Cálculo de rotación de inventario (días)
   $diasRotacion = 0;
   if ($valorInventario > 0 && $costosPeriodo > 0) {
@@ -142,7 +145,7 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
     $costoDiario = $costosPeriodo / $diasPeriodo;
     $diasRotacion = $costoDiario > 0 ? round($valorInventario / $costoDiario, 1) : 0;
   }
-  
+
   // Productos sin movimiento
   $sql = "SELECT COUNT(*) as productos_sin_venta
           FROM articulo a
@@ -180,7 +183,7 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
   $ticketPromedio = $numVentasPeriodo > 0 ? ($totalVentasPeriodo / $numVentasPeriodo) : 0;
 
   /* ============================================================
-     TOP 10 PRODUCTOS MÁS VENDIDOS (CORREGIDO - CON IMAGEN)
+     TOP PRODUCTOS MÁS VENDIDOS (DINÁMICO)
      ============================================================ */
   $sql = "SELECT 
             a.idarticulo,
@@ -197,7 +200,7 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
           WHERE $whereVentasFiltro
           GROUP BY a.idarticulo, a.nombre, a.imagen, a.precio_venta, c.nombre
           ORDER BY unidades_vendidas DESC
-          LIMIT 10";
+          LIMIT $filtroTopProductos";
   $topProductos = ejecutarConsulta($sql);
 
   /* ============================================================
@@ -227,7 +230,7 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
   $dataCateg = rtrim($dataCateg, ',');
 
   /* ============================================================
-     TOP 5 CLIENTES (CORREGIDO - ANÁLISIS DE LEALTAD)
+     TOP CLIENTES (DINÁMICO)
      ============================================================ */
   $sql = "SELECT 
             p.nombre AS cliente,
@@ -238,16 +241,16 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
           WHERE $whereVentasFiltro
           GROUP BY v.idcliente, p.nombre
           ORDER BY total_gastado DESC
-          LIMIT 5";
+          LIMIT $filtroTopClientes";
   $topClientes = ejecutarConsulta($sql);
 
   /* ============================================================
-     EVOLUCIÓN VENTAS VS COMPRAS (ÚLTIMOS 6 MESES O PERSONALIZADO)
+     EVOLUCIÓN VENTAS VS COMPRAS (DINÁMICO)
      ============================================================ */
   // Calcular rango dinámico basado en filtros
-  $rangoMeses = 6;
+  $rangoMeses = $filtroRangoMeses;
   $fechaInicioGrafico = date('Y-m-01', strtotime($filtroFechaFin . " -$rangoMeses months"));
-  
+
   $sql = "SELECT 
             DATE_FORMAT(v.fecha_hora, '%b %Y') AS mes,
             YEAR(v.fecha_hora) AS anio,
@@ -371,11 +374,16 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
       // Traducir días al español
       $diaIngles = $reg->dia_semana;
       $diasEspanol = [
-          'Monday' => 'Lunes', 'Tuesday' => 'Martes', 'Wednesday' => 'Miércoles',
-          'Thursday' => 'Jueves', 'Friday' => 'Viernes', 'Saturday' => 'Sábado', 'Sunday' => 'Domingo'
+        'Monday' => 'Lunes',
+        'Tuesday' => 'Martes',
+        'Wednesday' => 'Miércoles',
+        'Thursday' => 'Jueves',
+        'Friday' => 'Viernes',
+        'Saturday' => 'Sábado',
+        'Sunday' => 'Domingo'
       ];
       $diaTraducido = isset($diasEspanol[$diaIngles]) ? $diasEspanol[$diaIngles] : $diaIngles;
-      
+
       $diasSemana .= '"' . $diaTraducido . '",';
       $ventasDias .= number_format((float)$reg->total, 2, '.', '') . ',';
     }
@@ -389,7 +397,7 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
   $sql = "SELECT idcategoria, nombre FROM categoria WHERE condicion = 1 ORDER BY nombre ASC";
   $rsCategoriasFiltro = ejecutarConsulta($sql);
 
-  ?>
+?>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
 
@@ -399,10 +407,12 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
       --neko-primary-dark: #0d47a1;
       --neko-bg: #f5f7fb;
       --card-border: 1px solid #e2e8f0;
-      --shadow: 0 2px 10px rgba(0,0,0,0.05);
+      --shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
     }
 
-    .content-wrapper { background: var(--neko-bg); }
+    .content-wrapper {
+      background: var(--neko-bg);
+    }
 
     /* Main Card Container */
     .neko-card {
@@ -413,6 +423,7 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
       margin-bottom: 20px;
       overflow: hidden;
     }
+
     .neko-card__header {
       background: var(--neko-primary-dark);
       color: #fff;
@@ -421,6 +432,7 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
       justify-content: space-between;
       align-items: center;
     }
+
     .neko-card__title {
       font-size: 1.1rem;
       font-weight: 600;
@@ -430,6 +442,7 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
       gap: 10px;
       color: #fff;
     }
+
     .neko-card__body {
       padding: 25px;
       background: #fff;
@@ -440,7 +453,7 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
       background: #fff;
       border-radius: 12px;
       padding: 20px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
       border: 1px solid #eef2f6;
       transition: transform 0.2s, box-shadow 0.2s;
       cursor: pointer;
@@ -450,25 +463,76 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
       align-items: center;
       height: 100%;
     }
+
     .kpi-card:hover {
       transform: translateY(-3px);
-      box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
       border-color: var(--neko-primary);
     }
-    .kpi-content { display: flex; flex-direction: column; justify-content: center; }
-    .kpi__label { font-size: 0.8rem; font-weight: 600; color: #64748b; margin-bottom: 5px; text-transform: uppercase; }
-    .kpi__value { font-size: 1.4rem; font-weight: 700; color: #334155; margin: 0; }
-    .kpi__sub { font-size: 0.75rem; color: #94a3b8; margin-top: 4px; }
-    
-    .kpi__icon {
-      width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; flex-shrink: 0;
+
+    .kpi-content {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
     }
-    .kpi__icon--success { background: #d1fae5; color: #059669; }
-    .kpi__icon--warning { background: #fef3c7; color: #d97706; }
-    .kpi__icon--danger { background: #fee2e2; color: #dc2626; }
-    .kpi__icon--purple { background: #f3e8ff; color: #9333ea; }
-    .kpi__icon--blue { background: #e0f2fe; color: #0284c7; }
-    
+
+    .kpi__label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #64748b;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+    }
+
+    .kpi__value {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #334155;
+      margin: 0;
+    }
+
+    .kpi__sub {
+      font-size: 0.75rem;
+      color: #94a3b8;
+      margin-top: 4px;
+    }
+
+    .kpi__icon {
+      width: 50px;
+      height: 50px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      flex-shrink: 0;
+    }
+
+    .kpi__icon--success {
+      background: #d1fae5;
+      color: #059669;
+    }
+
+    .kpi__icon--warning {
+      background: #fef3c7;
+      color: #d97706;
+    }
+
+    .kpi__icon--danger {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+
+    .kpi__icon--purple {
+      background: #f3e8ff;
+      color: #9333ea;
+    }
+
+    .kpi__icon--blue {
+      background: #e0f2fe;
+      color: #0284c7;
+    }
+
     .kpi__badge {
       font-family: 'Poppins', sans-serif;
       display: inline-block;
@@ -478,9 +542,21 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
       font-weight: 500;
       margin-top: 8px;
     }
-    .badge--success { background: #d1fae5; color: #065f46; }
-    .badge--warning { background: #fef3c7; color: #92400e; }
-    .badge--danger { background: #fee2e2; color: #991b1b; }
+
+    .badge--success {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .badge--warning {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .badge--danger {
+      background: #fee2e2;
+      color: #991b1b;
+    }
 
     /* Resumen Ejecutivo */
     .executive-summary {
@@ -488,9 +564,10 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
       border-radius: 12px;
       padding: 20px;
       margin-bottom: 24px;
-      box-shadow: 0 10px 30px rgba(102,126,234,0.3);
+      box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
       color: #fff;
     }
+
     .executive-summary__header {
       font-size: 1.1rem;
       font-weight: 700;
@@ -499,8 +576,9 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
       align-items: center;
       gap: 8px;
     }
+
     .summary-stat {
-      background: rgba(255,255,255,0.95);
+      background: rgba(255, 255, 255, 0.95);
       border-radius: 10px;
       padding: 14px;
       display: flex;
@@ -509,16 +587,38 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
       transition: all 0.3s ease;
       color: #334155;
     }
+
     .summary-stat:hover {
       transform: translateY(-4px);
-      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
     }
+
     .summary-stat__icon {
-      width: 50px; height: 50px; border-radius: 10px; display: grid; place-items: center; font-size: 1.3rem;
+      width: 50px;
+      height: 50px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      font-size: 1.3rem;
     }
-    .summary-stat__info { flex: 1; }
-    .summary-stat__label { font-size: 0.75rem; color: #64748b; font-weight: 600; text-transform: uppercase; margin-bottom: 4px; }
-    .summary-stat__value { font-size: 1.3rem; font-weight: 800; color: #0f172a; }
+
+    .summary-stat__info {
+      flex: 1;
+    }
+
+    .summary-stat__label {
+      font-size: 0.75rem;
+      color: #64748b;
+      font-weight: 600;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .summary-stat__value {
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: #0f172a;
+    }
 
     /* Accesos Rápidos */
     .quick-access {
@@ -527,8 +627,9 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
       border-radius: 12px;
       padding: 16px;
       margin-bottom: 24px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
     }
+
     .quick-access__title {
       font-size: 0.95rem;
       font-weight: 700;
@@ -538,11 +639,13 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
       align-items: center;
       gap: 8px;
     }
+
     .quick-access__grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
       gap: 12px;
     }
+
     .quick-access-card {
       display: flex;
       flex-direction: column;
@@ -556,31 +659,46 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
       transition: all 0.3s ease;
       color: #64748b;
     }
+
     .quick-access-card:hover {
       transform: translateY(-4px);
-      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
       border-color: var(--neko-primary);
       color: var(--neko-primary);
     }
+
     .quick-access-card__icon {
-      width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
     }
-    .quick-access-card__label { font-weight: 600; font-size: 0.85rem; text-align: center; }
+
+    .quick-access-card__label {
+      font-weight: 600;
+      font-size: 0.85rem;
+      text-align: center;
+    }
 
     /* Chart Cards */
     .chart-card {
       background: #fff;
       border-radius: 12px;
       padding: 20px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
       border: 1px solid #e2e8f0;
       margin-bottom: 20px;
       transition: all 0.3s ease;
     }
+
     .chart-card:hover {
       transform: translateY(-3px);
-      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
     }
+
     .chart-card h4 {
       font-size: 1rem;
       font-weight: 700;
@@ -602,14 +720,27 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
       border: 1px solid #e2e8f0;
       margin-bottom: 25px;
     }
+
     .filter-row {
       display: flex;
       gap: 15px;
       align-items: flex-end;
       flex-wrap: wrap;
     }
-    .filter-group { flex: 1; min-width: 150px; }
-    .filter-group label { font-weight: 600; color: #0b2752; font-size: 0.8rem; margin-bottom: 6px; display: block; }
+
+    .filter-group {
+      flex: 1;
+      min-width: 150px;
+    }
+
+    .filter-group label {
+      font-weight: 600;
+      color: #0b2752;
+      font-size: 0.8rem;
+      margin-bottom: 6px;
+      display: block;
+    }
+
     .filter-group .form-control {
       height: 38px;
       border-radius: 8px;
@@ -617,6 +748,7 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
       padding: 6px 12px;
       font-size: 0.9rem;
     }
+
     .btn-filter {
       height: 38px;
       padding: 0 20px;
@@ -629,15 +761,46 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
       cursor: pointer;
       transition: all 0.2s;
     }
-    .btn-filter--primary { background: var(--neko-primary); color: #fff; }
-    .btn-filter--primary:hover { background: var(--neko-primary-dark); box-shadow: 0 4px 12px rgba(21,101,192,0.3); }
-    .btn-filter--secondary { background: #fff; border: 1px solid #dbe3ef; color: #64748b; }
-    .btn-filter--secondary:hover { background: #f1f5f9; border-color: #cbd5e1; }
-    .btn-filter--export { background: #10b981; color: #fff; }
-    .btn-filter--export:hover { background: #059669; box-shadow: 0 4px 12px rgba(16,185,129,0.3); }
+
+    .btn-filter--primary {
+      background: var(--neko-primary);
+      color: #fff;
+    }
+
+    .btn-filter--primary:hover {
+      background: var(--neko-primary-dark);
+      box-shadow: 0 4px 12px rgba(21, 101, 192, 0.3);
+    }
+
+    .btn-filter--secondary {
+      background: #fff;
+      border: 1px solid #dbe3ef;
+      color: #64748b;
+    }
+
+    .btn-filter--secondary:hover {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+    }
+
+    .btn-filter--export {
+      background: #10b981;
+      color: #fff;
+    }
+
+    .btn-filter--export:hover {
+      background: #059669;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
 
     /* Quick Presets */
-    .quick-presets { display: flex; gap: 8px; margin-top: 15px; flex-wrap: wrap; }
+    .quick-presets {
+      display: flex;
+      gap: 8px;
+      margin-top: 15px;
+      flex-wrap: wrap;
+    }
+
     .preset-btn {
       border-radius: 50px;
       font-weight: 500;
@@ -648,10 +811,113 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
       font-size: 0.8rem;
       transition: all 0.2s;
     }
-    .preset-btn:hover { background: #e0f2fe; color: #0284c7; border-color: #bae6fd; }
+
+    .preset-btn:hover {
+      background: #e0f2fe;
+      color: #0284c7;
+      border-color: #bae6fd;
+    }
+
+    /* Tooltip Icon */
+    .tooltip-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      background: linear-gradient(135deg, #e0f2fe, #bae6fd);
+      color: #0284c7;
+      border-radius: 50%;
+      font-size: 10px;
+      cursor: help;
+      margin-left: 4px;
+      transition: all 0.2s;
+      font-weight: bold;
+    }
+
+    .tooltip-icon:hover {
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      color: #fff;
+      transform: scale(1.1);
+    }
+
+    /* SweetAlert2 Custom Styles */
+    .swal-export-popup {
+      border-radius: 16px !important;
+      padding: 20px !important;
+    }
+
+    .swal-guardar-popup {
+      border-radius: 16px !important;
+    }
+
+    .swal-success-popup {
+      border-radius: 16px !important;
+    }
+
+    .swal-confirm-btn {
+      border-radius: 8px !important;
+      font-weight: 600 !important;
+      padding: 12px 24px !important;
+    }
+
+    /* Modernized Filter Buttons */
+    .btn-filter {
+      height: 42px;
+      padding: 0 20px;
+      border-radius: 10px;
+      font-weight: 600;
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 0.9rem;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    }
+
+    .btn-filter--primary {
+      background: linear-gradient(135deg, #1565c0, #0d47a1);
+      color: #fff;
+    }
+
+    .btn-filter--primary:hover {
+      background: linear-gradient(135deg, #0d47a1, #0a3d8f);
+      box-shadow: 0 4px 15px rgba(21, 101, 192, 0.4);
+      transform: translateY(-2px);
+    }
+
+    .btn-filter--secondary {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      color: #64748b;
+    }
+
+    .btn-filter--secondary:hover {
+      background: #f8fafc;
+      border-color: #cbd5e1;
+      color: #334155;
+      transform: translateY(-2px);
+    }
+
+    .btn-filter--export {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #fff;
+    }
+
+    .btn-filter--export:hover {
+      background: linear-gradient(135deg, #059669, #047857);
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+      transform: translateY(-2px);
+    }
 
     /* Tables */
-    .top-table { width: 100%; border-collapse: collapse; }
+    .top-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
     .top-table th {
       background: linear-gradient(135deg, #1e293b, #334155);
       color: #fff;
@@ -661,46 +927,117 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
       padding: 12px;
       text-align: left;
     }
-    .top-table th:first-child { border-top-left-radius: 8px; }
-    .top-table th:last-child { border-top-right-radius: 8px; }
-    .top-table td { padding: 12px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; color: #334155; font-size: 0.9rem; }
-    .top-table tr:hover { background: #f8fafc; }
-    
-    .top-table__product { display: flex; align-items: center; gap: 12px; }
-    .top-table__img { width: 36px; height: 36px; border-radius: 6px; object-fit: cover; border: 1px solid #e2e8f0; }
-    .top-table__metric { font-weight: 600; background: #f1f5f9; padding: 4px 8px; border-radius: 6px; font-size: 0.85rem; }
+
+    .top-table th:first-child {
+      border-top-left-radius: 8px;
+    }
+
+    .top-table th:last-child {
+      border-top-right-radius: 8px;
+    }
+
+    .top-table td {
+      padding: 12px;
+      border-bottom: 1px solid #f1f5f9;
+      vertical-align: middle;
+      color: #334155;
+      font-size: 0.9rem;
+    }
+
+    .top-table tr:hover {
+      background: #f8fafc;
+    }
+
+    .top-table__product {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .top-table__img {
+      width: 36px;
+      height: 36px;
+      border-radius: 6px;
+      object-fit: cover;
+      border: 1px solid #e2e8f0;
+    }
+
+    .top-table__metric {
+      font-weight: 600;
+      background: #f1f5f9;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+    }
 
     /* Lists */
-    .client-item, .alert-item, .rentabilidad-item {
-      display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #f1f5f9;
+    .client-item,
+    .alert-item,
+    .rentabilidad-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      border-bottom: 1px solid #f1f5f9;
     }
-    .client-item:last-child, .alert-item:last-child, .rentabilidad-item:last-child { border-bottom: none; }
-    .client-item:hover, .alert-item:hover, .rentabilidad-item:hover { background: #f8fafc; }
-    
+
+    .client-item:last-child,
+    .alert-item:last-child,
+    .rentabilidad-item:last-child {
+      border-bottom: none;
+    }
+
+    .client-item:hover,
+    .alert-item:hover,
+    .rentabilidad-item:hover {
+      background: #f8fafc;
+    }
+
     /* Utilities */
-    .section-title { 
+    .section-title {
       font-family: 'Poppins', sans-serif;
-      font-size: 1.25rem; 
-      font-weight: 600; 
-      color: #1e293b; 
-      margin: 35px 0 20px 0; 
-      display: flex; 
-      align-items: center; 
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #1e293b;
+      margin: 35px 0 20px 0;
+      display: flex;
+      align-items: center;
       gap: 12px;
       letter-spacing: -0.5px;
     }
-    .section-divider { height: 1px; background: #e2e8f0; margin: 30px 0; }
-    .row-flex { display: flex; flex-wrap: wrap; }
-    .row-flex > [class*='col-'] { display: flex; flex-direction: column; }
-    .chart-holder { position: relative; height: 300px; width: 100%; }
-    .chart-holder--small { height: 250px; }
+
+    .section-divider {
+      height: 1px;
+      background: #e2e8f0;
+      margin: 30px 0;
+    }
+
+    .row-flex {
+      display: flex;
+      flex-wrap: wrap;
+    }
+
+    .row-flex>[class*='col-'] {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chart-holder {
+      position: relative;
+      height: 300px;
+      width: 100%;
+    }
+
+    .chart-holder--small {
+      height: 250px;
+    }
   </style>
 
   <div class="content-wrapper">
     <section class="content">
       <div class="row">
         <div class="col-md-12">
-          
+
           <!-- Main Corporate Card -->
           <div class="neko-card">
             <div class="neko-card__header">
@@ -713,7 +1050,7 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
             </div>
 
             <div class="neko-card__body">
-              
+
               <!-- ================== FILTROS AVANZADOS ================== -->
               <div class="filter-panel">
                 <div class="filter-panel__title">
@@ -729,8 +1066,22 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
                       <label for="fecha_fin">Fecha Fin</label>
                       <input type="date" class="form-control" id="fecha_fin" name="fecha_fin" value="<?php echo $filtroFechaFin; ?>">
                     </div>
-                    
-                    <!-- Filtros de Categoría y Comparativo eliminados por solicitud -->
+
+                    <div class="filter-group">
+                      <label for="categoria">Categoría</label>
+                      <select class="form-control" id="categoria" name="categoria">
+                        <option value="0">Todas las categorías</option>
+                        <?php
+                        if ($rsCategoriasFiltro) {
+                          $rsCategoriasFiltro->data_seek(0);
+                          while ($cat = $rsCategoriasFiltro->fetch_object()) {
+                            $selected = ($filtroCategoria == $cat->idcategoria) ? 'selected' : '';
+                            echo "<option value=\"{$cat->idcategoria}\" $selected>" . htmlspecialchars($cat->nombre) . "</option>";
+                          }
+                        }
+                        ?>
+                      </select>
+                    </div>
 
                     <div class="filter-actions">
                       <button type="submit" class="btn-filter btn-filter--primary">
@@ -747,13 +1098,47 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
                       </button>
                     </div>
                   </div>
-                  
+
+                  <!-- Filtros adicionales para gráficos -->
+                  <div class="filter-row" style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed #e2e8f0;">
+                    <div class="filter-group" style="min-width: 120px;">
+                      <label for="rango_meses">📊 Evolución</label>
+                      <select class="form-control" id="rango_meses" name="rango_meses">
+                        <option value="3" <?php echo $filtroRangoMeses == 3 ? 'selected' : ''; ?>>3 meses</option>
+                        <option value="6" <?php echo $filtroRangoMeses == 6 ? 'selected' : ''; ?>>6 meses</option>
+                        <option value="12" <?php echo $filtroRangoMeses == 12 ? 'selected' : ''; ?>>12 meses</option>
+                        <option value="24" <?php echo $filtroRangoMeses == 24 ? 'selected' : ''; ?>>24 meses</option>
+                        <option value="36" <?php echo $filtroRangoMeses == 36 ? 'selected' : ''; ?>>36 meses</option>
+                      </select>
+                    </div>
+                    <div class="filter-group" style="min-width: 120px;">
+                      <label for="top_productos">🏆 Top Productos</label>
+                      <select class="form-control" id="top_productos" name="top_productos">
+                        <option value="5" <?php echo $filtroTopProductos == 5 ? 'selected' : ''; ?>>Top 5</option>
+                        <option value="10" <?php echo $filtroTopProductos == 10 ? 'selected' : ''; ?>>Top 10</option>
+                        <option value="15" <?php echo $filtroTopProductos == 15 ? 'selected' : ''; ?>>Top 15</option>
+                        <option value="20" <?php echo $filtroTopProductos == 20 ? 'selected' : ''; ?>>Top 20</option>
+                        <option value="30" <?php echo $filtroTopProductos == 30 ? 'selected' : ''; ?>>Top 30</option>
+                      </select>
+                    </div>
+                    <div class="filter-group" style="min-width: 120px;">
+                      <label for="top_clientes">⭐ Top Clientes</label>
+                      <select class="form-control" id="top_clientes" name="top_clientes">
+                        <option value="5" <?php echo $filtroTopClientes == 5 ? 'selected' : ''; ?>>Top 5</option>
+                        <option value="10" <?php echo $filtroTopClientes == 10 ? 'selected' : ''; ?>>Top 10</option>
+                        <option value="15" <?php echo $filtroTopClientes == 15 ? 'selected' : ''; ?>>Top 15</option>
+                        <option value="20" <?php echo $filtroTopClientes == 20 ? 'selected' : ''; ?>>Top 20</option>
+                      </select>
+                    </div>
+                  </div>
+
                   <div class="quick-presets">
                     <button type="button" class="preset-btn" onclick="aplicarPreset('hoy')">Hoy</button>
                     <button type="button" class="preset-btn" onclick="aplicarPreset('semana')">Esta Semana</button>
                     <button type="button" class="preset-btn" onclick="aplicarPreset('mes')">Este Mes</button>
                     <button type="button" class="preset-btn" onclick="aplicarPreset('trimestre')">Este Trimestre</button>
                     <button type="button" class="preset-btn" onclick="aplicarPreset('anio')">Este Año</button>
+                    <button type="button" class="preset-btn" onclick="aplicarPreset('todo')" style="background: #e0f2fe; color: #0284c7; border-color: #bae6fd;">📅 Todo el historial</button>
                   </div>
                 </form>
               </div>
@@ -765,7 +1150,7 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
                 </div>
                 <div class="row row-flex">
                   <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12 mb-16">
-                    <a href="venta.php" class="kpi-card" style="text-decoration:none; color:inherit;">
+                    <div class="kpi-card" onclick="mostrarDetalleKPI('ventas-historico')" style="cursor:pointer;">
                       <div class="summary-stat" style="width:100%;">
                         <div class="summary-stat__icon" style="background:#e0f2fe;color:#0284c7;">
                           <i class="fa fa-dollar"></i>
@@ -775,11 +1160,11 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
                           <div class="summary-stat__value">S/ <?php echo number_format($totalVentasHistorico, 2); ?></div>
                         </div>
                       </div>
-                    </a>
+                    </div>
                   </div>
-                  
+
                   <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12 mb-16">
-                    <a href="ingreso.php" class="kpi-card" style="text-decoration:none; color:inherit;">
+                    <div class="kpi-card" onclick="mostrarDetalleKPI('compras-historico')" style="cursor:pointer;">
                       <div class="summary-stat" style="width:100%;">
                         <div class="summary-stat__icon" style="background:#fee2e2;color:#dc2626;">
                           <i class="fa fa-shopping-bag"></i>
@@ -789,11 +1174,11 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
                           <div class="summary-stat__value">S/ <?php echo number_format($totalComprasHistorico, 2); ?></div>
                         </div>
                       </div>
-                    </a>
+                    </div>
                   </div>
-                  
+
                   <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12 mb-16">
-                    <div class="kpi-card" onclick="showKpiInfo('margen')" style="width:100%;">
+                    <div class="kpi-card" onclick="mostrarDetalleKPI('margen')" style="cursor:pointer;">
                       <div class="summary-stat" style="width:100%;">
                         <div class="summary-stat__icon" style="background:#d1fae5;color:#059669;">
                           <i class="fa fa-line-chart"></i>
@@ -807,9 +1192,9 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12 mb-16">
-                    <a href="venta.php" class="kpi-card" style="text-decoration:none; color:inherit;">
+                    <div class="kpi-card" onclick="mostrarDetalleKPI('transacciones')" style="cursor:pointer;">
                       <div class="summary-stat" style="width:100%;">
                         <div class="summary-stat__icon" style="background:#f3e8ff;color:#9333ea;">
                           <i class="fa fa-exchange"></i>
@@ -819,14 +1204,14 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
                           <div class="summary-stat__value"><?php echo number_format($totalTransaccionesHistorico); ?></div>
                         </div>
                       </div>
-                    </a>
+                    </div>
                   </div>
                 </div>
               </div>
 
               <div class="quick-access">
                 <div class="quick-access__title">
-                  <i class="fa fa-flash"></i> Accesos RÃ¡pidos
+                  <i class="fa fa-flash"></i> Accesos Rápidos
                 </div>
                 <div class="quick-access__grid">
                   <a href="venta.php" class="quick-access-card">
@@ -835,35 +1220,35 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
                     </div>
                     <div class="quick-access-card__label">Nueva Venta</div>
                   </a>
-                  
+
                   <a href="ingreso.php" class="quick-access-card kpi-card">
                     <div class="quick-access-card__icon" style="background:#fef3c7;color:#d97706;">
                       <i class="fa fa-download"></i>
                     </div>
                     <div class="quick-access-card__label">Nueva Compra</div>
                   </a>
-                  
+
                   <a href="articulo.php" class="quick-access-card kpi-card">
                     <div class="quick-access-card__icon" style="background:#e9d5ff;color:#9333ea;">
                       <i class="fa fa-cube"></i>
                     </div>
                     <div class="quick-access-card__label">Productos</div>
                   </a>
-                  
+
                   <a href="cliente.php" class="quick-access-card kpi-card">
                     <div class="quick-access-card__icon" style="background:#d1fae5;color:#059669;">
                       <i class="fa fa-users"></i>
                     </div>
                     <div class="quick-access-card__label">Clientes</div>
                   </a>
-                  
+
                   <a href="#" onclick="window.print();return false;" class="quick-access-card kpi-card">
                     <div class="quick-access-card__icon" style="background:#fee2e2;color:#dc2626;">
                       <i class="fa fa-print"></i>
                     </div>
                     <div class="quick-access-card__label">Imprimir</div>
                   </a>
-                  
+
                   <a href="#" onclick="mostrarAyuda();return false;" class="quick-access-card kpi-card">
                     <div class="quick-access-card__icon" style="background:#f1f5f9;color:#475569;">
                       <i class="fa fa-question-circle"></i>
@@ -873,35 +1258,35 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
                 </div>
               </div>
 
-              <!-- ================== SECCIÃ“N 1: HOY (NO MODIFICAR) ================== -->
+              <!-- ================== SECCIÓN 1: HOY (NO MODIFICAR) ================== -->
               <h3 class="section-title">
                 <i class="fa fa-clock-o"></i> Operaciones de Hoy
               </h3>
               <div class="row mb-20">
                 <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 mb-16">
-                  <div class="kpi kpi-card">
+                  <div class="kpi kpi-card" onclick="mostrarDetalleKPI('compras-hoy')" style="cursor:pointer;">
                     <div class="kpi__icon"><i class="ion ion-ios-download"></i></div>
                     <div>
                       <p class="kpi__label">Compras de hoy</p>
                       <h3 class="kpi__value">S/ <?php echo number_format((float)$totalc, 2, '.', ''); ?></h3>
-                      <p class="kpi__sub">Movimiento de abastecimiento del dÃ­a.</p>
-                      <a href="ingreso.php" class="small text-primary">
-                        Ir a Compras <i class="fa fa-arrow-circle-right"></i>
-                      </a>
+                      <p class="kpi__sub">Movimiento de abastecimiento del día.</p>
+                      <span class="small text-primary">
+                        <i class="fa fa-search"></i> Ver detalle
+                      </span>
                     </div>
                   </div>
                 </div>
 
                 <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 mb-16">
-                  <div class="kpi kpi-card">
+                  <div class="kpi kpi-card" onclick="mostrarDetalleKPI('ventas-hoy')" style="cursor:pointer;">
                     <div class="kpi__icon"><i class="ion ion-ios-cart"></i></div>
                     <div>
                       <p class="kpi__label">Ventas de hoy</p>
                       <h3 class="kpi__value">S/ <?php echo number_format((float)$totalv, 2, '.', ''); ?></h3>
                       <p class="kpi__sub">Ingresos generados en la jornada actual.</p>
-                      <a href="venta.php" class="small text-primary">
-                        Ir a Ventas <i class="fa fa-arrow-circle-right"></i>
-                      </a>
+                      <span class="small text-primary">
+                        <i class="fa fa-search"></i> Ver detalle
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -909,20 +1294,20 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
 
               <div class="section-divider"></div>
 
-              <!-- ================== SECCIÃ“N 2: MÃ‰TRICAS EJECUTIVAS ================== -->
+              <!-- ================== SECCIÓN 2: MÉTRICAS EJECUTIVAS ================== -->
               <h3 class="section-title">
-                <i class="fa fa-line-chart"></i> AnÃ¡lisis Financiero del Periodo Seleccionado
+                <i class="fa fa-line-chart"></i> Análisis Financiero del Periodo Seleccionado
               </h3>
               <div class="row row-flex mb-20">
                 <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12 mb-16">
-                  <div class="kpi kpi-card" onclick="showKpiInfo('margen-bruto')">
+                  <div class="kpi kpi-card" onclick="mostrarDetalleKPI('margen-bruto')" style="cursor:pointer;">
                     <div class="kpi__icon kpi__icon--success">
                       <i class="fa fa-money"></i>
                     </div>
                     <div style="width:100%;">
                       <p class="kpi__label">
                         Margen Bruto
-                        <span class="tooltip-icon" title="Ingresos menos costos de productos vendidos">?</span>
+                        <span class="tooltip-icon" title="Ingresos menos costos de productos vendidos">ⓘ</span>
                       </p>
                       <h3 class="kpi__value">S/ <?php echo number_format($margenBrutoPeriodo, 2, '.', ''); ?></h3>
                       <span class="kpi__badge badge--success">
@@ -933,43 +1318,43 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
                 </div>
 
                 <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12 mb-16">
-                  <div class="kpi kpi-card" onclick="showKpiInfo('inventario')">
+                  <div class="kpi kpi-card" onclick="mostrarDetalleKPI('inventario')" style="cursor:pointer;">
                     <div class="kpi__icon kpi__icon--warning">
                       <i class="fa fa-cubes"></i>
                     </div>
                     <div style="width:100%;">
                       <p class="kpi__label">
                         Valor Inventario
-                        <span class="tooltip-icon" title="Valor total del stock actual a precio de compra">?</span>
+                        <span class="tooltip-icon" title="Valor total del stock actual a precio de compra">ⓘ</span>
                       </p>
                       <h3 class="kpi__value">S/ <?php echo number_format($valorInventario, 2, '.', ''); ?></h3>
                       <p class="kpi__sub">
-                        <?php echo number_format($stockTotal); ?> unidades â€¢ 
+                        <?php echo number_format($stockTotal); ?> unidades •
                         <?php echo $totalProductos; ?> productos
                       </p>
                       <?php if ($diasRotacion > 0): ?>
-                      <span class="kpi__badge <?php echo $diasRotacion <= 30 ? 'badge--success' : ($diasRotacion <= 60 ? 'badge--warning' : 'badge--danger'); ?>">
-                        <?php echo $diasRotacion; ?> dias de rotacion
-                      </span>
+                        <span class="kpi__badge <?php echo $diasRotacion <= 30 ? 'badge--success' : ($diasRotacion <= 60 ? 'badge--warning' : 'badge--danger'); ?>">
+                          <?php echo $diasRotacion; ?> dias de rotacion
+                        </span>
                       <?php endif; ?>
                       <?php if ($productosSinVenta > 0): ?>
-                      <p class="kpi__sub pulse-critical" style="color:#ef4444;margin-top:6px;padding:4px;border-radius:4px;">
-                        <i class="fa fa-exclamation-circle"></i> <?php echo $productosSinVenta; ?> sin venta
-                      </p>
+                        <p class="kpi__sub pulse-critical" style="color:#ef4444;margin-top:6px;padding:4px;border-radius:4px;">
+                          <i class="fa fa-exclamation-circle"></i> <?php echo $productosSinVenta; ?> sin venta
+                        </p>
                       <?php endif; ?>
                     </div>
                   </div>
                 </div>
 
                 <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12 mb-16">
-                  <div class="kpi kpi-card" onclick="showKpiInfo('clientes')">
+                  <div class="kpi kpi-card" onclick="mostrarDetalleKPI('clientes')" style="cursor:pointer;">
                     <div class="kpi__icon kpi__icon--purple">
                       <i class="fa fa-users"></i>
                     </div>
                     <div style="width:100%;">
                       <p class="kpi__label">
                         Clientes Activos
-                        <span class="tooltip-icon" title="Clientes Ãºnicos que realizaron compras en el periodo">?</span>
+                        <span class="tooltip-icon" title="Clientes únicos que realizaron compras en el periodo">ⓘ</span>
                       </p>
                       <h3 class="kpi__value"><?php echo $clientesActivos; ?></h3>
                       <p class="kpi__sub">Compraron en el periodo</p>
@@ -978,14 +1363,14 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
                 </div>
 
                 <div class="col-lg-3 col-md-6 col-sm-6 col-xs-12 mb-16">
-                  <div class="kpi kpi-card" onclick="showKpiInfo('ticket')">
+                  <div class="kpi kpi-card" onclick="mostrarDetalleKPI('ticket')" style="cursor:pointer;">
                     <div class="kpi__icon">
                       <i class="fa fa-shopping-cart"></i>
                     </div>
                     <div style="width:100%;">
                       <p class="kpi__label">
                         Ticket Promedio
-                        <span class="tooltip-icon" title="Valor promedio por transacciÃ³n de venta">?</span>
+                        <span class="tooltip-icon" title="Valor promedio por transacción de venta">ⓘ</span>
                       </p>
                       <h3 class="kpi__value">S/ <?php echo number_format($ticketPromedio, 2, '.', ''); ?></h3>
                       <p class="kpi__sub"><?php echo $numVentasPeriodo; ?> operaciones</p>
@@ -996,15 +1381,15 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
 
               <div class="section-divider"></div>
 
-              <!-- ================== SECCIÃ“N 3: TOP PRODUCTOS + CATEGORÃAS ================== -->
+              <!-- ================== SECCIÓN 3: TOP PRODUCTOS + CATEGORÍAS ================== -->
               <h3 class="section-title">
                 <i class="fa fa-star"></i> Rendimiento de Productos
               </h3>
               <div class="row mb-20">
                 <div class="col-lg-6 col-md-12 mb-16">
                   <div class="chart-card">
-                    <h4><i class="fa fa-trophy"></i> Top 10 Productos Mas Vendidos (Periodo Seleccionado)</h4>
-                    <div style="max-height:450px;overflow-y:auto;">
+                    <h4><i class="fa fa-trophy"></i> Top <?php echo $filtroTopProductos; ?> Productos Más Vendidos (Periodo Seleccionado)</h4>
+                    <div style="max-height:550px;overflow-y:auto;">
                       <table class="top-table">
                         <thead>
                           <tr>
@@ -1022,7 +1407,7 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
                               $imgSrc = !empty($prod->imagen) ? "../files/articulos/" . $prod->imagen : "../public/img/no-image.png";
                               $unidades = (int)$prod->unidades_vendidas;
                               $ingresos = (float)$prod->ingresos_generados;
-                              ?>
+                          ?>
                               <tr>
                                 <td style="font-weight:700;color:#64748b;"><?php echo $pos; ?></td>
                                 <td>
@@ -1041,7 +1426,7 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
                                   <span class="top-table__metric">S/ <?php echo number_format($ingresos, 2); ?></span>
                                 </td>
                               </tr>
-                              <?php
+                          <?php
                               $pos++;
                             }
                           } else {
@@ -1059,17 +1444,17 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
 
                 <div class="col-lg-6 col-md-12 mb-16">
                   <div class="chart-card">
-                    <h4><i class="fa fa-pie-chart"></i> Ventas por Categoria (Periodo Seleccionado)</h4>
+                    <h4><i class="fa fa-pie-chart"></i> Ventas por Categoría (Periodo Seleccionado)</h4>
                     <div class="chart-holder chart-holder--small">
                       <?php if (!empty($labelsCateg)): ?>
-                      <canvas id="chartCategorias"></canvas>
+                        <canvas id="chartCategorias"></canvas>
                       <?php else: ?>
-                      <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#94a3b8;text-align:center;">
-                        <div>
-                          <i class="fa fa-pie-chart" style="font-size:3rem;opacity:0.3;display:block;margin-bottom:10px;"></i>
-                          No hay datos de categorÃ­as para mostrar
+                        <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#94a3b8;text-align:center;">
+                          <div>
+                            <i class="fa fa-pie-chart" style="font-size:3rem;opacity:0.3;display:block;margin-bottom:10px;"></i>
+                            No hay datos de categorías para mostrar
+                          </div>
                         </div>
-                      </div>
                       <?php endif; ?>
                     </div>
                   </div>
@@ -1078,14 +1463,14 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
 
               <div class="section-divider"></div>
 
-              <!-- ================== SECCIÃ“N 4: EVOLUCIÃ“N + TENDENCIAS ================== -->
+              <!-- ================== SECCIÓN 4: EVOLUCIÓN + TENDENCIAS ================== -->
               <h3 class="section-title">
-                <i class="fa fa-area-chart"></i> AnÃ¡lisis Temporal
+                <i class="fa fa-area-chart"></i> Análisis Temporal
               </h3>
               <div class="row mb-20">
                 <div class="col-lg-6 col-md-12 mb-16">
                   <div class="chart-card">
-                    <h4><i class="fa fa-bar-chart"></i> Evolucion Ventas vs Compras (Ultimos 6 Meses)</h4>
+                    <h4><i class="fa fa-bar-chart"></i> Evolución Ventas vs Compras (Últimos <?php echo $filtroRangoMeses; ?> Meses)</h4>
                     <div class="chart-holder">
                       <canvas id="chartEvolucion"></canvas>
                     </div>
@@ -1094,17 +1479,17 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
 
                 <div class="col-lg-6 col-md-12 mb-16">
                   <div class="chart-card">
-                    <h4><i class="fa fa-calendar-o"></i> Ventas por Dia de la Semana (Periodo)</h4>
+                    <h4><i class="fa fa-calendar-o"></i> Ventas por Día de la Semana (Periodo)</h4>
                     <div class="chart-holder">
                       <?php if (!empty($diasSemana)): ?>
-                      <canvas id="chartDias"></canvas>
+                        <canvas id="chartDias"></canvas>
                       <?php else: ?>
-                      <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#94a3b8;text-align:center;">
-                        <div>
-                          <i class="fa fa-calendar" style="font-size:3rem;opacity:0.3;display:block;margin-bottom:10px;"></i>
-                          No hay datos de dÃ­as para mostrar
+                        <div style="display:flex;align-items:center;justify-content:center;height:100%;color:#94a3b8;text-align:center;">
+                          <div>
+                            <i class="fa fa-calendar" style="font-size:3rem;opacity:0.3;display:block;margin-bottom:10px;"></i>
+                            No hay datos de días para mostrar
+                          </div>
                         </div>
-                      </div>
                       <?php endif; ?>
                     </div>
                   </div>
@@ -1113,19 +1498,19 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
 
               <div class="section-divider"></div>
 
-              <!-- ================== SECCIÃ“N 5: CLIENTES + ALERTAS ================== -->
+              <!-- ================== SECCIÓN 5: CLIENTES + ALERTAS ================== -->
               <h3 class="section-title">
                 <i class="fa fa-users"></i> Clientes & Alertas de Inventario
               </h3>
               <div class="row mb-20">
                 <div class="col-lg-6 col-md-12 mb-16">
                   <div class="chart-card">
-                    <h4><i class="fa fa-star"></i> Top 5 Clientes del Periodo</h4>
+                    <h4><i class="fa fa-star"></i> Top <?php echo $filtroTopClientes; ?> Clientes del Periodo</h4>
                     <div style="padding:10px 0;">
                       <?php
                       if ($topClientes && $topClientes->num_rows > 0) {
                         while ($cli = $topClientes->fetch_object()) {
-                          ?>
+                      ?>
                           <div class="client-item">
                             <div>
                               <div class="client-item__name"><?php echo htmlspecialchars($cli->cliente); ?></div>
@@ -1136,7 +1521,7 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
                               <div class="client-item__label">Total invertido</div>
                             </div>
                           </div>
-                          <?php
+                      <?php
                         }
                       } else {
                         echo '<p style="color:#94a3b8;text-align:center;padding:20px;">
@@ -1151,12 +1536,12 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
 
                 <div class="col-lg-6 col-md-12 mb-16">
                   <div class="chart-card">
-                    <h4><i class="fa fa-exclamation-triangle"></i> Productos con Stock Cri­tico (&lt; 5 unidades)</h4>
+                    <h4><i class="fa fa-exclamation-triangle"></i> Productos con Stock Crítico (&lt; 5 unidades)</h4>
                     <div style="padding:10px 0;">
                       <?php
                       if ($stockCritico && $stockCritico->num_rows > 0) {
                         while ($alert = $stockCritico->fetch_object()) {
-                          ?>
+                      ?>
                           <div class="alert-item">
                             <div>
                               <div class="alert-item__name"><?php echo htmlspecialchars($alert->nombre); ?></div>
@@ -1166,10 +1551,10 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
                               <?php echo (int)$alert->stock; ?> und.
                             </div>
                           </div>
-                          <?php
+                      <?php
                         }
                       } else {
-                        echo '<p style="color:#10b981;text-align:center;padding:20px;"><i class="fa fa-check-circle"></i> No hay productos con stock crÃ­tico</p>';
+                        echo '<p style="color:#10b981;text-align:center;padding:20px;"><i class="fa fa-check-circle"></i> No hay productos con stock crítico</p>';
                       }
                       ?>
                     </div>
@@ -1179,15 +1564,15 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
 
               <div class="section-divider"></div>
 
-              <!-- ================== SECCIÃ“N 6: ANÃLISIS DE RENTABILIDAD ================== -->
+              <!-- ================== SECCIÓN 6: ANÁLISIS DE RENTABILIDAD ================== -->
               <h3 class="section-title">
-                <i class="fa fa-bar-chart"></i> Analisis de Rentabilidad por Producto
+                <i class="fa fa-bar-chart"></i> Análisis de Rentabilidad por Producto
               </h3>
               <div class="row mb-20">
                 <div class="col-lg-6 col-md-12 mb-16">
                   <div class="chart-card">
                     <h4 style="color:#059669;">
-                      <i class="fa fa-arrow-up"></i> Top 5 Productos Mas Rentables
+                      <i class="fa fa-arrow-up"></i> Top 5 Productos Más Rentables
                     </h4>
                     <div style="padding:10px 0;">
                       <?php
@@ -1195,7 +1580,7 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
                         while ($prod = $mejoresMargenesProductos->fetch_object()) {
                           $margen = (float)$prod->margen_porcentaje;
                           $colorMargen = $margen >= 40 ? '#059669' : ($margen >= 25 ? '#f59e0b' : '#64748b');
-                          ?>
+                      ?>
                           <div class="rentabilidad-item">
                             <div>
                               <div class="rentabilidad-item__name"><?php echo htmlspecialchars($prod->nombre); ?></div>
@@ -1210,7 +1595,7 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
                               </div>
                             </div>
                           </div>
-                          <?php
+                      <?php
                         }
                       } else {
                         echo '<p style="color:#94a3b8;text-align:center;padding:20px;">
@@ -1234,7 +1619,7 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
                         while ($prod = $peoresMargenesProductos->fetch_object()) {
                           $margen = (float)$prod->margen_porcentaje;
                           $colorMargen = $margen < 10 ? '#dc2626' : ($margen < 20 ? '#f59e0b' : '#64748b');
-                          ?>
+                      ?>
                           <div class="rentabilidad-item">
                             <div>
                               <div class="rentabilidad-item__name"><?php echo htmlspecialchars($prod->nombre); ?></div>
@@ -1249,7 +1634,7 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
                               </div>
                             </div>
                           </div>
-                          <?php
+                      <?php
                         }
                       } else {
                         echo '<p style="color:#94a3b8;text-align:center;padding:20px;">
@@ -1261,16 +1646,16 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
                     </div>
                   </div>
                 </div>
-                </div>
               </div>
+            </div>
 
-            </div> <!-- /neko-card__body -->
-          </div> <!-- /neko-card -->
+          </div> <!-- /neko-card__body -->
+        </div> <!-- /neko-card -->
 
-        </div>
       </div>
-      </div>
-    </section>
+  </div>
+  </div>
+  </section>
   </div>
 
 
@@ -1298,7 +1683,7 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
       const hoy = new Date();
       let fechaInicio, fechaFin;
 
-      switch(preset) {
+      switch (preset) {
         case 'hoy':
           fechaInicio = fechaFin = formatDate(hoy);
           break;
@@ -1321,6 +1706,15 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
           fechaInicio = formatDate(new Date(hoy.getFullYear(), 0, 1));
           fechaFin = formatDate(new Date(hoy.getFullYear(), 11, 31));
           break;
+        case 'todo':
+          // Desde 2020 hasta hoy (todo el historial)
+          fechaInicio = '2020-01-01';
+          fechaFin = formatDate(new Date());
+          // También expandimos los rangos de meses
+          document.getElementById('rango_meses').value = '36';
+          document.getElementById('top_productos').value = '20';
+          document.getElementById('top_clientes').value = '15';
+          break;
       }
 
       document.getElementById('fecha_inicio').value = fechaInicio;
@@ -1336,29 +1730,85 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
     }
 
     function exportarDatos() {
+      Swal.fire({
+        title: '<i class="fa fa-download" style="color:#1565c0;"></i> Exportar Dashboard',
+        html: `
+          <div style="text-align:left; padding: 15px 0;">
+            <p style="color:#334155; margin-bottom: 20px; font-size: 0.95rem;">Selecciona el formato de exportación:</p>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <button onclick="ejecutarExportacion('excel')" class="swal2-styled" style="background: linear-gradient(135deg, #10b981, #059669); border-radius: 10px; padding: 14px 24px; display: flex; align-items: center; justify-content: center; gap: 12px; color: #fff; font-weight: 600; font-size: 1rem; border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(16,185,129,0.3);">
+                <i class="fa fa-file-excel-o" style="font-size: 1.2rem;"></i> Exportar a Excel (.xlsx)
+              </button>
+              <button onclick="ejecutarExportacion('pdf')" class="swal2-styled" style="background: linear-gradient(135deg, #ef4444, #dc2626); border-radius: 10px; padding: 14px 24px; display: flex; align-items: center; justify-content: center; gap: 12px; color: #fff; font-weight: 600; font-size: 1rem; border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(239,68,68,0.3);">
+                <i class="fa fa-file-pdf-o" style="font-size: 1.2rem;"></i> Exportar a PDF
+              </button>
+              <button onclick="ejecutarExportacion('csv')" class="swal2-styled" style="background: linear-gradient(135deg, #0284c7, #0369a1); border-radius: 10px; padding: 14px 24px; display: flex; align-items: center; justify-content: center; gap: 12px; color: #fff; font-weight: 600; font-size: 1rem; border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(2,132,199,0.3);">
+                <i class="fa fa-file-text-o" style="font-size: 1.2rem;"></i> Exportar a CSV
+              </button>
+            </div>
+          </div>
+        `,
+        showConfirmButton: false,
+        showCloseButton: true,
+        customClass: {
+          popup: 'swal-export-popup'
+        }
+      });
+    }
+
+    function ejecutarExportacion(formato) {
+      Swal.close();
+
+      // Mostrar loading
+      Swal.fire({
+        title: 'Generando exportación...',
+        html: '<div style="padding: 20px;"><i class="fa fa-spinner fa-spin fa-3x" style="color: #1565c0;"></i></div>',
+        showConfirmButton: false,
+        allowOutsideClick: false
+      });
+
       // Obtener parámetros actuales
       const params = new URLSearchParams(window.location.search);
-      
+
       // Crear formulario temporal para exportar
       const form = document.createElement('form');
       form.method = 'POST';
       form.action = 'exportar_dashboard.php';
-      
-      // Agregar campos
-      ['fecha_inicio', 'fecha_fin'].forEach(name => {
+
+      // Agregar campos básicos
+      ['fecha_inicio', 'fecha_fin', 'rango_meses', 'top_productos', 'top_clientes', 'categoria'].forEach(name => {
         const input = document.createElement('input');
         input.type = 'hidden';
         input.name = name;
-        input.value = params.get(name) || document.querySelector(`[name="${name}"]`).value;
+        const el = document.querySelector(`[name="${name}"]`);
+        input.value = params.get(name) || (el ? el.value : '');
         form.appendChild(input);
       });
-      
+
+      // Agregar formato
+      const inputFormato = document.createElement('input');
+      inputFormato.type = 'hidden';
+      inputFormato.name = 'formato';
+      inputFormato.value = formato;
+      form.appendChild(inputFormato);
+
       document.body.appendChild(form);
       form.submit();
       document.body.removeChild(form);
-      
-      // Nota: NecesitarÃ¡s crear el archivo exportar_dashboard.php para generar Excel/PDF
-      alert('Función de exportación en desarrollo. Crea el archivo exportar_dashboard.php para implementarla.');
+
+      // Cerrar loading después de un momento
+      setTimeout(() => {
+        Swal.fire({
+          icon: 'success',
+          title: '¡Exportación iniciada!',
+          text: 'El archivo se descargará en breve.',
+          timer: 2500,
+          showConfirmButton: false,
+          customClass: {
+            popup: 'swal-success-popup'
+          }
+        });
+      }, 1000);
     }
 
     function guardarConfiguracion() {
@@ -1366,10 +1816,33 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
         fecha_inicio: document.getElementById('fecha_inicio').value,
         fecha_fin: document.getElementById('fecha_fin').value
       };
-      
+
       localStorage.setItem('dashboard_config', JSON.stringify(config));
-      
-      alert('✓ Configuración guardada exitosamente\n\nLa próxima vez que ingreses, se cargarán estos filtros automáticamente.');
+
+      Swal.fire({
+        icon: 'success',
+        title: '<span style="color:#059669;">¡Configuración Guardada!</span>',
+        html: `
+          <div style="text-align: left; padding: 10px 0;">
+            <div style="background: linear-gradient(135deg, #d1fae5, #a7f3d0); border-radius: 10px; padding: 15px; margin-bottom: 15px;">
+              <p style="margin: 0; color: #065f46; font-weight: 600;"><i class="fa fa-check-circle"></i> Filtros guardados:</p>
+              <ul style="margin: 10px 0 0 20px; color: #047857;">
+                <li>Fecha inicio: <strong>${config.fecha_inicio}</strong></li>
+                <li>Fecha fin: <strong>${config.fecha_fin}</strong></li>
+              </ul>
+            </div>
+            <p style="color: #64748b; font-size: 0.9rem; margin: 0;">
+              <i class="fa fa-info-circle"></i> La próxima vez que ingreses, estos filtros se cargarán automáticamente.
+            </p>
+          </div>
+        `,
+        confirmButtonText: '<i class="fa fa-thumbs-up"></i> ¡Entendido!',
+        confirmButtonColor: '#10b981',
+        customClass: {
+          popup: 'swal-guardar-popup',
+          confirmButton: 'swal-confirm-btn'
+        }
+      });
     }
 
     function cargarConfiguracionGuardada() {
@@ -1385,8 +1858,7 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
       Swal.fire({
         title: '<strong>Ayuda del Dashboard</strong>',
         icon: 'info',
-        html:
-          '<div style="text-align:left; font-size:0.9rem;">' +
+        html: '<div style="text-align:left; font-size:0.9rem;">' +
           '<p>Bienvenido al <b>Dashboard Ejecutivo</b>. Aquí podrás ver un resumen en tiempo real de tu negocio.</p>' +
           '<ul style="margin-top:10px; list-style:none; padding:0;">' +
           '<li style="margin-bottom:8px;"><i class="fa fa-check-circle" style="color:#10b981;"></i> <b>Filtros:</b> Selecciona un rango de fechas para analizar periodos específicos.</li>' +
@@ -1405,11 +1877,11 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
       });
     }
     // ==================== GRÁFICO CATEGORÍAS (DONUT) ====================
-    (function(){
+    (function() {
       const el = document.getElementById("chartCategorias");
       if (!el) return;
       const ctx = el.getContext('2d');
-      
+
       new Chart(ctx, {
         type: 'doughnut',
         data: {
@@ -1417,7 +1889,7 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
           datasets: [{
             data: [<?php echo $dataCateg ?: '0'; ?>],
             backgroundColor: [
-              nekoBlue, nekoDark, nekoSuccess, nekoWarning, 
+              nekoBlue, nekoDark, nekoSuccess, nekoWarning,
               nekoDanger, nekoPurple, 'rgba(99, 102, 241, 0.8)', 'rgba(236, 72, 153, 0.8)'
             ],
             borderWidth: 2,
@@ -1449,11 +1921,11 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
     })();
 
     // ==================== EVOLUCIÓN VENTAS VS COMPRAS ====================
-    (function(){
+    (function() {
       const el = document.getElementById("chartEvolucion");
       if (!el) return;
       const ctx = el.getContext('2d');
-      
+
       new Chart(ctx, {
         type: 'line',
         data: {
@@ -1466,7 +1938,7 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
             borderWidth: 3,
             fill: true,
             tension: 0.4
-          },{
+          }, {
             label: 'Compras S/',
             data: [<?php echo $compras6 ?: '0'; ?>],
             backgroundColor: 'rgba(239, 68, 68, 0.1)',
@@ -1509,11 +1981,11 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
     })();
 
     // ==================== VENTAS POR DÍA DE LA SEMANA ====================
-    (function(){
+    (function() {
       const el = document.getElementById("chartDias");
       if (!el) return;
       const ctx = el.getContext('2d');
-      
+
       new Chart(ctx, {
         type: 'bar',
         data: {
@@ -1522,7 +1994,7 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
             label: 'Ventas S/',
             data: [<?php echo $ventasDias ?: '0'; ?>],
             backgroundColor: [
-              nekoBlue, nekoDark, nekoSuccess, nekoWarning, 
+              nekoBlue, nekoDark, nekoSuccess, nekoWarning,
               nekoPurple, 'rgba(99, 102, 241, 0.6)', nekoDanger
             ],
             borderWidth: 0
@@ -1556,78 +2028,96 @@ if (!empty($_SESSION['escritorio']) && (int)$_SESSION['escritorio'] === 1) {
     })();
   </script>
 
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 
 
   <script>
-    // Interactividad KPI con SweetAlert2
-    document.addEventListener('DOMContentLoaded', function() {
-      // REMOVED: Animation opacity logic that was hiding elements
-      
-      // KPI Click Events
-      const kpis = {
-        'total-ventas': {
-          title: 'Total Ventas Histórico',
-          text: 'Suma total de todas las ventas aceptadas en la historia del sistema.',
-          icon: 'success'
-        },
-        'total-compras': {
-          title: 'Total Compras Histórico',
-          text: 'Suma total de todas las compras aceptadas en la historia del sistema.',
-          icon: 'info'
-        },
-        'margen-neto': {
-          title: 'Margen Neto Histórico',
-          text: 'Diferencia entre Ventas Totales y Compras Totales.',
-          icon: 'question'
-        },
-        'transacciones': {
-          title: 'Total Transacciones',
-          text: 'Número total de operaciones de venta registradas.',
-          icon: 'warning'
-        }
-      };
-
-      // Asignar eventos a los KPIs (necesitas agregar IDs o clases específicas a los KPIs si no las tienen)
-      // Por ahora, usaremos selectores genéricos o agregaremos IDs en el HTML si es necesario.
-      // Asumiendo que los KPIs tienen enlaces, interceptamos el click.
-      
-      // Ejemplo para demostración: Interceptar clicks en enlaces dentro de .kpi-card
-      document.querySelectorAll('.kpi-card a').forEach(link => {
-        link.addEventListener('click', function(e) {
-          // Si quieres mantener la navegación, no hagas preventDefault.
-          // Si quieres solo mostrar info, usa preventDefault.
-          // El usuario pidió "interactivos con alertas", así que quizás mostrar info antes de navegar o solo info.
-          // Dado el diseño anterior, eran enlaces directos. Vamos a agregar un botón de "info" o hacer que toda la tarjeta muestre info si no es un enlace directo.
-        });
+    // ==================== FUNCIÓN MOSTRAR DETALLE KPI ====================
+    function mostrarDetalleKPI(tipo) {
+      Swal.fire({
+        title: 'Cargando información...',
+        html: '<div style="padding: 20px;"><i class="fa fa-spinner fa-spin fa-3x" style="color: #1565c0;"></i></div>',
+        showConfirmButton: false,
+        allowOutsideClick: false
       });
-    });
-    
-    function showKpiInfo(type) {
-      const info = {
-        'ventas': { title: 'Ventas Totales', text: 'Ingresos acumulados por ventas aceptadas.', icon: 'success' },
-        'compras': { title: 'Compras Totales', text: 'Gastos acumulados por compras aceptadas.', icon: 'warning' },
-        'margen': { title: 'Margen Neto', text: 'Rentabilidad calculada (Ventas - Compras).', icon: 'info' },
-        'transacciones': { title: 'Transacciones', text: 'Volumen total de operaciones.', icon: 'question' },
-        'margen-bruto': { title: 'Margen Bruto', text: 'Ingresos menos costos directos de los productos vendidos.', icon: 'success' },
-        'inventario': { title: 'Valor de Inventario', text: 'Valor total del stock actual calculado a precio de compra.', icon: 'info' },
-        'clientes': { title: 'Clientes Activos', text: 'Número de clientes únicos que han comprado en el periodo seleccionado.', icon: 'question' },
-        'ticket': { title: 'Ticket Promedio', text: 'Valor promedio de venta por transacción.', icon: 'success' }
-      };
-      
-      if(info[type]) {
-        Swal.fire({
-          title: info[type].title,
-          text: info[type].text,
-          icon: info[type].icon,
-          confirmButtonColor: '#3085d6',
-          confirmButtonText: 'Entendido'
-        });
-      }
+
+      $.ajax({
+        url: '../ajax/escritorio.php?op=kpi_detalle&tipo=' + tipo,
+        type: 'GET',
+        dataType: 'json',
+        success: function(resp) {
+          Swal.close();
+
+          if (resp.success && resp.datos.length > 0) {
+            var tablaHtml = '<div style="max-height: 400px; overflow-y: auto;">';
+            tablaHtml += '<p style="color: #64748b; margin-bottom: 12px; font-size: 0.9rem;">' + resp.descripcion + '</p>';
+            tablaHtml += '<table class="table table-striped table-bordered" style="font-size: 0.85rem; width: 100%;">';
+
+            tablaHtml += '<thead style="background: #1e293b; color: white;"><tr>';
+            resp.columnas.forEach(function(col) {
+              tablaHtml += '<th style="padding: 8px; text-align: center;">' + col + '</th>';
+            });
+            tablaHtml += '</tr></thead>';
+
+            tablaHtml += '<tbody>';
+            resp.datos.forEach(function(row, idx) {
+              var bgColor = idx % 2 === 0 ? '#fff' : '#f8fafc';
+              tablaHtml += '<tr style="background: ' + bgColor + ';">';
+              Object.values(row).forEach(function(val) {
+                tablaHtml += '<td style="padding: 6px 8px;">' + (val !== null ? val : '-') + '</td>';
+              });
+              tablaHtml += '</tr>';
+            });
+            tablaHtml += '</tbody></table></div>';
+
+            if (resp.datos.length >= 50) {
+              tablaHtml += '<p style="color: #94a3b8; font-size: 0.8rem; margin-top: 10px; text-align: center;">Mostrando los primeros 50 registros</p>';
+            }
+
+            Swal.fire({
+              title: '<i class="fa fa-chart-bar" style="color: #1565c0; margin-right: 8px;"></i>' + resp.titulo,
+              html: tablaHtml,
+              width: '900px',
+              showCloseButton: true,
+              showConfirmButton: false,
+              customClass: {
+                popup: 'swal-export-popup'
+              }
+            });
+          } else if (resp.success && resp.datos.length === 0) {
+            Swal.fire({
+              icon: 'info',
+              title: resp.titulo,
+              text: 'No hay datos para mostrar en este indicador',
+              timer: 3000,
+              showConfirmButton: false
+            });
+          } else {
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: resp.titulo || 'No se pudo cargar la información',
+              timer: 3000,
+              showConfirmButton: false
+            });
+          }
+        },
+        error: function(xhr, status, error) {
+          Swal.close();
+          console.error('Error AJAX:', status, error);
+          Swal.fire({
+            icon: 'error',
+            title: 'Error de conexión',
+            text: 'No se pudo conectar con el servidor',
+            timer: 3000,
+            showConfirmButton: false
+          });
+        }
+      });
     }
   </script>
 
-  <?php
+<?php
   require 'footer.php';
 } else {
   require 'noacceso.php';

@@ -343,6 +343,94 @@ function setupSearchInput() {
   });
 }
 
+// ==================== FUNCIÓN MOSTRAR DETALLE KPI ====================
+function mostrarDetalleKPI(tipo) {
+  // Mostrar loading
+  Swal.fire({
+    title: 'Cargando información...',
+    html: '<div style="padding: 20px;"><i class="fa fa-spinner fa-spin fa-3x" style="color: #1565c0;"></i></div>',
+    showConfirmButton: false,
+    allowOutsideClick: false
+  });
+
+  $.ajax({
+    url: '../ajax/persona.php?op=kpi_detalle&tipo=' + tipo + '&persona=Proveedor',
+    type: 'GET',
+    dataType: 'json',
+    success: function (resp) {
+      Swal.close();
+
+      if (resp.success && resp.datos.length > 0) {
+        // Construir tabla HTML
+        var tablaHtml = '<div style="max-height: 400px; overflow-y: auto;">';
+        tablaHtml += '<p style="color: #64748b; margin-bottom: 12px; font-size: 0.9rem;">' + resp.descripcion + '</p>';
+        tablaHtml += '<table class="table table-striped table-bordered" style="font-size: 0.85rem; width: 100%;">';
+
+        // Headers
+        tablaHtml += '<thead style="background: #1e293b; color: white;"><tr>';
+        resp.columnas.forEach(function (col) {
+          tablaHtml += '<th style="padding: 8px; text-align: center;">' + col + '</th>';
+        });
+        tablaHtml += '</tr></thead>';
+
+        // Body
+        tablaHtml += '<tbody>';
+        resp.datos.forEach(function (row, idx) {
+          var bgColor = idx % 2 === 0 ? '#fff' : '#f8fafc';
+          tablaHtml += '<tr style="background: ' + bgColor + ';">';
+          Object.values(row).forEach(function (val) {
+            var style = 'padding: 6px 8px;';
+            tablaHtml += '<td style="' + style + '">' + (val !== null ? val : '-') + '</td>';
+          });
+          tablaHtml += '</tr>';
+        });
+        tablaHtml += '</tbody></table></div>';
+
+        if (resp.datos.length >= 50) {
+          tablaHtml += '<p style="color: #94a3b8; font-size: 0.8rem; margin-top: 10px; text-align: center;">Mostrando los primeros 50 registros</p>';
+        }
+
+        Swal.fire({
+          title: '<i class="fa fa-truck" style="color: #1565c0; margin-right: 8px;"></i>' + resp.titulo,
+          html: tablaHtml,
+          width: '750px',
+          showCloseButton: true,
+          showConfirmButton: false,
+          customClass: {
+            popup: 'swal-kpi-popup'
+          }
+        });
+      } else if (resp.success && resp.datos.length === 0) {
+        Swal.fire({
+          icon: 'info',
+          title: resp.titulo,
+          text: 'No hay datos para mostrar en este indicador',
+          timer: 3000,
+          showConfirmButton: false
+        });
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'No se pudo cargar la información',
+          timer: 3000,
+          showConfirmButton: false
+        });
+      }
+    },
+    error: function () {
+      Swal.close();
+      Swal.fire({
+        icon: 'error',
+        title: 'Error de conexión',
+        text: 'No se pudo conectar con el servidor',
+        timer: 3000,
+        showConfirmButton: false
+      });
+    }
+  });
+}
+
 /* ========== Arranque ========== */
 init();
 

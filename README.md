@@ -1,7 +1,7 @@
 # SistemaNeko.V2
 
 Version 4.0.0
--Sergio Gil Reyes
+-Sergio Gil Reyes y Eduardo 
 
 Header
 

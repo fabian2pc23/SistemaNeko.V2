@@ -47,6 +47,16 @@ class Ingreso
         if ($tipo_ingreso === 'compra' && empty($idproveedor)) {
             return false;
         }
+        
+        // Verificar que haya una caja abierta
+        $sql_caja = "SELECT idcaja FROM caja WHERE estado = 'Abierta' LIMIT 1";
+        $caja_abierta = ejecutarConsultaSimpleFila($sql_caja);
+        
+        if (!$caja_abierta) {
+            return ['success' => false, 'message' => 'No hay caja abierta. Debe abrir la caja antes de registrar compras.'];
+        }
+        
+        $idcaja = $caja_abierta['idcaja'];
 
         $subtotal_neto      = (float)$subtotal_neto;
         $impuesto_total     = (float)$impuesto_total;
@@ -73,7 +83,8 @@ class Ingreso
                  impuesto,
                  total_compra,
                  tipo_ingreso,
-                 estado)
+                 estado,
+                 idcaja)
                 VALUES
                 (
                  '$idproveedor',
@@ -87,7 +98,8 @@ class Ingreso
                  '$impuesto_porcentaje',
                  '$total_compra',
                  '$tipo_ingreso',
-                 'Aceptado'
+                 'Aceptado',
+                 '$idcaja'
                 )";
 
         $idingresonew = ejecutarConsulta_retornarID($sql);
@@ -143,6 +155,15 @@ class Ingreso
             if (!ejecutarConsulta($sql_update_precio)) {
                 $sw = false;
                 break;
+            }
+        }
+        
+        // Registrar movimiento en caja
+        if ($sw && $idingresonew) {
+            $sql_movimiento = "INSERT INTO movimiento_caja (idcaja, tipo_movimiento, idingreso, monto, descripcion, fecha_hora)
+                               VALUES ('$idcaja', 'compra', '$idingresonew', '$total_compra', 'Compra $tipo_comprobante $serie_comprobante-$num_comprobante', '$fecha_hora')";
+            if (!ejecutarConsulta($sql_movimiento)) {
+                $sw = false;
             }
         }
 

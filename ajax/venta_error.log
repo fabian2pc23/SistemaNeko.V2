@@ -1,0 +1,22 @@
+Error en ajax/venta.php: Composer detected issues in your platform: Your Composer dependencies require a PHP version ">= 8.2.0". You are running 8.0.30.
+Stack: #0 C:\xampp\htdocs\SistemaNeko.V2\vendor\composer\autoload_real.php(25): require()
+#1 C:\xampp\htdocs\SistemaNeko.V2\vendor\autoload.php(22): ComposerAutoloaderInitaa0ee1b690fc5089c32ccde65eee8779::getLoader()
+#2 C:\xampp\htdocs\SistemaNeko.V2\config\GreenterApi.php(13): require_once('C:\\xampp\\htdocs...')
+#3 C:\xampp\htdocs\SistemaNeko.V2\ajax\venta.php(224): require_once('C:\\xampp\\htdocs...')
+#4 {main}Error en ajax/venta.php: Composer detected issues in your platform: Your Composer dependencies require a PHP version ">= 8.2.0". You are running 8.0.30.
+Stack: #0 C:\xampp\htdocs\SistemaNeko.V2\vendor\composer\autoload_real.php(25): require()
+#1 C:\xampp\htdocs\SistemaNeko.V2\vendor\autoload.php(22): ComposerAutoloaderInitaa0ee1b690fc5089c32ccde65eee8779::getLoader()
+#2 C:\xampp\htdocs\SistemaNeko.V2\config\GreenterApi.php(13): require_once('C:\\xampp\\htdocs...')
+#3 C:\xampp\htdocs\SistemaNeko.V2\ajax\venta.php(224): require_once('C:\\xampp\\htdocs...')
+#4 {main}Error en ajax/venta.php: Composer detected issues in your platform: Your Composer dependencies require a PHP version ">= 8.2.0". You are running 8.0.30.
+Stack: #0 C:\xampp\htdocs\SistemaNeko.V2\vendor\composer\autoload_real.php(25): require()
+#1 C:\xampp\htdocs\SistemaNeko.V2\vendor\autoload.php(22): ComposerAutoloaderInitaa0ee1b690fc5089c32ccde65eee8779::getLoader()
+#2 C:\xampp\htdocs\SistemaNeko.V2\config\GreenterApi.php(13): require_once('C:\\xampp\\htdocs...')
+#3 C:\xampp\htdocs\SistemaNeko.V2\ajax\venta.php(224): require_once('C:\\xampp\\htdocs...')
+#4 {main}Error en ajax/venta.php: Class "SoapClient" not found
+Stack: #0 C:\xampp\htdocs\SistemaNeko.V2\vendor\composer\ClassLoader.php(576): include()
+#1 C:\xampp\htdocs\SistemaNeko.V2\vendor\composer\ClassLoader.php(427): Composer\Autoload\{closure}('C:\\xampp\\htdocs...')
+#2 C:\xampp\htdocs\SistemaNeko.V2\vendor\greenter\lite\src\Greenter\See.php(68): Composer\Autoload\ClassLoader->loadClass('Greenter\\Ws\\Ser...')
+#3 C:\xampp\htdocs\SistemaNeko.V2\config\GreenterApi.php(65): Greenter\See->__construct()
+#4 C:\xampp\htdocs\SistemaNeko.V2\ajax\venta.php(270): GreenterApi->__construct()
+#5 {main}

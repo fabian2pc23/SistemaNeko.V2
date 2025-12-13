@@ -1,0 +1,13 @@
+{
+  "name": "neko/neko-sac-store",
+  "description": "Mini framework MVC para tienda NEKO SAC conectado a bd_ferreteria.",
+  "type": "project",
+  "require": {
+    "php": ">=8.1"
+  },
+  "autoload": {
+    "psr-4": {
+      "App\\\": "src/"
+    }
+  }
+}

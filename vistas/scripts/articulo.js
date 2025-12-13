@@ -235,7 +235,6 @@ function listar() {
     "aProcessing": true,
     "aServerSide": true,
     "dom": 'rtip',
-    "buttons": [],
     "ajax": {
       url: '../ajax/articulo.php?op=listar',
       type: "get",
@@ -284,6 +283,240 @@ function listar() {
         }
       }
     }
+  });
+}
+
+// ==================== FUNCIÓN EXPORTAR TABLA ====================
+function exportarTabla(tipo) {
+  // Obtener datos de la tabla
+  var data = [];
+  var headers = ['Nombre', 'Categoría', 'Marca', 'Código', 'Stock', 'Precio Compra', 'Precio Venta', 'Estado'];
+
+  // Obtener todas las filas visibles de la tabla
+  $('#tbllistado tbody tr').each(function () {
+    var row = [];
+    row.push($(this).find('td:eq(1)').text().trim()); // Nombre
+    row.push($(this).find('td:eq(2)').text().trim()); // Categoría
+    row.push($(this).find('td:eq(3)').text().trim()); // Marca
+    row.push($(this).find('td:eq(4)').text().trim()); // Código
+    row.push($(this).find('td:eq(5)').text().trim()); // Stock
+    row.push($(this).find('td:eq(6)').text().trim()); // Precio Compra
+    row.push($(this).find('td:eq(7)').text().trim()); // Precio Venta
+    row.push($(this).find('td:eq(9)').text().trim()); // Estado
+    data.push(row);
+  });
+
+  if (data.length === 0) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Sin datos',
+      text: 'No hay datos para exportar',
+      timer: 2000
+    });
+    return;
+  }
+
+  switch (tipo) {
+    case 'copy':
+      copiarAlPortapapeles(headers, data);
+      break;
+    case 'excel':
+      exportarExcel(headers, data);
+      break;
+    case 'csv':
+      exportarCSV(headers, data);
+      break;
+    case 'pdf':
+      exportarPDF(headers, data);
+      break;
+  }
+}
+
+function copiarAlPortapapeles(headers, data) {
+  var texto = headers.join('\t') + '\n';
+  data.forEach(function (row) {
+    texto += row.join('\t') + '\n';
+  });
+
+  navigator.clipboard.writeText(texto).then(function () {
+    Swal.fire({
+      icon: 'success',
+      title: '¡Copiado!',
+      text: data.length + ' registros copiados al portapapeles',
+      timer: 2000,
+      showConfirmButton: false
+    });
+  }).catch(function (err) {
+    // Fallback para navegadores antiguos
+    var textarea = document.createElement('textarea');
+    textarea.value = texto;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    Swal.fire({
+      icon: 'success',
+      title: '¡Copiado!',
+      text: data.length + ' registros copiados al portapapeles',
+      timer: 2000,
+      showConfirmButton: false
+    });
+  });
+}
+
+function exportarCSV(headers, data) {
+  var csv = '\uFEFF'; // BOM UTF-8
+  csv += headers.join(';') + '\n';
+  data.forEach(function (row) {
+    csv += row.map(function (cell) {
+      // Escapar comillas y envolver en comillas si contiene separador
+      if (cell.includes(';') || cell.includes('"') || cell.includes('\n')) {
+        return '"' + cell.replace(/"/g, '""') + '"';
+      }
+      return cell;
+    }).join(';') + '\n';
+  });
+
+  var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  var link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'Articulos_' + new Date().toISOString().slice(0, 10) + '.csv';
+  link.click();
+
+  Swal.fire({
+    icon: 'success',
+    title: '¡Exportado!',
+    text: 'Archivo CSV descargado correctamente',
+    timer: 2000,
+    showConfirmButton: false
+  });
+}
+
+function exportarExcel(headers, data) {
+  // Crear tabla HTML para Excel
+  var html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">';
+  html += '<head><meta charset="UTF-8"><style>';
+  html += 'table { border-collapse: collapse; width: 100%; }';
+  html += 'th { background: #1565c0; color: white; padding: 10px; border: 1px solid #ccc; font-weight: bold; }';
+  html += 'td { padding: 8px; border: 1px solid #ccc; }';
+  html += 'tr:nth-child(even) { background: #f5f5f5; }';
+  html += '</style></head><body>';
+  html += '<table>';
+
+  // Headers
+  html += '<tr>';
+  headers.forEach(function (h) {
+    html += '<th>' + h + '</th>';
+  });
+  html += '</tr>';
+
+  // Data
+  data.forEach(function (row) {
+    html += '<tr>';
+    row.forEach(function (cell) {
+      html += '<td>' + cell + '</td>';
+    });
+    html += '</tr>';
+  });
+
+  html += '</table></body></html>';
+
+  var blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+  var link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'Articulos_' + new Date().toISOString().slice(0, 10) + '.xls';
+  link.click();
+
+  Swal.fire({
+    icon: 'success',
+    title: '¡Exportado!',
+    text: 'Archivo Excel descargado correctamente',
+    timer: 2000,
+    showConfirmButton: false
+  });
+}
+
+function exportarPDF(headers, data) {
+  // Verificar si pdfmake está disponible
+  if (typeof pdfMake === 'undefined') {
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: 'La librería PDF no está cargada correctamente',
+      timer: 3000
+    });
+    return;
+  }
+
+  // Crear documento PDF
+  var body = [];
+
+  // Headers
+  body.push(headers.map(function (h) {
+    return { text: h, style: 'tableHeader' };
+  }));
+
+  // Data
+  data.forEach(function (row) {
+    body.push(row.map(function (cell) {
+      return { text: cell, style: 'tableCell' };
+    }));
+  });
+
+  var docDefinition = {
+    pageOrientation: 'landscape',
+    pageSize: 'A4',
+    content: [
+      { text: 'Listado de Artículos - ERP Autopartes', style: 'header' },
+      { text: 'Fecha: ' + new Date().toLocaleDateString('es-PE'), style: 'subheader' },
+      { text: ' ' },
+      {
+        table: {
+          headerRows: 1,
+          widths: ['*', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto', 'auto'],
+          body: body
+        },
+        layout: {
+          fillColor: function (rowIndex) {
+            return (rowIndex === 0) ? '#1565c0' : (rowIndex % 2 === 0) ? '#f5f5f5' : null;
+          }
+        }
+      }
+    ],
+    styles: {
+      header: {
+        fontSize: 18,
+        bold: true,
+        color: '#1565c0',
+        margin: [0, 0, 0, 10]
+      },
+      subheader: {
+        fontSize: 10,
+        color: '#666',
+        margin: [0, 0, 0, 10]
+      },
+      tableHeader: {
+        bold: true,
+        fontSize: 9,
+        color: 'white',
+        fillColor: '#1565c0',
+        margin: [2, 4, 2, 4]
+      },
+      tableCell: {
+        fontSize: 8,
+        margin: [2, 3, 2, 3]
+      }
+    }
+  };
+
+  pdfMake.createPdf(docDefinition).download('Articulos_' + new Date().toISOString().slice(0, 10) + '.pdf');
+
+  Swal.fire({
+    icon: 'success',
+    title: '¡Exportado!',
+    text: 'Archivo PDF descargado correctamente',
+    timer: 2000,
+    showConfirmButton: false
   });
 }
 
@@ -642,6 +875,96 @@ function mostrarHistorial() {
       }
     });
   }
+}
+
+// ==================== FUNCIÓN MOSTRAR DETALLE KPI ====================
+function mostrarDetalleKPI(tipo) {
+  // Mostrar loading
+  Swal.fire({
+    title: 'Cargando información...',
+    html: '<div style="padding: 20px;"><i class="fa fa-spinner fa-spin fa-3x" style="color: #1565c0;"></i></div>',
+    showConfirmButton: false,
+    allowOutsideClick: false
+  });
+
+  $.ajax({
+    url: '../ajax/articulo.php?op=kpi_detalle&tipo=' + tipo,
+    type: 'GET',
+    dataType: 'json',
+    success: function (resp) {
+      Swal.close();
+
+      if (resp.success && resp.datos.length > 0) {
+        // Construir tabla HTML
+        var tablaHtml = '<div style="max-height: 400px; overflow-y: auto;">';
+        tablaHtml += '<p style="color: #64748b; margin-bottom: 12px; font-size: 0.9rem;">' + resp.descripcion + '</p>';
+        tablaHtml += '<table class="table table-striped table-bordered" style="font-size: 0.85rem; width: 100%;">';
+
+        // Headers
+        tablaHtml += '<thead style="background: #1e293b; color: white;"><tr>';
+        resp.columnas.forEach(function (col) {
+          tablaHtml += '<th style="padding: 8px; text-align: center;">' + col + '</th>';
+        });
+        tablaHtml += '</tr></thead>';
+
+        // Body
+        tablaHtml += '<tbody>';
+        resp.datos.forEach(function (row, idx) {
+          var bgColor = idx % 2 === 0 ? '#fff' : '#f8fafc';
+          tablaHtml += '<tr style="background: ' + bgColor + ';">';
+          Object.values(row).forEach(function (val) {
+            // Colorear stock bajo en rojo
+            var style = 'padding: 6px 8px;';
+            if (typeof val === 'number' && val <= 0) {
+              style += 'color: #dc2626; font-weight: bold;';
+            }
+            tablaHtml += '<td style="' + style + '">' + (val !== null ? val : '-') + '</td>';
+          });
+          tablaHtml += '</tr>';
+        });
+        tablaHtml += '</tbody></table></div>';
+
+        // Mostrar total si hay más registros
+        if (resp.datos.length >= 50) {
+          tablaHtml += '<p style="color: #94a3b8; font-size: 0.8rem; margin-top: 10px; text-align: center;">Mostrando los primeros 50 registros</p>';
+        }
+
+        Swal.fire({
+          title: '<i class="fa fa-chart-bar" style="color: #1565c0; margin-right: 8px;"></i>' + resp.titulo,
+          html: tablaHtml,
+          width: '800px',
+          showCloseButton: true,
+          showConfirmButton: false,
+          customClass: {
+            popup: 'swal-kpi-popup'
+          }
+        });
+      } else if (resp.success && resp.datos.length === 0) {
+        Swal.fire({
+          icon: 'info',
+          title: resp.titulo,
+          text: 'No hay datos para mostrar en este indicador',
+          timer: 3000,
+          showConfirmButton: false
+        });
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: resp.mensaje || 'No se pudo cargar la información',
+          timer: 3000
+        });
+      }
+    },
+    error: function (xhr, status, error) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error de conexión',
+        text: 'No se pudo conectar con el servidor',
+        timer: 3000
+      });
+    }
+  });
 }
 
 init();

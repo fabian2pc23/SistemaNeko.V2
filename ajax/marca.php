@@ -1,161 +1,273 @@
-<?php 
+<?php
 ob_start();
-if (strlen(session_id()) < 1){
-	session_start();//Validamos si existe o no la sesión
+if (strlen(session_id()) < 1) {
+	session_start(); //Validamos si existe o no la sesión
 }
-if (!isset($_SESSION["nombre"]))
-{
-  header("Location: ../login.php");//Validamos el acceso solo a los usuarios logueados al sistema.
-}
-else
-{
-//Validamos el acceso solo al usuario logueado y autorizado.
-if ($_SESSION['almacen']==1)
-{
-require_once "../modelos/Marca.php";
+if (!isset($_SESSION["nombre"])) {
+	header("Location: ../login.php"); //Validamos el acceso solo a los usuarios logueados al sistema.
+} else {
+	//Validamos el acceso solo al usuario logueado y autorizado.
+	if ($_SESSION['almacen'] == 1) {
+		require_once "../modelos/Marca.php";
 
-$marca=new Marca();
+		$marca = new Marca();
 
-$idmarca=isset($_POST["idmarca"])? limpiarCadena($_POST["idmarca"]):"";
-$nombre=isset($_POST["nombre"])? limpiarCadena($_POST["nombre"]):"";
-$descripcion=isset($_POST["descripcion"])? limpiarCadena($_POST["descripcion"]):"";
+		$idmarca = isset($_POST["idmarca"]) ? limpiarCadena($_POST["idmarca"]) : "";
+		$nombre = isset($_POST["nombre"]) ? limpiarCadena($_POST["nombre"]) : "";
+		$descripcion = isset($_POST["descripcion"]) ? limpiarCadena($_POST["descripcion"]) : "";
 
-switch ($_GET["op"]){
-	case 'guardaryeditar':
-	    if (empty($idmarca)){
-	        $rspta = $marca->insertar($nombre,$descripcion);
-	        if ($rspta === "duplicado") {
-	            echo "duplicado";
-	        } else {
-	            echo $rspta ? "Marca registrada" : "No se pudo registrar";
-	        }
-	    } else {
-	        $rspta = $marca->editar($idmarca,$nombre,$descripcion);
-			if ($rspta === "duplicado") {
-				echo "duplicado";
-			} else {
-				echo $rspta ? "Marca actualizada" : "No se pudo actualizar";
-			}
-	    }
-	break;
+		switch ($_GET["op"]) {
+			case 'guardaryeditar':
+				if (empty($idmarca)) {
+					$rspta = $marca->insertar($nombre, $descripcion);
+					if ($rspta === "duplicado") {
+						echo "duplicado";
+					} else {
+						echo $rspta ? "Marca registrada" : "No se pudo registrar";
+					}
+				} else {
+					$rspta = $marca->editar($idmarca, $nombre, $descripcion);
+					if ($rspta === "duplicado") {
+						echo "duplicado";
+					} else {
+						echo $rspta ? "Marca actualizada" : "No se pudo actualizar";
+					}
+				}
+				break;
 
-	case 'desactivar':
-		$rspta=$marca->desactivar($idmarca);
- 		echo $rspta ? "Marca Desactivada" : "Marca no se puede desactivar";
-	break;
+			case 'desactivar':
+				$rspta = $marca->desactivar($idmarca);
+				echo $rspta ? "Marca Desactivada" : "Marca no se puede desactivar";
+				break;
 
-	case 'activar':
-		$rspta=$marca->activar($idmarca);
- 		echo $rspta ? "Marca activada" : "Marca no se puede activar";
-	break;
+			case 'activar':
+				$rspta = $marca->activar($idmarca);
+				echo $rspta ? "Marca activada" : "Marca no se puede activar";
+				break;
 
-	case 'mostrar':
-		$rspta=$marca->mostrar($idmarca);
- 		//Codificar el resultado utilizando json
- 		echo json_encode($rspta);
-	break;
+			case 'mostrar':
+				$rspta = $marca->mostrar($idmarca);
+				//Codificar el resultado utilizando json
+				echo json_encode($rspta);
+				break;
 
-	case 'listar':
-		$rspta=$marca->listar();
- 		//Vamos a declarar un array
- 		$data= Array();
+			case 'listar':
+				$rspta = $marca->listar();
+				//Vamos a declarar un array
+				$data = array();
 
- 		while ($reg=$rspta->fetch_object()){
- 			$data[]=array(
- 				"0"=>($reg->condicion)?'<button class="btn btn-warning" onclick="mostrar('.$reg->idmarca.')"><i class="fa fa-pencil"></i></button>'.
- 					' <button class="btn btn-danger" onclick="desactivar('.$reg->idmarca.')"><i class="fa fa-close"></i></button>':
- 					'<button class="btn btn-warning" onclick="mostrar('.$reg->idmarca.')"><i class="fa fa-pencil"></i></button>'.
- 					' <button class="btn btn-primary" onclick="activar('.$reg->idmarca.')"><i class="fa fa-check"></i></button>',
- 				"1"=>$reg->nombre,
- 				"2"=>$reg->descripcion,
- 				"3"=>($reg->condicion)?'<span class="label bg-green">Activado</span>':
- 				'<span class="label bg-red">Desactivado</span>'
- 				);
- 		}
- 		$results = array(
- 			"sEcho"=>1, //Información para el datatables
- 			"iTotalRecords"=>count($data), //enviamos el total registros al datatable
- 			"iTotalDisplayRecords"=>count($data), //enviamos el total registros a visualizar
- 			"aaData"=>$data);
- 		echo json_encode($results);
-	break;
+				while ($reg = $rspta->fetch_object()) {
+					$data[] = array(
+						"0" => ($reg->condicion) ? '<button class="btn btn-warning" onclick="mostrar(' . $reg->idmarca . ')"><i class="fa fa-pencil"></i></button>' .
+							' <button class="btn btn-danger" onclick="desactivar(' . $reg->idmarca . ')"><i class="fa fa-close"></i></button>' :
+							'<button class="btn btn-warning" onclick="mostrar(' . $reg->idmarca . ')"><i class="fa fa-pencil"></i></button>' .
+							' <button class="btn btn-primary" onclick="activar(' . $reg->idmarca . ')"><i class="fa fa-check"></i></button>',
+						"1" => $reg->nombre,
+						"2" => $reg->descripcion,
+						"3" => ($reg->condicion) ? '<span class="label bg-green">Activado</span>' :
+							'<span class="label bg-red">Desactivado</span>'
+					);
+				}
+				$results = array(
+					"sEcho" => 1, //Información para el datatables
+					"iTotalRecords" => count($data), //enviamos el total registros al datatable
+					"iTotalDisplayRecords" => count($data), //enviamos el total registros a visualizar
+					"aaData" => $data
+				);
+				echo json_encode($results);
+				break;
 
-	case 'select':
-		$rspta = $marca->listarActivos();
-		echo '<option value="">- Seleccione -</option>';
-		while ($reg = $rspta->fetch_object()) {
-			echo '<option value="'.$reg->idmarca.'">'.$reg->nombre.'</option>';
+			case 'select':
+				$rspta = $marca->listarActivos();
+				echo '<option value="">- Seleccione -</option>';
+				while ($reg = $rspta->fetch_object()) {
+					echo '<option value="' . $reg->idmarca . '">' . $reg->nombre . '</option>';
+				}
+				break;
+
+			// ==================== ENDPOINTS PARA KPIs ====================
+
+			case 'marcas_sin_articulos':
+				header('Content-Type: application/json; charset=utf-8');
+				$rspta = $marca->marcasSinArticulos();
+				$marcas = array();
+				$total = 0;
+
+				if ($rspta) {
+					while ($reg = $rspta->fetch_object()) {
+						$marcas[] = $reg->nombre;
+						$total++;
+					}
+				}
+
+				echo json_encode(array(
+					'success' => true,
+					'total' => $total,
+					'marcas' => $marcas
+				));
+				break;
+
+			case 'marcas_stock_critico':
+				header('Content-Type: application/json; charset=utf-8');
+				$rspta = $marca->marcasStockCritico();
+				$marcas = array();
+				$total = 0;
+
+				if ($rspta) {
+					while ($reg = $rspta->fetch_object()) {
+						$marcas[] = $reg->nombre;
+						$total++;
+					}
+				}
+
+				echo json_encode(array(
+					'success' => true,
+					'total' => $total,
+					'marcas' => $marcas
+				));
+				break;
+
+			case 'marcas_nuevas':
+				header('Content-Type: application/json; charset=utf-8');
+				$rspta = $marca->marcasNuevas();
+				$marcas = array();
+				$total = 0;
+
+				if ($rspta) {
+					while ($reg = $rspta->fetch_object()) {
+						$marcas[] = $reg->nombre;
+						$total++;
+					}
+				}
+
+				echo json_encode(array(
+					'success' => true,
+					'total' => $total,
+					'marcas' => $marcas
+				));
+				break;
+
+			case 'kpi_detalle':
+				header('Content-Type: application/json; charset=utf-8');
+				require_once "../config/Conexion.php";
+				$tipo = isset($_GET['tipo']) ? $_GET['tipo'] : '';
+				$result = array('success' => true, 'tipo' => $tipo, 'titulo' => '', 'descripcion' => '', 'datos' => array(), 'columnas' => array());
+
+				switch ($tipo) {
+					case 'total':
+						$result['titulo'] = 'Total de Marcas';
+						$result['descripcion'] = 'Listado de todas las marcas registradas en el sistema';
+						$sql = "SELECT m.nombre, m.descripcion, 
+				               CASE WHEN m.condicion = 1 THEN 'Activa' ELSE 'Inactiva' END as estado,
+				               (SELECT COUNT(*) FROM articulo a WHERE a.idmarca = m.idmarca) as articulos
+				        FROM marca m ORDER BY m.nombre ASC";
+						$rspta = ejecutarConsulta($sql);
+						while ($reg = $rspta->fetch_object()) {
+							$result['datos'][] = array(
+								'nombre' => $reg->nombre,
+								'descripcion' => $reg->descripcion ? $reg->descripcion : '-',
+								'estado' => $reg->estado,
+								'articulos' => (int)$reg->articulos
+							);
+						}
+						$result['columnas'] = ['Nombre', 'Descripción', 'Estado', 'Artículos'];
+						break;
+
+					case 'activas':
+						$result['titulo'] = 'Marcas Activas';
+						$result['descripcion'] = 'Marcas habilitadas para uso en el sistema';
+						$sql = "SELECT m.nombre, m.descripcion,
+				               (SELECT COUNT(*) FROM articulo a WHERE a.idmarca = m.idmarca) as articulos
+				        FROM marca m WHERE m.condicion = 1 ORDER BY m.nombre ASC";
+						$rspta = ejecutarConsulta($sql);
+						while ($reg = $rspta->fetch_object()) {
+							$result['datos'][] = array(
+								'nombre' => $reg->nombre,
+								'descripcion' => $reg->descripcion ? $reg->descripcion : '-',
+								'articulos' => (int)$reg->articulos
+							);
+						}
+						$result['columnas'] = ['Nombre', 'Descripción', 'Artículos'];
+						break;
+
+					case 'inactivas':
+						$result['titulo'] = 'Marcas Inactivas';
+						$result['descripcion'] = 'Marcas deshabilitadas del sistema';
+						$sql = "SELECT m.nombre, m.descripcion FROM marca m WHERE m.condicion = 0 ORDER BY m.nombre ASC";
+						$rspta = ejecutarConsulta($sql);
+						while ($reg = $rspta->fetch_object()) {
+							$result['datos'][] = array(
+								'nombre' => $reg->nombre,
+								'descripcion' => $reg->descripcion ? $reg->descripcion : '-'
+							);
+						}
+						$result['columnas'] = ['Nombre', 'Descripción'];
+						break;
+
+					case 'sin_articulos':
+						$result['titulo'] = 'Marcas Sin Artículos';
+						$result['descripcion'] = 'Marcas que no tienen productos asociados';
+						$sql = "SELECT m.nombre, m.descripcion, CASE WHEN m.condicion = 1 THEN 'Activa' ELSE 'Inactiva' END as estado
+				        FROM marca m 
+				        WHERE NOT EXISTS (SELECT 1 FROM articulo a WHERE a.idmarca = m.idmarca)
+				        ORDER BY m.nombre ASC";
+						$rspta = ejecutarConsulta($sql);
+						while ($reg = $rspta->fetch_object()) {
+							$result['datos'][] = array(
+								'nombre' => $reg->nombre,
+								'descripcion' => $reg->descripcion ? $reg->descripcion : '-',
+								'estado' => $reg->estado
+							);
+						}
+						$result['columnas'] = ['Nombre', 'Descripción', 'Estado'];
+						break;
+
+					case 'stock_critico':
+						$result['titulo'] = 'Marcas con Stock Crítico';
+						$result['descripcion'] = 'Marcas con artículos que tienen stock menor a 5 unidades';
+						$sql = "SELECT m.nombre, COUNT(a.idarticulo) as articulos_criticos, MIN(a.stock) as stock_minimo
+				        FROM marca m
+				        INNER JOIN articulo a ON m.idmarca = a.idmarca
+				        WHERE a.stock < 5 AND a.condicion = 1
+				        GROUP BY m.idmarca
+				        ORDER BY articulos_criticos DESC";
+						$rspta = ejecutarConsulta($sql);
+						while ($reg = $rspta->fetch_object()) {
+							$result['datos'][] = array(
+								'nombre' => $reg->nombre,
+								'articulos_criticos' => (int)$reg->articulos_criticos,
+								'stock_minimo' => (int)$reg->stock_minimo
+							);
+						}
+						$result['columnas'] = ['Marca', 'Art. Críticos', 'Stock Mín.'];
+						break;
+
+					case 'nuevas':
+						$result['titulo'] = 'Marcas Nuevas (30 días)';
+						$result['descripcion'] = 'Marcas creadas en los últimos 30 días';
+						$sql = "SELECT m.nombre, m.descripcion, m.fecha_creacion,
+				               CASE WHEN m.condicion = 1 THEN 'Activa' ELSE 'Inactiva' END as estado
+				        FROM marca m 
+				        WHERE m.fecha_creacion >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+				        ORDER BY m.fecha_creacion DESC";
+						$rspta = ejecutarConsulta($sql);
+						while ($reg = $rspta->fetch_object()) {
+							$result['datos'][] = array(
+								'nombre' => $reg->nombre,
+								'descripcion' => $reg->descripcion ? $reg->descripcion : '-',
+								'fecha' => $reg->fecha_creacion ? date('d/m/Y', strtotime($reg->fecha_creacion)) : '-',
+								'estado' => $reg->estado
+							);
+						}
+						$result['columnas'] = ['Nombre', 'Descripción', 'Fecha', 'Estado'];
+						break;
+				}
+				echo json_encode($result);
+				break;
 		}
-	break;
-
-	// ==================== ENDPOINTS PARA KPIs ====================
-	
-	case 'marcas_sin_articulos':
-		header('Content-Type: application/json; charset=utf-8');
-		$rspta = $marca->marcasSinArticulos();
-		$marcas = array();
-		$total = 0;
-		
-		if ($rspta) {
-			while ($reg = $rspta->fetch_object()) {
-				$marcas[] = $reg->nombre;
-				$total++;
-			}
-		}
-		
-		echo json_encode(array(
-			'success' => true,
-			'total' => $total,
-			'marcas' => $marcas
-		));
-	break;
-
-	case 'marcas_stock_critico':
-		header('Content-Type: application/json; charset=utf-8');
-		$rspta = $marca->marcasStockCritico();
-		$marcas = array();
-		$total = 0;
-		
-		if ($rspta) {
-			while ($reg = $rspta->fetch_object()) {
-				$marcas[] = $reg->nombre;
-				$total++;
-			}
-		}
-
-		echo json_encode(array(
-			'success' => true,
-			'total' => $total,
-			'marcas' => $marcas
-		));
-	break;
-
-	case 'marcas_nuevas':
-		header('Content-Type: application/json; charset=utf-8');
-		$rspta = $marca->marcasNuevas();
-		$marcas = array();
-		$total = 0;
-		
-		if ($rspta) {
-			while ($reg = $rspta->fetch_object()) {
-				$marcas[] = $reg->nombre;
-				$total++;
-			}
-		}
-
-		echo json_encode(array(
-			'success' => true,
-			'total' => $total,
-			'marcas' => $marcas
-		));
-	break;
-}
-//Fin de las validaciones de acceso
-}
-else
-{
-  require 'noacceso.php';
-}
+		//Fin de las validaciones de acceso
+	} else {
+		require 'noacceso.php';
+	}
 }
 ob_end_flush();
-?>

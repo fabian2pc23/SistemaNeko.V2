@@ -37,7 +37,7 @@ $idingreso        = isset($_POST["idingreso"])        ? limpiarCadena($_POST["id
 $idproveedor      = isset($_POST["idproveedor"])      ? limpiarCadena($_POST["idproveedor"])      : "";
 $idusuario        = $_SESSION["idusuario"];
 $tipo_comprobante = isset($_POST["tipo_comprobante"]) ? limpiarCadena($_POST["tipo_comprobante"]) : "";
-$serie_comprobante= isset($_POST["serie_comprobante"])? limpiarCadena($_POST["serie_comprobante"]): "";
+$serie_comprobante = isset($_POST["serie_comprobante"]) ? limpiarCadena($_POST["serie_comprobante"]) : "";
 $num_comprobante  = isset($_POST["num_comprobante"])  ? limpiarCadena($_POST["num_comprobante"])  : "";
 $fecha_hora       = isset($_POST["fecha_hora"])       ? limpiarCadena($_POST["fecha_hora"])       : "";
 
@@ -48,7 +48,7 @@ $impuesto_porcentaje = isset($_POST["impuesto"])
 
 // tipo_ingreso viene del hidden del formulario (compra | alta_inicial | ajuste | devolucion)
 $tipo_ingreso = isset($_POST["tipo_ingreso"]) ? limpiarCadena($_POST["tipo_ingreso"]) : "compra";
-$tipo_ingreso_permitidos = ['compra','alta_inicial','ajuste','devolucion'];
+$tipo_ingreso_permitidos = ['compra', 'alta_inicial', 'ajuste', 'devolucion'];
 if (!in_array($tipo_ingreso, $tipo_ingreso_permitidos, true)) {
     $tipo_ingreso = 'compra';
 }
@@ -160,7 +160,10 @@ switch ($op) {
                 isset($_POST["precio_compra"]) ? $_POST["precio_compra"] : []
             );
 
-            if ($rspta) {
+            if (is_array($rspta) && isset($rspta['success']) && !$rspta['success']) {
+                error_log("❌ Error lógico: " . $rspta['message']);
+                echo $rspta['message'];
+            } elseif ($rspta) {
                 error_log("✅ Inserción exitosa");
                 echo "Ingreso registrado";
             } else {
@@ -221,10 +224,10 @@ switch ($op) {
 
             echo '<tr class="filas">';
             echo '<td></td>';
-            echo '<td><input type="hidden" name="idarticulo[]" value="'.(int)$reg->idarticulo.'">'.htmlspecialchars($reg->nombre, ENT_QUOTES, 'UTF-8').'</td>';
-            echo '<td><input type="number" name="cantidad[]" value="'.$qty.'" min="1" readonly></td>';
-            echo '<td><input type="number" name="precio_compra[]" value="'.number_format($pc, 2, '.', '').'" step="0.01" min="0" readonly></td>';
-            echo '<td><span name="subtotal" class="subtotal">'.number_format($sub, 2, '.', '').'</span></td>';
+            echo '<td><input type="hidden" name="idarticulo[]" value="' . (int)$reg->idarticulo . '">' . htmlspecialchars($reg->nombre, ENT_QUOTES, 'UTF-8') . '</td>';
+            echo '<td><input type="number" name="cantidad[]" value="' . $qty . '" min="1" readonly></td>';
+            echo '<td><input type="number" name="precio_compra[]" value="' . number_format($pc, 2, '.', '') . '" step="0.01" min="0" readonly></td>';
+            echo '<td><span name="subtotal" class="subtotal">' . number_format($sub, 2, '.', '') . '</span></td>';
             echo '</tr>';
         }
         break;
@@ -241,9 +244,9 @@ switch ($op) {
 
         $data = array();
         while ($reg = $rspta->fetch_object()) {
-            $btnVer    = '<button class="btn btn-warning btn-sm" title="Ver" onclick="mostrar('.$reg->idingreso.')"><i class="fa fa-eye"></i></button>';
-            $btnAnular = '<button class="btn btn-danger btn-sm" title="Anular" onclick="anular('.$reg->idingreso.')"><i class="fa fa-close"></i></button>';
-            $btnPdf    = '<a target="_blank" href="../reportes/exIngreso.php?id='.$reg->idingreso.'"><button class="btn btn-info btn-sm" title="Comprobante"><i class="fa fa-file"></i></button></a>';
+            $btnVer    = '<button class="btn btn-warning btn-sm" title="Ver" onclick="mostrar(' . $reg->idingreso . ')"><i class="fa fa-eye"></i></button>';
+            $btnAnular = '<button class="btn btn-danger btn-sm" title="Anular" onclick="anular(' . $reg->idingreso . ')"><i class="fa fa-close"></i></button>';
+            $btnPdf    = '<a target="_blank" href="../reportes/exIngreso.php?id=' . $reg->idingreso . '"><button class="btn btn-info btn-sm" title="Comprobante"><i class="fa fa-file"></i></button></a>';
 
             $ops = '<div style="display:flex;gap:5px;justify-content:center;">';
             if ($reg->estado == 'Aceptado') {
@@ -262,8 +265,8 @@ switch ($op) {
                 "5" => $reg->serie_comprobante . '-' . $reg->num_comprobante,
                 "6" => '<div style="text-align:right;font-weight:500;">S/. ' . number_format((float)$reg->total_compra, 2, '.', ',') . '</div>',
                 "7" => ($reg->estado == 'Aceptado')
-                        ? '<span class="label bg-green">Aceptado</span>'
-                        : '<span class="label bg-red">Anulado</span>'
+                    ? '<span class="label bg-green">Aceptado</span>'
+                    : '<span class="label bg-red">Anulado</span>'
             );
         }
 
@@ -292,9 +295,9 @@ switch ($op) {
         }
         exit;
 
-    // ───────────────────────────────────────
-    // LISTAR ARTÍCULOS (modal de selección)
-    // ───────────────────────────────────────
+        // ───────────────────────────────────────
+        // LISTAR ARTÍCULOS (modal de selección)
+        // ───────────────────────────────────────
     case 'listarArticulos':
         require_once "../modelos/Articulo.php";
         $articulo = new Articulo();
@@ -303,10 +306,10 @@ switch ($op) {
 
         while ($reg = $rspta->fetch_object()) {
             $btn = '<button class="btn btn-warning" onclick="agregarDetalle('
-                 . (int)$reg->idarticulo . ',\''
-                 . addslashes($reg->nombre) . '\','
-                 . number_format((float)$reg->precio_compra, 2, '.', '')
-                 . ')"><span class="fa fa-plus"></span></button>';
+                . (int)$reg->idarticulo . ',\''
+                . addslashes($reg->nombre) . '\','
+                . number_format((float)$reg->precio_compra, 2, '.', '')
+                . ')"><span class="fa fa-plus"></span></button>';
 
             $nombre_imagen = empty($reg->imagen)
                 ? "default.png"
@@ -342,15 +345,15 @@ switch ($op) {
     case 'getLastSerieNumero':
         $tipo_comprobante = isset($_POST['tipo_comprobante']) ? limpiarCadena($_POST['tipo_comprobante']) : 'Boleta';
         $rspta = $ingreso->getLastSerieNumero($tipo_comprobante);
-        
+
         if ($rspta) {
             $serie = $rspta['serie_comprobante'];
             $num   = $rspta['num_comprobante'];
-            
+
             // Intentar incrementar el número
             $nuevo_num = (int)$num + 1;
             $nuevo_num_str = str_pad($nuevo_num, 10, "0", STR_PAD_LEFT);
-            
+
             echo json_encode([
                 'serie' => $serie,
                 'numero' => $nuevo_num_str
@@ -363,6 +366,121 @@ switch ($op) {
                 'numero' => '0000000001'
             ]);
         }
+        break;
+
+    case 'kpi_detalle':
+        header('Content-Type: application/json; charset=utf-8');
+        require_once "../config/Conexion.php";
+        $tipo = isset($_GET['tipo']) ? $_GET['tipo'] : '';
+        $result = array('success' => true, 'tipo' => $tipo, 'titulo' => '', 'descripcion' => '', 'datos' => array(), 'columnas' => array());
+
+        switch ($tipo) {
+            case 'hoy':
+                $result['titulo'] = 'Compras de Hoy';
+                $result['descripcion'] = 'Detalle de ingresos registrados hoy';
+                $sql = "SELECT i.idingreso, DATE_FORMAT(i.fecha_hora, '%H:%i') as hora, 
+                               p.nombre as proveedor, i.tipo_comprobante, 
+                               CONCAT(i.serie_comprobante, '-', i.num_comprobante) as comprobante,
+                               i.total_compra
+                        FROM ingreso i
+                        LEFT JOIN persona p ON i.idproveedor = p.idpersona
+                        WHERE DATE(i.fecha_hora) = CURDATE() AND i.estado = 'Aceptado'
+                        ORDER BY i.fecha_hora DESC";
+                $rspta = ejecutarConsulta($sql);
+                while ($reg = $rspta->fetch_object()) {
+                    $result['datos'][] = array(
+                        'hora' => $reg->hora,
+                        'proveedor' => $reg->proveedor ? $reg->proveedor : 'Sin proveedor',
+                        'tipo' => $reg->tipo_comprobante,
+                        'comprobante' => $reg->comprobante,
+                        'total' => 'S/ ' . number_format($reg->total_compra, 2)
+                    );
+                }
+                $result['columnas'] = ['Hora', 'Proveedor', 'Tipo', 'Comprobante', 'Total'];
+                break;
+
+            case 'mes':
+                $result['titulo'] = 'Compras del Mes';
+                $result['descripcion'] = 'Resumen de ingresos del mes actual por proveedor';
+                $sql = "SELECT p.nombre as proveedor, COUNT(i.idingreso) as cantidad, SUM(i.total_compra) as total
+                        FROM ingreso i
+                        LEFT JOIN persona p ON i.idproveedor = p.idpersona
+                        WHERE MONTH(i.fecha_hora) = MONTH(CURDATE()) AND YEAR(i.fecha_hora) = YEAR(CURDATE()) AND i.estado = 'Aceptado'
+                        GROUP BY i.idproveedor
+                        ORDER BY total DESC LIMIT 20";
+                $rspta = ejecutarConsulta($sql);
+                while ($reg = $rspta->fetch_object()) {
+                    $result['datos'][] = array(
+                        'proveedor' => $reg->proveedor ? $reg->proveedor : 'Sin proveedor',
+                        'cantidad' => (int)$reg->cantidad,
+                        'total' => 'S/ ' . number_format($reg->total, 2)
+                    );
+                }
+                $result['columnas'] = ['Proveedor', 'Cantidad', 'Total'];
+                break;
+
+            case 'historico':
+                $result['titulo'] = 'Resumen Histórico de Compras';
+                $result['descripcion'] = 'Compras agrupadas por mes (últimos 12 meses)';
+                $sql = "SELECT DATE_FORMAT(i.fecha_hora, '%Y-%m') as mes, 
+                               COUNT(i.idingreso) as cantidad, SUM(i.total_compra) as total
+                        FROM ingreso i
+                        WHERE i.estado = 'Aceptado' AND i.fecha_hora >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+                        GROUP BY mes ORDER BY mes DESC";
+                $rspta = ejecutarConsulta($sql);
+                while ($reg = $rspta->fetch_object()) {
+                    $result['datos'][] = array(
+                        'mes' => $reg->mes,
+                        'cantidad' => (int)$reg->cantidad,
+                        'total' => 'S/ ' . number_format($reg->total, 2)
+                    );
+                }
+                $result['columnas'] = ['Mes', 'Ingresos', 'Total'];
+                break;
+
+            case 'aceptados':
+                $result['titulo'] = 'Ingresos Aceptados';
+                $result['descripcion'] = 'Últimos 30 ingresos con estado aceptado';
+                $sql = "SELECT DATE_FORMAT(i.fecha_hora, '%d/%m/%Y') as fecha, p.nombre as proveedor, 
+                               i.tipo_comprobante, i.total_compra
+                        FROM ingreso i
+                        LEFT JOIN persona p ON i.idproveedor = p.idpersona
+                        WHERE i.estado = 'Aceptado'
+                        ORDER BY i.fecha_hora DESC LIMIT 30";
+                $rspta = ejecutarConsulta($sql);
+                while ($reg = $rspta->fetch_object()) {
+                    $result['datos'][] = array(
+                        'fecha' => $reg->fecha,
+                        'proveedor' => $reg->proveedor ? $reg->proveedor : 'Sin proveedor',
+                        'tipo' => $reg->tipo_comprobante,
+                        'total' => 'S/ ' . number_format($reg->total_compra, 2)
+                    );
+                }
+                $result['columnas'] = ['Fecha', 'Proveedor', 'Tipo', 'Total'];
+                break;
+
+            case 'anulados':
+                $result['titulo'] = 'Ingresos Anulados';
+                $result['descripcion'] = 'Lista de ingresos que han sido anulados';
+                $sql = "SELECT DATE_FORMAT(i.fecha_hora, '%d/%m/%Y') as fecha, p.nombre as proveedor, 
+                               i.tipo_comprobante, i.total_compra
+                        FROM ingreso i
+                        LEFT JOIN persona p ON i.idproveedor = p.idpersona
+                        WHERE i.estado = 'Anulado'
+                        ORDER BY i.fecha_hora DESC";
+                $rspta = ejecutarConsulta($sql);
+                while ($reg = $rspta->fetch_object()) {
+                    $result['datos'][] = array(
+                        'fecha' => $reg->fecha,
+                        'proveedor' => $reg->proveedor ? $reg->proveedor : 'Sin proveedor',
+                        'tipo' => $reg->tipo_comprobante,
+                        'total' => 'S/ ' . number_format($reg->total_compra, 2)
+                    );
+                }
+                $result['columnas'] = ['Fecha', 'Proveedor', 'Tipo', 'Total'];
+                break;
+        }
+        echo json_encode($result);
         break;
 
     // ───────────────────────────────────────

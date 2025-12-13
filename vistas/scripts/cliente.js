@@ -131,6 +131,95 @@ function exportarTabla(type) {
   if (type === 'copy') $('.buttons-copy').click();
 }
 
+// ==================== FUNCIÓN MOSTRAR DETALLE KPI ====================
+function mostrarDetalleKPI(tipo) {
+  // Mostrar loading
+  Swal.fire({
+    title: 'Cargando información...',
+    html: '<div style="padding: 20px;"><i class="fa fa-spinner fa-spin fa-3x" style="color: #1565c0;"></i></div>',
+    showConfirmButton: false,
+    allowOutsideClick: false
+  });
+
+  $.ajax({
+    url: '../ajax/persona.php?op=kpi_detalle&tipo=' + tipo + '&persona=Cliente',
+    type: 'GET',
+    dataType: 'json',
+    success: function (resp) {
+      Swal.close();
+
+      if (resp.success && resp.datos.length > 0) {
+        // Construir tabla HTML
+        var tablaHtml = '<div style="max-height: 400px; overflow-y: auto;">';
+        tablaHtml += '<p style="color: #64748b; margin-bottom: 12px; font-size: 0.9rem;">' + resp.descripcion + '</p>';
+        tablaHtml += '<table class="table table-striped table-bordered" style="font-size: 0.85rem; width: 100%;">';
+
+        // Headers
+        tablaHtml += '<thead style="background: #1e293b; color: white;"><tr>';
+        resp.columnas.forEach(function (col) {
+          tablaHtml += '<th style="padding: 8px; text-align: center;">' + col + '</th>';
+        });
+        tablaHtml += '</tr></thead>';
+
+        // Body
+        tablaHtml += '<tbody>';
+        resp.datos.forEach(function (row, idx) {
+          var bgColor = idx % 2 === 0 ? '#fff' : '#f8fafc';
+          tablaHtml += '<tr style="background: ' + bgColor + ';">';
+          Object.values(row).forEach(function (val) {
+            var style = 'padding: 6px 8px;';
+            tablaHtml += '<td style="' + style + '">' + (val !== null ? val : '-') + '</td>';
+          });
+          tablaHtml += '</tr>';
+        });
+        tablaHtml += '</tbody></table></div>';
+
+        // Mostrar total si hay más registros
+        if (resp.datos.length >= 50) {
+          tablaHtml += '<p style="color: #94a3b8; font-size: 0.8rem; margin-top: 10px; text-align: center;">Mostrando los primeros 50 registros</p>';
+        }
+
+        Swal.fire({
+          title: '<i class="fa fa-users" style="color: #1565c0; margin-right: 8px;"></i>' + resp.titulo,
+          html: tablaHtml,
+          width: '750px',
+          showCloseButton: true,
+          showConfirmButton: false,
+          customClass: {
+            popup: 'swal-kpi-popup'
+          }
+        });
+      } else if (resp.success && resp.datos.length === 0) {
+        Swal.fire({
+          icon: 'info',
+          title: resp.titulo,
+          text: 'No hay datos para mostrar en este indicador',
+          timer: 3000,
+          showConfirmButton: false
+        });
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'No se pudo cargar la información',
+          timer: 3000,
+          showConfirmButton: false
+        });
+      }
+    },
+    error: function () {
+      Swal.close();
+      Swal.fire({
+        icon: 'error',
+        title: 'Error de conexión',
+        text: 'No se pudo conectar con el servidor',
+        timer: 3000,
+        showConfirmButton: false
+      });
+    }
+  });
+}
+
 /* ======================== Boot ======================== */
 function init() {
   mostrarform(false);
@@ -147,22 +236,42 @@ function init() {
   // Tipo persona fijo = Cliente
   $("#tipo_persona").val("Cliente");
 
-  // Tipo documento visual y espejo hidden (para que siempre viaje en POST)
-  $("#tipo_documento_view").val("DNI");
+  // Init Select y lógica de cambio
   try { $("#tipo_documento_view").selectpicker('refresh'); } catch (e) { }
-  $("#tipo_documento_hidden").val("DNI");
-  $("#tipo_documento_view").on('change', function () {
-    $("#tipo_documento_hidden").val(this.value || 'DNI');
+
+  $("#tipo_documento_view").off("change").on("change", function () {
+    let val = $(this).val();
+    $("#tipo_documento_hidden").val(val);
+
+    // Limpiar datos previos
+    $("#num_documento").val("");
+    $("#nombre").val("");
+    $("#direccion").val("");
+    setEstado("Esperando número...", "info");
+
+    if (val === "RUC") {
+      $("#num_documento").attr("maxlength", "11").attr("placeholder", "RUC (11 dígitos)").attr("pattern", ".{11,11}");
+      $("#wrap-numdoc small").text("RUC (11 dígitos)");
+    } else {
+      $("#num_documento").attr("maxlength", "8").attr("placeholder", "DNI (8 dígitos)").attr("pattern", ".{8,8}");
+      $("#wrap-numdoc small").text("DNI (8 dígitos)");
+    }
+    bloquearCamposFijos();
+
+    // Fix visual: refrescar selectpicker para asegurar que muestre la opción seleccionada
+    try { $(this).selectpicker('refresh'); } catch (e) { }
   });
 
-  // Handlers RENIEC
+  // Handlers Documento (Genérico)
   $("#num_documento")
     .on("input", function () {
-      // Solo dígitos y máximo 8
-      let v = (this.value || "").replace(/\D/g, '').slice(0, 8);
+      let tipo = $("#tipo_documento_view").val();
+      let max = (tipo === "RUC") ? 11 : 8;
+      // Solo dígitos y longitud variable
+      let v = (this.value || "").replace(/\D/g, '').slice(0, max);
       if (this.value !== v) this.value = v;
     })
-    .on("keyup change", debounce(onDniChange, 400));
+    .on("keyup change", debounce(onDocChange, 400));
 
   // Teléfono: solo dígitos, máx 9 (celular peruano)
   $("#telefono").on("input", function () {
@@ -172,14 +281,24 @@ function init() {
 
   // Botón buscar (consulta manual)
   $("#btnBuscarDoc").off("click").on("click", function () {
-    const dni = ($("#num_documento").val() || "").replace(/\D/g, '');
-    if (dni.length === 8) consultarReniec(dni);
-    else setEstado("Ingresa 8 dígitos de DNI", "err");
+    const doc = ($("#num_documento").val() || "").replace(/\D/g, '');
+    let tipo = $("#tipo_documento_view").val();
+
+    if (tipo === "RUC") {
+      if (doc.length === 11) consultarSunat(doc);
+      else setEstado("El RUC debe tener 11 dígitos", "err");
+    } else {
+      if (doc.length === 8) consultarReniec(doc);
+      else setEstado("El DNI debe tener 8 dígitos", "err");
+    }
   });
 
-  // Estado inicial y bloqueo de campos
+  // Estado inicial
   setEstado("Esperando número…", "info");
   bloquearCamposFijos();
+
+  // Trigger cambio inicial para setear placeholders
+  $("#tipo_documento_view").trigger("change");
 }
 
 /* ======================== Limpieza/Form ======================== */
@@ -256,13 +375,19 @@ function guardaryeditar(e) {
   $("#btnGuardar").prop("disabled", true);
 
   // -------- VALIDACIONES FRONT --------
-  const dni = ($("#num_documento").val() || "").replace(/\D/g, '');
+  const doc = ($("#num_documento").val() || "").replace(/\D/g, '');
+  const tipoDoc = $("#tipo_documento_view").val();
   const tel = ($("#telefono").val() || "").trim();
   const mail = ($("#email").val() || "").trim();
 
-  // DNI 8 dígitos
-  if (dni.length !== 8) {
+  // Validar longitud según tipo
+  if (tipoDoc === "DNI" && doc.length !== 8) {
     showToast('error', 'El DNI debe tener exactamente 8 dígitos.');
+    $("#btnGuardar").prop("disabled", false);
+    return;
+  }
+  if (tipoDoc === "RUC" && doc.length !== 11) {
+    showToast('error', 'El RUC debe tener exactamente 11 dígitos.');
     $("#btnGuardar").prop("disabled", false);
     return;
   }
@@ -361,11 +486,24 @@ function mostrar(idpersona) {
     $("#nombre").val(data.nombre);
 
     $("#tipo_persona").val("Cliente");
-    $("#tipo_documento_view").val("DNI");
-    $("#tipo_documento_hidden").val("DNI");
+
+    // Detectar Tipo
+    let num = (data.num_documento || '').replace(/\D/g, '');
+    let tipo = (num.length > 8) ? "RUC" : "DNI";
+
+    $("#tipo_documento_view").val(tipo);
+    $("#tipo_documento_hidden").val(tipo);
     try { $("#tipo_documento_view").selectpicker('refresh'); } catch (e) { }
 
-    $("#num_documento").val((data.num_documento || '').replace(/\D/g, '').slice(0, 8));
+    $("#num_documento").val(num);
+
+    // Ajustar UI sin disparar change completo (que borra datos)
+    if (tipo === "RUC") {
+      $("#num_documento").attr("maxlength", "11").attr("placeholder", "RUC (11 dígitos)").attr("pattern", ".{11,11}");
+    } else {
+      $("#num_documento").attr("maxlength", "8").attr("placeholder", "DNI (8 dígitos)").attr("pattern", ".{8,8}");
+    }
+
     $("#telefono").val(data.telefono);
     $("#email").val(data.email);
     $("#direccion").val(data.direccion || '');
@@ -397,29 +535,30 @@ function activar(idpersona) {
   });
 }
 
-/* ======================== RENIEC ======================== */
-function onDniChange() {
-  const dni = ($("#num_documento").val() || "").replace(/\D/g, '');
-  if (dni.length === 8) {
-    consultarReniec(dni);
-  } else {
-    $("#nombre").val("");
-    $("#direccion").val("");
-    setEstado("Esperando número…", "info");
-    bloquearCamposFijos();
+/* ======================== CONSULTAS RENIEC / SUNAT ======================== */
+function onDocChange() {
+  const doc = ($("#num_documento").val() || "").replace(/\D/g, '');
+  const tipo = $("#tipo_documento_view").val();
+
+  if (tipo === "DNI") {
+    if (doc.length === 8) consultarReniec(doc);
+    else {
+      $("#nombre").val("");
+      $("#direccion").val("");
+      setEstado("Esperando DNI...", "info");
+    }
+  } else if (tipo === "RUC") {
+    if (doc.length === 11) consultarSunat(doc);
+    else {
+      $("#nombre").val("");
+      $("#direccion").val("");
+      setEstado("Esperando RUC...", "info");
+    }
   }
 }
 
 function consultarReniec(dni) {
-  const $btn = $("#btnBuscarDoc");
-  const hadBtn = $btn.length > 0;
-  let oldHtml;
-  if (hadBtn) {
-    oldHtml = $btn.html();
-    $btn.prop("disabled", true).html('<i class="fa fa-spinner fa-spin"></i>');
-  }
-
-  setEstado("Consultando RENIEC…", "info");
+  loading(true);
 
   $.ajax({
     url: "../ajax/reniec.php",
@@ -437,22 +576,64 @@ function consultarReniec(dni) {
       } else {
         $("#nombre").val('');
         $("#direccion").val('');
-        bloquearCamposFijos();
-        setEstado((resp && (resp.message || resp.msg)) ? (resp.message || resp.msg) : "DNI no encontrado", "err");
+        desbloquearCamposFijos(); // Permitir manual
+        setEstado("DNI no encontrado. Ingrese manual.", "err");
       }
     },
-    error: function (xhr) {
-      $("#nombre").val('');
-      $("#direccion").val('');
-      bloquearCamposFijos();
-      setEstado("Error consultando servicio", "err");
+    error: function () {
+      desbloquearCamposFijos();
+      setEstado("Error consulta. Ingrese manual.", "err");
     },
     complete: function () {
-      if (hadBtn) {
-        $btn.prop("disabled", false).html(oldHtml);
-      }
+      loading(false);
     }
   });
+}
+
+function consultarSunat(ruc) {
+  loading(true);
+
+  $.ajax({
+    url: "../ajax/sunat.php",
+    type: "GET",
+    dataType: "json",
+    cache: false,
+    data: { ruc: ruc, _: Date.now() },
+    success: function (resp) {
+      if (resp && resp.success) {
+        // Normalizar respuesta
+        let nombre = resp.razon_social || resp.razonSocial || '';
+        let direccion = resp.direccion || '';
+
+        $("#nombre").val(nombre);
+        $("#direccion").val(direccion);
+        bloquearCamposFijos();
+        setEstado("Datos encontrados (SUNAT)", "ok");
+      } else {
+        $("#nombre").val('');
+        $("#direccion").val('');
+        desbloquearCamposFijos();
+        setEstado(resp.message || "RUC no encontrado. Ingrese manual.", "err");
+      }
+    },
+    error: function () {
+      desbloquearCamposFijos();
+      setEstado("Error consulta. Ingrese manual.", "err");
+    },
+    complete: function () {
+      loading(false);
+    }
+  });
+}
+
+function loading(isLoading) {
+  const $btn = $("#btnBuscarDoc");
+  if (isLoading) {
+    $btn.prop("disabled", true).html('<i class="fa fa-spinner fa-spin"></i>');
+    setEstado("Consultando...", "info");
+  } else {
+    $btn.prop("disabled", false).html('<i class="fa fa-search"></i>');
+  }
 }
 
 init();
