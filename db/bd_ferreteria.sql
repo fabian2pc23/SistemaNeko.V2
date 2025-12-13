@@ -1,3 +1,4 @@
+
 -- phpMyAdmin SQL Dump
 -- version 5.2.1
 -- https://www.phpmyadmin.net/
@@ -1460,7 +1461,7 @@ CREATE TABLE `v_usuario_roles` (
 --
 DROP TABLE IF EXISTS `v_caja_actual`;
 
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `v_caja_actual`  AS SELECT `c`.`idcaja` AS `idcaja`, `c`.`idusuario` AS `idusuario`, `u`.`nombre` AS `usuario`, `c`.`fecha_apertura` AS `fecha_apertura`, `c`.`fecha_cierre` AS `fecha_cierre`, `c`.`monto_inicial` AS `monto_inicial`, `c`.`monto_final` AS `monto_final`, `c`.`total_ventas` AS `total_ventas`, `c`.`total_compras` AS `total_compras`, `c`.`monto_inicial`+ `c`.`total_ventas` - `c`.`total_compras` AS `saldo_calculado`, `c`.`estado` AS `estado`, `c`.`observaciones` AS `observaciones`, count(distinct `v`.`idventa`) AS `num_ventas`, count(distinct `i`.`idingreso`) AS `num_compras` FROM (((`caja` `c` join `usuario` `u` on(`c`.`idusuario` = `u`.`idusuario`)) left join `venta` `v` on(`v`.`idcaja` = `c`.`idcaja` and `v`.`estado` = 'Aceptado')) left join `ingreso` `i` on(`i`.`idcaja` = `c`.`idcaja` and `i`.`estado` = 'Aceptado')) WHERE `c`.`estado` = 'Abierta' GROUP BY `c`.`idcaja` ;
+CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `v_caja_actual`  AS SELECT `c`.`idcaja` AS `idcaja`, `c`.`idusuario` AS `idusuario`, `u`.`nombre` AS `usuario`, `c`.`fecha_apertura` AS `fecha_apertura`, `c`.`fecha_cierre` AS `fecha_cierre`, `c`.`monto_inicial` AS `monto_inicial`, `c`.`monto_final` AS `monto_final`, `c`.`total_ventas` AS `total_ventas`, `c`.`total_compras` AS `total_compras`, `c`.`monto_inicial`+ `c`.`total_ventas` - `c`.`total_compras` AS `saldo_calculado`, `c`.`estado` AS `estado`, `c`.`observaciones` AS `observaciones`, count(distinct `v`.`idventa`) AS `num_ventas`, count(distinct `i`.`idingreso`) AS `num_compras` FROM (((`caja` `c` join `usuario` `u` on(`c`.`idusuario` = `u`.`idusuario`)) left join `venta` `v` on(`v`.`idcaja` = `c`.`idcaja` and `v`.`estado` = 'Aceptado')) left join `ingreso` `i` on(`i`.`idcaja` = `c`.`idcaja` and `i`.`estado` = 'Aceptado')) WHERE `c`.`estado` = 'Abierta' GROUP BY `c`.`idcaja` ;
 
 -- --------------------------------------------------------
 
@@ -1469,7 +1470,7 @@ CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW 
 --
 DROP TABLE IF EXISTS `v_historial_cajas`;
 
-CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `v_historial_cajas`  AS SELECT `c`.`idcaja` AS `idcaja`, `c`.`idusuario` AS `idusuario`, `u`.`nombre` AS `usuario`, cast(`c`.`fecha_apertura` as date) AS `fecha`, cast(`c`.`fecha_apertura` as time) AS `hora_apertura`, cast(`c`.`fecha_cierre` as time) AS `hora_cierre`, `c`.`monto_inicial` AS `monto_inicial`, `c`.`monto_final` AS `monto_final`, `c`.`total_ventas` AS `total_ventas`, `c`.`total_compras` AS `total_compras`, `c`.`monto_inicial`+ `c`.`total_ventas` - `c`.`total_compras` AS `saldo_calculado`, `c`.`monto_final`- (`c`.`monto_inicial` + `c`.`total_ventas` - `c`.`total_compras`) AS `diferencia`, `c`.`estado` AS `estado`, count(distinct `v`.`idventa`) AS `num_ventas`, count(distinct `i`.`idingreso`) AS `num_compras` FROM (((`caja` `c` join `usuario` `u` on(`c`.`idusuario` = `u`.`idusuario`)) left join `venta` `v` on(`v`.`idcaja` = `c`.`idcaja` and `v`.`estado` = 'Aceptado')) left join `ingreso` `i` on(`i`.`idcaja` = `c`.`idcaja` and `i`.`estado` = 'Aceptado')) GROUP BY `c`.`idcaja` ORDER BY `c`.`fecha_apertura` DESC ;
+CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `v_historial_cajas`  AS SELECT `c`.`idcaja` AS `idcaja`, `c`.`idusuario` AS `idusuario`, `u`.`nombre` AS `usuario`, cast(`c`.`fecha_apertura` as date) AS `fecha`, cast(`c`.`fecha_apertura` as time) AS `hora_apertura`, cast(`c`.`fecha_cierre` as time) AS `hora_cierre`, `c`.`monto_inicial` AS `monto_inicial`, `c`.`monto_final` AS `monto_final`, `c`.`total_ventas` AS `total_ventas`, `c`.`total_compras` AS `total_compras`, `c`.`monto_inicial`+ `c`.`total_ventas` - `c`.`total_compras` AS `saldo_calculado`, `c`.`monto_final`- (`c`.`monto_inicial` + `c`.`total_ventas` - `c`.`total_compras`) AS `diferencia`, `c`.`estado` AS `estado`, count(distinct `v`.`idventa`) AS `num_ventas`, count(distinct `i`.`idingreso`) AS `num_compras` FROM (((`caja` `c` join `usuario` `u` on(`c`.`idusuario` = `u`.`idusuario`)) left join `venta` `v` on(`v`.`idcaja` = `c`.`idcaja` and `v`.`estado` = 'Aceptado')) left join `ingreso` `i` on(`i`.`idcaja` = `c`.`idcaja` and `i`.`estado` = 'Aceptado')) GROUP BY `c`.`idcaja` ORDER BY `c`.`fecha_apertura` DESC ;
 
 -- --------------------------------------------------------
 
@@ -1478,7 +1479,7 @@ CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW 
 --
 DROP TABLE IF EXISTS `v_precios_actuales`;
 
-CREATE ALGORITHM=UNDEFINED DEFINER=`admin`@`localhost` SQL SECURITY DEFINER VIEW `v_precios_actuales`  AS SELECT `a`.`idarticulo` AS `idarticulo`, `a`.`nombre` AS `nombre`, `a`.`precio_venta` AS `precio_venta`, `a`.`precio_compra` AS `precio_compra`, `a`.`stock` AS `stock` FROM `articulo` AS `a` ;
+CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `v_precios_actuales`  AS SELECT `a`.`idarticulo` AS `idarticulo`, `a`.`nombre` AS `nombre`, `a`.`precio_venta` AS `precio_venta`, `a`.`precio_compra` AS `precio_compra`, `a`.`stock` AS `stock` FROM `articulo` AS `a` ;
 
 -- --------------------------------------------------------
 
@@ -1487,7 +1488,7 @@ CREATE ALGORITHM=UNDEFINED DEFINER=`admin`@`localhost` SQL SECURITY DEFINER VIEW
 --
 DROP TABLE IF EXISTS `v_roles_estadisticas`;
 
-CREATE ALGORITHM=UNDEFINED DEFINER=`admin`@`localhost` SQL SECURITY DEFINER VIEW `v_roles_estadisticas`  AS SELECT `r`.`id_rol` AS `id_rol`, `r`.`nombre` AS `rol_nombre`, `r`.`estado` AS `rol_activo`, count(distinct `ur`.`idusuario`) AS `total_usuarios`, count(distinct case when `ur`.`es_principal` = 1 then `ur`.`idusuario` end) AS `usuarios_principal`, count(distinct case when `ur`.`es_principal` = 0 then `ur`.`idusuario` end) AS `usuarios_secundario`, group_concat(distinct `p`.`nombre` order by `p`.`nombre` ASC separator ', ') AS `permisos` FROM (((`rol_usuarios` `r` left join `usuario_rol` `ur` on(`r`.`id_rol` = `ur`.`id_rol` and `ur`.`activo` = 1)) left join `rol_permiso` `rp` on(`r`.`id_rol` = `rp`.`id_rol`)) left join `permiso` `p` on(`rp`.`idpermiso` = `p`.`idpermiso`)) GROUP BY `r`.`id_rol`, `r`.`nombre`, `r`.`estado` ORDER BY `r`.`nombre` ASC ;
+CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `v_roles_estadisticas`  AS SELECT `r`.`id_rol` AS `id_rol`, `r`.`nombre` AS `rol_nombre`, `r`.`estado` AS `rol_activo`, count(distinct `ur`.`idusuario`) AS `total_usuarios`, count(distinct case when `ur`.`es_principal` = 1 then `ur`.`idusuario` end) AS `usuarios_principal`, count(distinct case when `ur`.`es_principal` = 0 then `ur`.`idusuario` end) AS `usuarios_secundario`, group_concat(distinct `p`.`nombre` order by `p`.`nombre` ASC separator ', ') AS `permisos` FROM (((`rol_usuarios` `r` left join `usuario_rol` `ur` on(`r`.`id_rol` = `ur`.`id_rol` and `ur`.`activo` = 1)) left join `rol_permiso` `rp` on(`r`.`id_rol` = `rp`.`id_rol`)) left join `permiso` `p` on(`rp`.`idpermiso` = `p`.`idpermiso`)) GROUP BY `r`.`id_rol`, `r`.`nombre`, `r`.`estado` ORDER BY `r`.`nombre` ASC ;
 
 -- --------------------------------------------------------
 
@@ -1496,7 +1497,7 @@ CREATE ALGORITHM=UNDEFINED DEFINER=`admin`@`localhost` SQL SECURITY DEFINER VIEW
 --
 DROP TABLE IF EXISTS `v_usuario_permisos_acumulados`;
 
-CREATE ALGORITHM=UNDEFINED DEFINER=`admin`@`localhost` SQL SECURITY DEFINER VIEW `v_usuario_permisos_acumulados`  AS SELECT DISTINCT `u`.`idusuario` AS `idusuario`, `u`.`nombre` AS `usuario_nombre`, `p`.`idpermiso` AS `idpermiso`, `p`.`nombre` AS `permiso_nombre` FROM (((`usuario` `u` join `usuario_rol` `ur` on(`u`.`idusuario` = `ur`.`idusuario`)) join `rol_permiso` `rp` on(`ur`.`id_rol` = `rp`.`id_rol`)) join `permiso` `p` on(`rp`.`idpermiso` = `p`.`idpermiso`)) WHERE `ur`.`activo` = 1 AND `u`.`condicion` = 1 ORDER BY `u`.`nombre` ASC, `p`.`nombre` ASC ;
+CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `v_usuario_permisos_acumulados`  AS SELECT DISTINCT `u`.`idusuario` AS `idusuario`, `u`.`nombre` AS `usuario_nombre`, `p`.`idpermiso` AS `idpermiso`, `p`.`nombre` AS `permiso_nombre` FROM (((`usuario` `u` join `usuario_rol` `ur` on(`u`.`idusuario` = `ur`.`idusuario`)) join `rol_permiso` `rp` on(`ur`.`id_rol` = `rp`.`id_rol`)) join `permiso` `p` on(`rp`.`idpermiso` = `p`.`idpermiso`)) WHERE `ur`.`activo` = 1 AND `u`.`condicion` = 1 ORDER BY `u`.`nombre` ASC, `p`.`nombre` ASC ;
 
 -- --------------------------------------------------------
 
@@ -1505,7 +1506,7 @@ CREATE ALGORITHM=UNDEFINED DEFINER=`admin`@`localhost` SQL SECURITY DEFINER VIEW
 --
 DROP TABLE IF EXISTS `v_usuario_resumen_roles`;
 
-CREATE ALGORITHM=UNDEFINED DEFINER=`admin`@`localhost` SQL SECURITY DEFINER VIEW `v_usuario_resumen_roles`  AS SELECT `u`.`idusuario` AS `idusuario`, `u`.`nombre` AS `usuario_nombre`, `u`.`email` AS `email`, `u`.`condicion` AS `condicion`, count(`ur`.`id_rol`) AS `total_roles`, group_concat(concat(case when `ur`.`es_principal` = 1 then '⭐ ' else '• ' end,`r`.`nombre`) order by `ur`.`es_principal` DESC,`r`.`nombre` ASC separator ', ') AS `roles_texto`, max(case when `ur`.`es_principal` = 1 then `r`.`nombre` end) AS `rol_principal`, max(case when `ur`.`es_principal` = 1 then `r`.`id_rol` end) AS `id_rol_principal` FROM ((`usuario` `u` left join `usuario_rol` `ur` on(`u`.`idusuario` = `ur`.`idusuario` and `ur`.`activo` = 1)) left join `rol_usuarios` `r` on(`ur`.`id_rol` = `r`.`id_rol`)) GROUP BY `u`.`idusuario`, `u`.`nombre`, `u`.`email`, `u`.`condicion` ORDER BY `u`.`nombre` ASC ;
+CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `v_usuario_resumen_roles`  AS SELECT `u`.`idusuario` AS `idusuario`, `u`.`nombre` AS `usuario_nombre`, `u`.`email` AS `email`, `u`.`condicion` AS `condicion`, count(`ur`.`id_rol`) AS `total_roles`, group_concat(concat(case when `ur`.`es_principal` = 1 then '⭐ ' else '• ' end,`r`.`nombre`) order by `ur`.`es_principal` DESC,`r`.`nombre` ASC separator ', ') AS `roles_texto`, max(case when `ur`.`es_principal` = 1 then `r`.`nombre` end) AS `rol_principal`, max(case when `ur`.`es_principal` = 1 then `r`.`id_rol` end) AS `id_rol_principal` FROM ((`usuario` `u` left join `usuario_rol` `ur` on(`u`.`idusuario` = `ur`.`idusuario` and `ur`.`activo` = 1)) left join `rol_usuarios` `r` on(`ur`.`id_rol` = `r`.`id_rol`)) GROUP BY `u`.`idusuario`, `u`.`nombre`, `u`.`email`, `u`.`condicion` ORDER BY `u`.`nombre` ASC ;
 
 -- --------------------------------------------------------
 
@@ -1514,7 +1515,7 @@ CREATE ALGORITHM=UNDEFINED DEFINER=`admin`@`localhost` SQL SECURITY DEFINER VIEW
 --
 DROP TABLE IF EXISTS `v_usuario_roles`;
 
-CREATE ALGORITHM=UNDEFINED DEFINER=`admin`@`localhost` SQL SECURITY DEFINER VIEW `v_usuario_roles`  AS SELECT `u`.`idusuario` AS `idusuario`, `u`.`nombre` AS `usuario_nombre`, `u`.`email` AS `email`, `u`.`condicion` AS `usuario_activo`, `r`.`id_rol` AS `id_rol`, `r`.`nombre` AS `rol_nombre`, `ur`.`es_principal` AS `es_principal`, `ur`.`activo` AS `rol_activo`, `ur`.`creado_en` AS `rol_asignado_en` FROM ((`usuario` `u` join `usuario_rol` `ur` on(`u`.`idusuario` = `ur`.`idusuario`)) join `rol_usuarios` `r` on(`ur`.`id_rol` = `r`.`id_rol`)) ORDER BY `u`.`nombre` ASC, `ur`.`es_principal` DESC, `r`.`nombre` ASC ;
+CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `v_usuario_roles`  AS SELECT `u`.`idusuario` AS `idusuario`, `u`.`nombre` AS `usuario_nombre`, `u`.`email` AS `email`, `u`.`condicion` AS `usuario_activo`, `r`.`id_rol` AS `id_rol`, `r`.`nombre` AS `rol_nombre`, `ur`.`es_principal` AS `es_principal`, `ur`.`activo` AS `rol_activo`, `ur`.`creado_en` AS `rol_asignado_en` FROM ((`usuario` `u` join `usuario_rol` `ur` on(`u`.`idusuario` = `ur`.`idusuario`)) join `rol_usuarios` `r` on(`ur`.`id_rol` = `r`.`id_rol`)) ORDER BY `u`.`nombre` ASC, `ur`.`es_principal` DESC, `r`.`nombre` ASC ;
 
 --
 -- Índices para tablas volcadas
